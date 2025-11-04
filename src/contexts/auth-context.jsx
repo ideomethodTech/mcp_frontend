@@ -14,10 +14,16 @@ import { useRouter } from 'next/navigation';
 const AuthContext = createContext();
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
+  // AUTH DISABLED: Provide mock user
+  const [user, setUser] = useState({
+    uid: 'mock-user-id',
+    email: 'user@example.com',
+    displayName: 'Demo User'
+  });
+  const [loading, setLoading] = useState(false);
   const router = useRouter();
 
+  /* Original auth logic - commented out for now
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setUser(user);
@@ -26,6 +32,7 @@ export function AuthProvider({ children }) {
 
     return () => unsubscribe();
   }, []);
+  */
 
   const signInWithGoogle = async () => {
     try {

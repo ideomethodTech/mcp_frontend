@@ -41,12 +41,19 @@ export default function SignupPage() {
     const router = useRouter();
     const { user, signInWithGoogle, signUpWithEmail } = useAuth();
 
+    // AUTH DISABLED: Always redirect to main app
+    useEffect(() => {
+        router.push('/');
+    }, [router]);
+
+    /* Original auth logic - commented out for now
     // Redirect if already logged in
     useEffect(() => {
         if (user) {
             router.push('/');
         }
     }, [user, router]);
+    */
     const { toast } = useToast();
     const [isLoading, setIsLoading] = useState(false);
     const [isGoogleLoading, setIsGoogleLoading] = useState(false);
