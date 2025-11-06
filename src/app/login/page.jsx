@@ -31,6 +31,7 @@ import { useAuth } from '@/contexts/auth-context';
 import { useToast } from '@/hooks/use-toast';
 import { Chrome } from 'lucide-react';
 import { useEffect } from 'react';
+import { useMutation } from '@tanstack/react-query';
 
 const formSchema = z.object({
   email: z.string().email('Please enter a valid email address.'),
@@ -38,80 +39,135 @@ const formSchema = z.object({
 });
 
 export default function LoginPage() {
-    const router = useRouter();
-    const { user, signInWithGoogle, signInWithEmail } = useAuth();
+  const router = useRouter();
+  const { user, signInWithGoogle, signInWithEmail } = useAuth();
 
-    // AUTH DISABLED: Always redirect to main app
-    useEffect(() => {
-        router.push('/');
-    }, [router]);
+  // AUTH DISABLED: Always redirect to main app
+  useEffect(() => {
+    router.push('/');
+  }, [router]);
 
-    /* Original auth logic - commented out for now
-    // Redirect if already logged in
-    useEffect(() => {
-        if (user) {
-            router.push('/');
-        }
-    }, [user, router]);
-    */
-    const { toast } = useToast();
-    const [isLoading, setIsLoading] = useState(false);
-    const [isGoogleLoading, setIsGoogleLoading] = useState(false);
-    const form = useForm({
-        resolver: zodResolver(formSchema),
-        defaultValues: {
-          email: '',
-          password: '',
-        },
+  async function loginWithEmailFn({ email, password }, signInWithEmail) {
+    const res = await signInWithEmail(email, password);
+    return res;
+  }
+
+  async function loginWithGoogleFn(signInWithGoogle) {
+    const res = await signInWithGoogle();
+    return res;
+  }
+
+  const emailLoginMutation = useMutation({
+    mutationFn: (values) => loginWithEmailFn(values, signInWithEmail),
+    onSuccess: () => {
+      toast({
+        title: 'Success',
+        description: 'Signed in successfully!',
       });
+      router.push('/');
+    },
+    onError: (error) => {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to sign in',
+        variant: 'destructive',
+      });
+    },
+  });
 
-    const handleGoogleSignIn = async () => {
-        setIsGoogleLoading(true);
-        try {
-            await signInWithGoogle();
-            toast({
-                title: 'Success',
-                description: 'Signed in successfully!',
-            });
-            router.push('/');
-        } catch (error) {
-            toast({
-                title: 'Error',
-                description: error.message || 'Failed to sign in with Google',
-                variant: 'destructive',
-            });
-        } finally {
-            setIsGoogleLoading(false);
-        }
-    };
+  const googleLoginMutation = useMutation({
+    mutationFn: () => loginWithGoogleFn(signInWithGoogle),
+    onSuccess: () => {
+      toast({
+        title: 'Success',
+        description: 'Signed in successfully!',
+      });
+      router.push('/');
+    },
+    onError: (error) => {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to sign in with Google',
+        variant: 'destructive',
+      });
+    },
+  });
 
-    async function onSubmit(values) {
-        setIsLoading(true);
-        try {
-            await signInWithEmail(values.email, values.password);
-            toast({
-                title: 'Success',
-                description: 'Signed in successfully!',
-            });
-            router.push('/');
-        } catch (error) {
-            toast({
-                title: 'Error',
-                description: error.message || 'Failed to sign in',
-                variant: 'destructive',
-            });
-        } finally {
-            setIsLoading(false);
-        }
-    }
-    
+
+  /* Original auth logic - commented out for now
+  // Redirect if already logged in
+  useEffect(() => {
+      if (user) {
+          router.push('/');
+      }
+  }, [user, router]);
+  */
+  const { toast } = useToast();
+  const [isLoading, setIsLoading] = useState(false);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const form = useForm({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      email: '',
+      password: '',
+    },
+  });
+
+  // const handleGoogleSignIn = async () => {
+  //   setIsGoogleLoading(true);
+  //   try {
+  //     await signInWithGoogle();
+  //     toast({
+  //       title: 'Success',
+  //       description: 'Signed in successfully!',
+  //     });
+  //     router.push('/');
+  //   } catch (error) {
+  //     toast({
+  //       title: 'Error',
+  //       description: error.message || 'Failed to sign in with Google',
+  //       variant: 'destructive',
+  //     });
+  //   } finally {
+  //     setIsGoogleLoading(false);
+  //   }
+  // };
+
+  // async function onSubmit(values) {
+  //   setIsLoading(true);
+  //   try {
+  //     await signInWithEmail(values.email, values.password);
+  //     toast({
+  //       title: 'Success',
+  //       description: 'Signed in successfully!',
+  //     });
+  //     router.push('/');
+  //   } catch (error) {
+  //     toast({
+  //       title: 'Error',
+  //       description: error.message || 'Failed to sign in',
+  //       variant: 'destructive',
+  //     });
+  //   } finally {
+  //     setIsLoading(false);
+  //   }
+  // }
+
+  const handleGoogleSignIn = () => {
+    googleLoginMutation.mutate();
+  };
+
+  const onSubmit = (values) => {
+    emailLoginMutation.mutate(values);
+  };
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
       <Card className="w-full max-w-sm">
         <CardHeader className="text-center">
-            <div className="flex justify-center mb-4">
-                <Logo className="h-10 w-10 text-primary" />
-            </div>
+          <div className="flex justify-center mb-4">
+            <Logo className="h-10 w-10 text-primary" />
+          </div>
           <CardTitle className="font-headline text-2xl">Welcome Back</CardTitle>
           <CardDescription>Enter your credentials to access your account.</CardDescription>
         </CardHeader>
@@ -144,10 +200,10 @@ export default function LoginPage() {
                   </FormItem>
                 )}
               />
-               <Button type="submit" className="w-full" disabled={isLoading || isGoogleLoading}>
-                    {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    Log In
-                </Button>
+              <Button type="submit" className="w-full" disabled={isLoading || isGoogleLoading}>
+                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Log In
+              </Button>
             </form>
           </Form>
           <div className="relative my-4">
@@ -176,12 +232,12 @@ export default function LoginPage() {
           </Button>
         </CardContent>
         <CardFooter className="justify-center">
-            <p className="text-sm text-muted-foreground">
-                Don&apos;t have an account?{' '}
-                <Button variant="link" asChild className="p-0">
-                    <Link href="/signup">Sign up</Link>
-                </Button>
-            </p>
+          <p className="text-sm text-muted-foreground">
+            Don&apos;t have an account?{' '}
+            <Button variant="link" asChild className="p-0">
+              <Link href="/signup">Sign up</Link>
+            </Button>
+          </p>
         </CardFooter>
       </Card>
     </div>
