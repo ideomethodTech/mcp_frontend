@@ -22,7 +22,7 @@ export default function DashboardPage() {
           <div className="inline-block px-4 py-1.5 rounded-full bg-primary/10 text-primary text-sm font-medium mb-2">
             ✨ AI-Powered Educational Tools
           </div>
-          <h1 className="text-5xl md:text-6xl font-bold bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent leading-tight">
+          <h1 className="text-5xl md:text-6xl py-1.5 font-bold bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent leading-tight">
             Welcome to AI Learning Hub
           </h1>
           <p className="text-xl text-muted-foreground max-w-2xl leading-relaxed">
