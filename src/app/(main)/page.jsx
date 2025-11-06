@@ -26,7 +26,7 @@ export default function DashboardPage() {
         {TOOLS.map((tool) => {
           const Icon = tool.icon;
           return (
-            <Card key={tool.href} className="flex flex-col">
+            <Card key={tool.href} className="flex flex-col h-60">
               <CardHeader className='flex-1'>
                 <div className="flex items-center gap-4 mb-2">
                   <div className="p-2 bg-muted rounded-lg">
