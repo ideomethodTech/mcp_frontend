@@ -6,10 +6,6 @@ import { useEffect } from 'react';
 import { Loader2 } from 'lucide-react';
 
 export function ProtectedRoute({ children }) {
-  // AUTH DISABLED: Always allow access
-  return children;
-  
-  /* Original auth logic - commented out for now
   const { user, loading } = useAuth();
   const router = useRouter();
 
@@ -35,6 +31,5 @@ export function ProtectedRoute({ children }) {
   }
 
   return children;
-  */
 }
 
