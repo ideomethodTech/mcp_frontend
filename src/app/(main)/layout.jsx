@@ -19,7 +19,7 @@ export default function AppLayout({
   return (
     <ProtectedRoute>
       <SidebarProvider>
-        <Sidebar>
+        {/* <Sidebar>
           <SidebarHeader>
             <div className="flex items-center gap-2 p-2">
               <Logo className="w-8 h-8 text-primary" />
@@ -29,7 +29,7 @@ export default function AppLayout({
           <SidebarContent>
             <MainNav />
           </SidebarContent>
-        </Sidebar>
+        </Sidebar> */}
         <SidebarInset>
           <div className="flex flex-col h-screen">
             <Header />

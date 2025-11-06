@@ -1,8 +1,10 @@
 
 'use client';
 
-import { SidebarTrigger } from '@/components/ui/sidebar';
+import { SidebarMenuButton, SidebarMenuItem, SidebarTrigger } from '@/components/ui/sidebar';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import Link from 'next/link';
+
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -13,9 +15,15 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useAuth } from '@/contexts/auth-context';
 import { LogOut } from 'lucide-react';
+import { Separator } from '@radix-ui/react-separator';
+import { NAV_ITEMS } from '@/lib/constants';
+import React from 'react';
+import { usePathname } from 'next/navigation';
+import { Logo } from './icons';
 
 export function Header() {
   const { user, signOut } = useAuth();
+  const pathname = usePathname();
 
   const handleLogout = async () => {
     try {
@@ -27,10 +35,10 @@ export function Header() {
 
   const userInitials = user?.displayName
     ? user.displayName
-        .split(' ')
-        .map((n) => n[0])
-        .join('')
-        .toUpperCase()
+      .split(' ')
+      .map((n) => n[0])
+      .join('')
+      .toUpperCase()
     : user?.email?.[0]?.toUpperCase() || 'U';
 
   return (
@@ -40,6 +48,34 @@ export function Header() {
       </div>
       <div className="flex-1">
         {/* This is a spacer */}
+        <div style={{ display: "flex", height: 20, alignItems: "center", listStyleType: "none" }}>
+          <div className="flex items-center gap-2 p-2">
+            <Logo className="w-8 h-8 text-primary" />
+            <span className="font-headline text-lg font-semibold">AI Hub</span>
+          </div>
+          <Separator orientation="vertical" className="mx-8" />
+
+          {NAV_ITEMS.map((item, index) => (
+            <React.Fragment key={index}>
+              <SidebarMenuItem key={item.href}>
+                <SidebarMenuButton
+                  asChild
+                  isActive={pathname === item.href}
+                  tooltip={item.title}
+                >
+                  <Link href={item.href}>
+                    <item.icon />
+                    <span>{item.title}</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              {index !== NAV_ITEMS.length - 1 && (
+                <Separator orientation="vertical" className="mx-4" />
+              )}
+            </React.Fragment>
+          ))}
+        </div>
+
       </div>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
