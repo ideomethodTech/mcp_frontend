@@ -63,17 +63,10 @@ export default function SignupPage() {
         setIsGoogleLoading(true);
         try {
             await signInWithGoogle();
-            toast({
-                title: 'Success',
-                description: 'Account created successfully!',
-            });
             router.push('/');
         } catch (error) {
-            toast({
-                title: 'Error',
-                description: error.message || 'Failed to sign up with Google',
-                variant: 'destructive',
-            });
+            // Error toast is handled in auth context
+            console.error('Google sign up failed:', error);
         } finally {
             setIsGoogleLoading(false);
         }
@@ -83,17 +76,10 @@ export default function SignupPage() {
         setIsLoading(true);
         try {
             await signUpWithEmail(values.email, values.password);
-            toast({
-                title: 'Success',
-                description: 'Account created successfully!',
-            });
             router.push('/');
         } catch (error) {
-            toast({
-                title: 'Error',
-                description: error.message || 'Failed to create account',
-                variant: 'destructive',
-            });
+            // Error toast is handled in auth context
+            console.error('Email sign up failed:', error);
         } finally {
             setIsLoading(false);
         }

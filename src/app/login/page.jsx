@@ -62,17 +62,10 @@ export default function LoginPage() {
         setIsGoogleLoading(true);
         try {
             await signInWithGoogle();
-            toast({
-                title: 'Success',
-                description: 'Signed in successfully!',
-            });
             router.push('/');
         } catch (error) {
-            toast({
-                title: 'Error',
-                description: error.message || 'Failed to sign in with Google',
-                variant: 'destructive',
-            });
+            // Error toast is handled in auth context
+            console.error('Google sign in failed:', error);
         } finally {
             setIsGoogleLoading(false);
         }
@@ -82,17 +75,10 @@ export default function LoginPage() {
         setIsLoading(true);
         try {
             await signInWithEmail(values.email, values.password);
-            toast({
-                title: 'Success',
-                description: 'Signed in successfully!',
-            });
             router.push('/');
         } catch (error) {
-            toast({
-                title: 'Error',
-                description: error.message || 'Failed to sign in',
-                variant: 'destructive',
-            });
+            // Error toast is handled in auth context
+            console.error('Email sign in failed:', error);
         } finally {
             setIsLoading(false);
         }
