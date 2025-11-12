@@ -1,94 +1,254 @@
 import api from "./index";
 import ENDPOINTS from "./endpoints";
 
-// AI Generation Functions
-export const generateContent = async (data) => {
+// Helper to get auth token
+const getAuthHeaders = () => {
+  const token = localStorage.getItem("token");
+  return token ? { Authorization: `Bearer ${token}` } : {};
+};
+
+// ==================== Authentication Functions ====================
+export const loginUser = async ({ email, password }) => {
   const response = await api({
-    url: ENDPOINTS.GENERATE,
     method: "POST",
-    data: {
-      book_id: data.book_id || "",
-      chat_id: data.chat_id || "",
-      uid: data.uid || "",
-      prompt: data.prompt || ""
-    },
-  });
-  return response.data;
-};
-
-// Book Management Functions
-export const uploadBook = async (data) => {
-  const response = await api({
-    url: ENDPOINTS.UPLOAD_BOOK,
-    method: "POST",
-    data: {
-      book_url: data.book_url,
-      book_name: data.book_name,
-      uid: data.uid
-    },
-  });
-  return response.data;
-};
-
-export const getBook = async (data) => {
-  const response = await api({
-    url: ENDPOINTS.GET_BOOK,
-    method: "POST",
-    data: {
-      book_url: data.book_url,
-      book_name: data.book_name,
-      uid: data.uid
-    },
-  });
-  return response.data;
-};
-
-// Chat Management Functions
-export const createChat = async (data) => {
-  const response = await api({
-    url: ENDPOINTS.CREATE_CHAT,
-    method: "POST",
-    data: {
-      chat_id: data.chat_id || "",
-      chat_title: data.chat_title,
-      uid: data.uid
-    },
-  });
-  return response.data;
-};
-
-export const getUserChats = async (uid) => {
-  if (!uid) throw new Error("User ID is required");
-  const response = await api({
-    url: `${ENDPOINTS.GET_USER_CHATS}/${uid}`,
-    method: "GET",
-  });
-  return response.data;
-};
-
-export const getChatDetails = async (uid, chatId) => {
-  if (!uid || !chatId) throw new Error("User ID and Chat ID are required");
-  const response = await api({
-    url: `${ENDPOINTS.GET_CHAT_DETAILS}/${uid}/${chatId}`,
-    method: "GET",
-  });
-  return response.data;
-};
-
-// Authentication Functions
-export const loginUser = async (data) => {
-  const response = await api({
     url: ENDPOINTS.LOGIN,
+    data: { email, password },
+  });
+
+  if (response.data.token) {
+    localStorage.setItem("token", response.data.token);
+  }
+
+  return response.data;
+};
+
+export const registerUser = async ({ name, email, password }) => {
+  const response = await api({
     method: "POST",
+    url: ENDPOINTS.REGISTER,
+    data: { name, email, password },
+  });
+
+  if (response.data.token) {
+    localStorage.setItem("token", response.data.token);
+  }
+
+  return response.data;
+};
+
+// ==================== AI Generation Functions ====================
+export const generateContent = async ({
+  chat_id,
+  query,
+  llm_model_id,
+  document_list = [],
+  reranker = false,
+}) => {
+  const response = await api({
+    method: "POST",
+    url: ENDPOINTS.GENERATE,
+    headers: getAuthHeaders(),
     data: {
-      role: data.role,
-      uid: data.uid || "",
-      email: data.email,
-      username: data.username,
-      access_token: data.access_token || "",
-      refresh_token: data.refresh_token || "",
-      profile_details: data.profile_details || {}
+      chat_id,
+      query,
+      llm_model_id,
+      ...(document_list.length > 0 && { document_list }),
+      reranker,
     },
+  });
+  return response.data;
+};
+
+// ==================== Document Management Functions ====================
+export const uploadDocument = async (files) => {
+  const formData = new FormData();
+
+  // Handle single or multiple files
+  if (Array.isArray(files)) {
+    files.forEach((file) => formData.append("files", file));
+  } else {
+    formData.append("files", files);
+  }
+
+  const response = await api({
+    method: "POST",
+    url: ENDPOINTS.UPLOAD_DOCUMENT,
+    headers: {
+      ...getAuthHeaders(),
+      "Content-Type": "multipart/form-data",
+    },
+    data: formData,
+  });
+  return response.data;
+};
+
+export const getDocuments = async () => {
+  const response = await api({
+    method: "GET",
+    url: ENDPOINTS.GET_DOCUMENTS,
+    headers: getAuthHeaders(),
+  });
+  return response.data;
+};
+
+export const deleteDocument = async (document_id) => {
+  const response = await api({
+    method: "DELETE",
+    url: `${ENDPOINTS.DELETE_DOCUMENT}/${document_id}`,
+    headers: getAuthHeaders(),
+  });
+  return response.data;
+};
+
+// ==================== Chat Management Functions ====================
+export const createChat = async ({ title, llm_model_id }) => {
+  const response = await api({
+    method: "POST",
+    url: ENDPOINTS.CREATE_CHAT,
+    headers: getAuthHeaders(),
+    data: { title, llm_model_id },
+  });
+  return response.data;
+};
+
+export const getUserChats = async () => {
+  const response = await api({
+    method: "GET",
+    url: ENDPOINTS.LIST_CHATS,
+    headers: getAuthHeaders(),
+  });
+  return response.data;
+};
+
+export const getChatMessages = async (chat_id) => {
+  const response = await api({
+    method: "GET",
+    url: `${ENDPOINTS.GET_MESSAGES}/${chat_id}`,
+    headers: getAuthHeaders(),
+  });
+  return response.data;
+};
+
+export const updateChatModel = async ({ chat_id, new_llm_model_id }) => {
+  const response = await api({
+    method: "PUT",
+    url: ENDPOINTS.UPDATE_CHAT_MODEL,
+    headers: getAuthHeaders(),
+    data: { chat_id, new_llm_model_id },
+  });
+  return response.data;
+};
+
+export const updateChatTitle = async ({ chat_id, new_title }) => {
+  const response = await api({
+    method: "POST",
+    url: ENDPOINTS.UPDATE_CHAT_TITLE,
+    headers: getAuthHeaders(),
+    data: { chat_id, new_title },
+  });
+  return response.data;
+};
+
+// ==================== Worksheet Functions ====================
+export const generateWorksheet = async ({
+  document_id,
+  chapter_id,
+  difficulty,
+  mcq_num,
+  fill_ups_num,
+  brief_qa_num,
+  true_false_num,
+  match_following_num,
+}) => {
+  const response = await api({
+    method: "POST",
+    url: ENDPOINTS.GENERATE_WORKSHEET,
+    headers: getAuthHeaders(),
+    data: {
+      document_id,
+      chapter_id,
+      difficulty,
+      mcq_num,
+      fill_ups_num,
+      brief_qa_num,
+      true_false_num,
+      match_following_num,
+    },
+  });
+  return response.data;
+};
+
+export const getWorksheets = async () => {
+  const response = await api({
+    method: "GET",
+    url: ENDPOINTS.GET_WORKSHEETS,
+    headers: getAuthHeaders(),
+  });
+  return response.data;
+};
+
+export const getWorksheet = async (worksheet_id) => {
+  const response = await api({
+    method: "GET",
+    url: `${ENDPOINTS.GET_WORKSHEET}/${worksheet_id}`,
+    headers: getAuthHeaders(),
+  });
+  return response.data;
+};
+
+// ==================== Learning Functions ====================
+export const createLearning = async ({
+  document_id,
+  chapter_id,
+  difficulty,
+  mcq_num,
+  fill_ups_num,
+  brief_qa_num,
+  true_false_num,
+  match_following_num,
+}) => {
+  const response = await api({
+    method: "POST",
+    url: ENDPOINTS.CREATE_LEARNING,
+    headers: getAuthHeaders(),
+    data: {
+      document_id,
+      chapter_id,
+      difficulty,
+      mcq_num,
+      fill_ups_num,
+      brief_qa_num,
+      true_false_num,
+      match_following_num,
+    },
+  });
+  return response.data;
+};
+
+export const getLearnings = async () => {
+  const response = await api({
+    method: "GET",
+    url: ENDPOINTS.GET_LEARNINGS,
+    headers: getAuthHeaders(),
+  });
+  return response.data;
+};
+
+export const getLearning = async (learning_id) => {
+  const response = await api({
+    method: "GET",
+    url: `${ENDPOINTS.GET_LEARNING}/${learning_id}`,
+    headers: getAuthHeaders(),
+  });
+  return response.data;
+};
+
+export const updateLearningTitle = async ({ learning_id, new_title }) => {
+  const response = await api({
+    method: "POST",
+    url: ENDPOINTS.UPDATE_LEARNING_TITLE,
+    headers: getAuthHeaders(),
+    data: { learning_id, new_title },
   });
   return response.data;
 };

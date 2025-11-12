@@ -1,13 +1,10 @@
-'use client';
-
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
-import { useRouter } from 'next/navigation';
-import { useState } from 'react';
-import Link from 'next/link';
-
-import { Button } from '@/components/ui/button';
+"use client";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -15,7 +12,7 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-} from '@/components/ui/card';
+} from "@/components/ui/card";
 import {
   Form,
   FormControl,
@@ -23,76 +20,65 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
-import { Logo } from '@/components/icons';
-import { Loader2, Chrome } from 'lucide-react';
-import { useAuth } from '@/contexts/auth-context';
-import { useToast } from '@/hooks/use-toast';
-import { useEffect } from 'react';
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Logo } from "@/components/icons";
+import { Loader2 } from "lucide-react";
+import { useRegister } from "@/lib/api/queries";
+import { toast } from "react-toastify";
 
 const formSchema = z.object({
-  name: z.string().min(2, 'Name must be at least 2 characters.'),
-  email: z.string().email('Please enter a valid email address.'),
-  password: z.string().min(6, 'Password must be at least 6 characters.'),
+  name: z.string().min(2, "Name must be at least 2 characters."),
+  email: z.string().email("Please enter a valid email address."),
+  password: z.string().min(6, "Password must be at least 6 characters."),
 });
 
 export default function SignupPage() {
-    const router = useRouter();
-    const { user, signInWithGoogle, signUpWithEmail } = useAuth();
+  const router = useRouter();
+  const registerMutation = useRegister();
 
-    // Redirect if already logged in
-    useEffect(() => {
-        if (user) {
-            router.push('/');
-        }
-    }, [user, router]);
-    const { toast } = useToast();
-    const [isLoading, setIsLoading] = useState(false);
-    const [isGoogleLoading, setIsGoogleLoading] = useState(false);
-    const form = useForm({
-        resolver: zodResolver(formSchema),
-        defaultValues: {
-          name: '',
-          email: '',
-          password: '',
-        },
+  const form = useForm({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      name: "",
+      email: "",
+      password: "",
+    },
+  });
+
+  async function onSubmit(values) {
+    try {
+      await registerMutation.mutateAsync({
+        name: values.name,
+        email: values.email,
+        password: values.password,
       });
 
-    const handleGoogleSignIn = async () => {
-        setIsGoogleLoading(true);
-        try {
-            await signInWithGoogle();
-            router.push('/');
-        } catch (error) {
-            // Error toast is handled in auth context
-            console.error('Google sign up failed:', error);
-        } finally {
-            setIsGoogleLoading(false);
-        }
-    };
+      toast.success("Account created successfully!");
+      router.push("/");
+    } catch (error) {
+      // SPECIFIC ERROR MESSAGES:
+      let errorMessage = "Failed to create account. Please try again.";
 
-    async function onSubmit(values) {
-        setIsLoading(true);
-        try {
-            await signUpWithEmail(values.email, values.password);
-            router.push('/');
-        } catch (error) {
-            // Error toast is handled in auth context
-            console.error('Email sign up failed:', error);
-        } finally {
-            setIsLoading(false);
-        }
+      if (error.response?.data?.message?.includes("already exists")) {
+        errorMessage = "An account with this email already exists.";
+      } else if (error.response?.status === 400) {
+        errorMessage = "Invalid email or password format.";
+      }
+      toast.error(errorMessage);
     }
-    
+  }
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
       <Card className="w-full max-w-sm">
         <CardHeader className="text-center">
-            <div className="flex justify-center mb-4">
-                <Logo className="h-10 w-10 text-primary" />
-            </div>
-          <CardTitle className="font-headline text-2xl">Create an Account</CardTitle>
+          <div className="flex justify-center mb-4">
+            <Logo className="h-10 w-10 text-primary" />
+          </div>
+          <CardTitle className="font-headline text-2xl">
+            Create an Account
+          </CardTitle>
           <CardDescription>Enter your details to get started.</CardDescription>
         </CardHeader>
         <CardContent>
@@ -118,7 +104,11 @@ export default function SignupPage() {
                   <FormItem>
                     <FormLabel>Email</FormLabel>
                     <FormControl>
-                      <Input type="email" placeholder="you@example.com" {...field} />
+                      <Input
+                        type="email"
+                        placeholder="you@example.com"
+                        {...field}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -131,50 +121,36 @@ export default function SignupPage() {
                   <FormItem>
                     <FormLabel>Password</FormLabel>
                     <FormControl>
-                      <Input type="password" placeholder="••••••••" {...field} />
+                      <Input
+                        type="password"
+                        placeholder="••••••••"
+                        {...field}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-               <Button type="submit" className="w-full" disabled={isLoading || isGoogleLoading}>
-                    {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    Create Account
-                </Button>
+              <Button
+                type="submit"
+                className="w-full"
+                disabled={registerMutation.isLoading}
+              >
+                {registerMutation.isLoading && (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                )}
+                Create Account
+              </Button>
             </form>
           </Form>
-          <div className="relative my-4">
-            <div className="absolute inset-0 flex items-center">
-              <span className="w-full border-t" />
-            </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-background px-2 text-muted-foreground">
-                Or continue with
-              </span>
-            </div>
-          </div>
-          <Button
-            type="button"
-            variant="outline"
-            className="w-full"
-            onClick={handleGoogleSignIn}
-            disabled={isLoading || isGoogleLoading}
-          >
-            {isGoogleLoading ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            ) : (
-              <Chrome className="mr-2 h-4 w-4" />
-            )}
-            Continue with Google
-          </Button>
         </CardContent>
         <CardFooter className="justify-center">
-            <p className="text-sm text-muted-foreground">
-                Already have an account?{' '}
-                <Button variant="link" asChild className="p-0">
-                    <Link href="/login">Log in</Link>
-                </Button>
-            </p>
+          <p className="text-sm text-muted-foreground">
+            Already have an account?{" "}
+            <Button variant="link" asChild className="p-0">
+              <Link href="/login">Log in</Link>
+            </Button>
+          </p>
         </CardFooter>
       </Card>
     </div>
