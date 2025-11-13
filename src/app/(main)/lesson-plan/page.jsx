@@ -32,7 +32,6 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
-import Title from '@/app/componentsV2/ui/title';
 import History from '@/app/componentsV2/ui/history';
 
 const formSchema = z.object({
@@ -110,9 +109,6 @@ function LessonPlanDetails({ item }) {
   return (
     <div className="lg:col-span-3">
       <div className="rounded-2xl border border-border bg-card p-8 shadow-[var(--shadow-md)]">
-        {/* Title Section */}
-        <Title item={item}></Title>
-
         {/* Lesson Plan Details */}
         <div className="space-y-6">
           <div className="rounded-xl bg-gradient-to-br from-primary/5 to-accent/5 p-6 border border-primary/10">

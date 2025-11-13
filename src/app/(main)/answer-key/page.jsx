@@ -93,7 +93,6 @@ const mockData = {
 }
 
 function AnswerKeyDetails({ item }) {
-  console.log(item.content);
   return(
     <div className="lg:col-span-3">
           <div className="rounded-2xl border border-border bg-card p-8 shadow-[var(--shadow-md)]">
@@ -187,26 +186,6 @@ function AnswerKeyDetails({ item }) {
             </div>
             </div>
             </div>
-  );
-  return (
-    <div className="space-y-6">
-      <PageHeader
-        title={item.title}
-        description={`Answer Key for "${item.chapter}" from the book "${item.book}"`}
-        icon={KeyRound}
-      />
-      <Card>
-        <CardHeader>
-          <CardTitle>Generated Answer Key</CardTitle>
-          <CardDescription>
-            The AI-generated answer key for the worksheet based on &quot;{item.chapter}&quot;.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="prose dark:prose-invert max-w-none text-sm text-muted-foreground whitespace-pre-wrap">{item.content}</div>
-        </CardContent>
-      </Card>
-    </div>
   );
 }
 

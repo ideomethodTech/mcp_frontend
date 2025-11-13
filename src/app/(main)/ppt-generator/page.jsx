@@ -189,54 +189,6 @@ function PptDetails({ item }) {
       </div>
     </div>
   );
-  return (
-    <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div>
-              <CardTitle className="font-headline text-2xl">{item.title}</CardTitle>
-              <CardDescription>{item.details.subtitle}</CardDescription>
-            </div>
-            <Button size="lg">
-              <Download className="mr-2" />
-              Download PPT
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
-            <Card className="p-4 bg-primary/10">
-              <Layers className="w-6 h-6 mx-auto mb-2 text-primary" />
-              <p className="text-2xl font-bold text-primary">{item.slides}</p>
-              <p className="text-sm text-muted-foreground">Slides</p>
-            </Card>
-            <Card className="p-4 bg-purple-500/10">
-              <Palette className="w-6 h-6 mx-auto mb-2 text-purple-600" />
-              <p className="text-2xl font-bold text-purple-600">
-                {item.details.theme}
-              </p>
-              <p className="text-sm text-muted-foreground">Theme</p>
-            </Card>
-            <Card className="p-4 bg-green-500/10">
-              <FileIcon className="w-6 h-6 mx-auto mb-2 text-green-600" />
-              <p className="text-2xl font-bold text-green-600">PPTX</p>
-              <p className="text-sm text-muted-foreground">Format</p>
-            </Card>
-            <Card className="p-4 bg-orange-500/10">
-              <FileImage className="w-6 h-6 mx-auto mb-2 text-orange-600" />
-              <p className="text-2xl font-bold text-orange-600">Standard</p>
-              <p className="text-sm text-muted-foreground">Aspect Ratio</p>
-            </Card>
-          </div>
-          <div className="mt-6 text-xs text-muted-foreground space-y-1">
-            <p><span className="font-semibold">Generated on:</span> {format(item.date, 'MMMM dd, yyyy')}</p>
-            <p><span className="font-semibold">Filename:</span> <span className="break-all">{item.details.filename}</span></p>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
-  );
 }
 
 
@@ -358,29 +310,4 @@ export default function PptGeneratorPage() {
         )}
       </div>
     </div>)
-  return (
-    <div className="grid grid-cols-1 md:grid-cols-[300px_1fr] h-full">
-      {/* Left Sidebar for history */}
-      <History selectedItem={selectedPpt} setSelectedItem={setSelectedPpt} historyData={mockHistory} />
-
-      {/* Main Content Area */}
-      <main className="p-6">
-        {isLoading ? (
-          <div className="flex items-center justify-center h-full">
-            <div className="text-center">
-              <Loader2 className="mx-auto h-12 w-12 animate-spin text-primary mb-4" />
-              <h3 className="text-lg font-medium text-foreground">Generating Presentation...</h3>
-              <p className="text-sm text-muted-foreground">
-                Please wait while the AI crafts your slides.
-              </p>
-            </div>
-          </div>
-        ) : selectedPpt ? (
-          <PptDetails item={selectedPpt} />
-        ) : (
-          <NewPptForm onGenerate={handleGenerate} />
-        )}
-      </main>
-    </div>
-  );
 }
