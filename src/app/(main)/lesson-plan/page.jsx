@@ -32,6 +32,8 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
+import Title from '@/app/componentsV2/ui/title';
+import History from '@/app/componentsV2/ui/history';
 
 const formSchema = z.object({
   topicName: z.string().min(3, 'Topic name must be at least 3 characters.'),
@@ -109,14 +111,7 @@ function LessonPlanDetails({ item }) {
     <div className="lg:col-span-3">
       <div className="rounded-2xl border border-border bg-card p-8 shadow-[var(--shadow-md)]">
         {/* Title Section */}
-        <div className="flex items-start justify-between mb-6">
-          <div className="flex items-center gap-3">
-            <FileText className="h-6 w-6 text-primary" />
-            <div>
-              <h2 className="text-2xl font-bold text-foreground">{item.title}</h2>
-            </div>
-          </div>
-        </div>
+        <Title item={item}></Title>
 
         {/* Lesson Plan Details */}
         <div className="space-y-6">
@@ -175,6 +170,7 @@ function NewLessonPlanForm({ onGenerate }) {
   });
 
   return (
+    <div className="lg:col-span-3">
       <div className="flex justify-center items-center ">
         <Card >
           <CardHeader>
@@ -242,6 +238,7 @@ function NewLessonPlanForm({ onGenerate }) {
           </CardContent>
         </Card>
       </div>
+    </div>
   )
 }
 
@@ -309,21 +306,11 @@ export default function LessonPlanPage() {
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         {/* {History} */}
-        <div className="lg:col-span-1">
-          <div className="rounded-2xl border border-border bg-card p-6 shadow-[var(--shadow-md)]">
-            <Button className="w-full mb-4 bg-gradient-to-r from-primary to-accent hover:opacity-90 transition-opacity" variant="outline" onClick={() => setSelectedItem(null)}>
-              <Plus className="h-4 w-4 mr-2" /> New Lesson Plan
-            </Button>
-            <div className="space-y-2">
-              <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">
-                History
-              </p>
-              {mockHistory.map((item) => (
-                showHistory(item)
-              ))}
-            </div>
-          </div>
-        </div>
+   <History
+                  selectedItem={selectedItem}
+                  setSelectedItem={setSelectedItem}
+                  historyData={mockHistory}
+                />
         {/* Lesson Plan Content */}
         {isLoading ? (
           <div className="flex items-center justify-center h-full">

@@ -74,7 +74,7 @@ const WorksheetItem = ({ item, questions }) => {
                             <div className="space-y-8">
                                 <h3 className="text-lg font-semibold mb-4">A. Multiple Choice Questions</h3>
 
-                                {questions.map((question, index) => (
+                                {questions?.map((question, index) => (
                                     <div key={index} className="space-y-4">
                                         <div>
                                             <p className="font-medium mb-2">
