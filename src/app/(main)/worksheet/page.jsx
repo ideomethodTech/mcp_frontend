@@ -46,6 +46,7 @@ import {
   useGetWorksheets,
   useGetDocuments,
 } from "@/lib/api/queries";
+import { useQueryClient } from "@tanstack/react-query";
 
 const formSchema = z.object({
   book: z.string().nonempty("Please select a book."),
@@ -288,7 +289,7 @@ export default function WorksheetPage() {
   const generateMutation = useGenerateWorksheet();
   const { data: worksheets, isLoading: isLoadingHistory } = useGetWorksheets();
   const { data: documents, isLoading: isLoadingDocs } = useGetDocuments();
-
+  const queryClient = useQueryClient()
   const handleGenerate = async (values) => {
     try {
       const result = await generateMutation.mutateAsync({
@@ -301,7 +302,7 @@ export default function WorksheetPage() {
         true_false_num: 5,
         match_following_num: 5,
       });
-
+      queryClient.invalidateQueries({ queryKey: ["worksheets"] });
       setSelectedItem(result);
     } catch (error) {
       console.error("Failed to generate worksheet:", error);

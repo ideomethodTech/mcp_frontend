@@ -35,6 +35,7 @@ import {
   useGetDocuments,
 } from "@/lib/api/queries";
 import { toast } from "react-toastify";
+import { useQueryClient } from "@tanstack/react-query";
 
 const ChatMessage = ({ role, content, isLoading = false }) => {
   const isUser = role === "user";
@@ -82,7 +83,7 @@ function ChatInterface({ chatSession }) {
   const [messages, setMessages] = useState(chatSession?.messages || []);
   const [input, setInput] = useState("");
   const generateMutation = useGenerateContent();
-
+  const queryClient = useQueryClient();
   const { data: currentChatMessages } = useGetChatMessages(chatSession?.id);
 
   useEffect(() => {
@@ -111,6 +112,10 @@ function ChatInterface({ chatSession }) {
         content: response.answer || response.response,
       };
       setMessages([...newMessages, aiMessage]);
+      queryClient.invalidateQueries({
+        queryKey: ["chatMessages", chatSession.id],
+      });
+      queryClient.invalidateQueries({ queryKey: ["chats"] });
     } catch (error) {
       console.error("Failed to send message:", error);
       toast.error("Failed to send message. Please try again.");
@@ -237,7 +242,7 @@ export default function ChatPage() {
   const { data: chatHistory, isLoading: isLoadingHistory } = useGetUserChats();
   const { data: documents, isLoading: isLoadingDocs } = useGetDocuments();
   const { data: currentChatMessages } = useGetChatMessages(selectedChat?.id);
-
+  const queryClient = useQueryClient();
   const handleStartChat = async (bookId) => {
     try {
       const book = documents.find((d) => d.id === bookId);
@@ -245,6 +250,7 @@ export default function ChatPage() {
         title: book?.name || "New Chat",
         llm_model_id: "gemini-2.5-flash",
       });
+      queryClient.invalidateQueries({ queryKey: ["chats"] });
       setSelectedChat(result);
       toast.success("Chat created successfully!");
     } catch (error) {
