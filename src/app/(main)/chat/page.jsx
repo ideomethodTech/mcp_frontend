@@ -49,48 +49,76 @@ const ChatMessage = ({ role, content, isLoading = false }) => {
 };
 
 function ChatInterface({ chatSession }) {
-  const [messages, setMessages] = useState(chatSession?.messages || []);
+  // CHANGE THIS: Initialize properly
+  const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const generateMutation = useGenerateContent();
   const queryClient = useQueryClient();
-  const { data: currentChatMessages } = useGetChatMessages(chatSession?.id);
+  const { data: currentChatMessages } = useGetChatMessages(chatSession?.chat_id);
+
+  console.log("Chat Session:", chatSession);
+  console.log("Current Chat Messages:", currentChatMessages); // ADD THIS TO SEE STRUCTURE
 
   useEffect(() => {
     if (currentChatMessages) {
-      setMessages(currentChatMessages);
+      if (Array.isArray(currentChatMessages)) {
+        setMessages(currentChatMessages);
+      } else if (currentChatMessages.messages && Array.isArray(currentChatMessages.messages)) {
+        setMessages(currentChatMessages.messages);
+      }
+    } else {
+      // ADD THIS: Reset messages when switching chats
+      setMessages([]);
     }
-  }, [currentChatMessages]);
+  }, [currentChatMessages, chatSession?.chat_id]); // ADD chatSession?.chat_id to dependencies
 
   const handleSendMessage = async (e) => {
     e.preventDefault();
     if (!input.trim()) return;
 
+    // ADD THIS CHECK
+    if (!chatSession.document_id) {
+      toast.error("No document associated with this chat. Please start a new chat.");
+      return;
+    }
+
+    // CHANGE THIS: messages is already an array
     const newMessages = [...messages, { role: "user", content: input }];
     setMessages(newMessages);
     setInput("");
 
+    console.log("Sending request:", {
+      chat_id: chatSession.chat_id,
+      query: input,
+      document_list: [chatSession.document_id],
+    });
+
     try {
       const response = await generateMutation.mutateAsync({
-        chat_id: chatSession.id,
+        chat_id: chatSession.chat_id,
         query: input,
         llm_model_id: "gemini-2.5-flash",
+        document_list: [chatSession.document_id],
+        reranker: false,
       });
-
+      console.log(chatSession.document_id + "thisis a id ");
       const aiMessage = {
         role: "assistant",
         content: response.answer || response.response,
       };
       setMessages([...newMessages, aiMessage]);
       queryClient.invalidateQueries({
-        queryKey: ["chatMessages", chatSession.id],
+        queryKey: ["chatMessages", chatSession.chat_id],
       });
       queryClient.invalidateQueries({ queryKey: ["chats"] });
     } catch (error) {
       console.error("Failed to send message:", error);
+      console.error("Error response:", error.response?.data);
+      console.error("Error detail:", error.response?.data?.detail); // ADD THIS LINE
       toast.error("Failed to send message. Please try again.");
     }
   };
-
+  console.log("Messages state:", messages); // CHANGE THIS
   return (
     <div className="lg:col-span-3">
       <div className="rounded-2xl border border-border bg-card shadow-[var(--shadow-md)] flex flex-col h-[600px]">
@@ -131,6 +159,7 @@ function ChatInterface({ chatSession }) {
               }}
             />
             <Button
+              onClick={handleSendMessage}
               disabled={generateMutation.isPending || !input.trim()}
               className="bg-gradient-to-r from-primary to-accent hover:opacity-90 transition-opacity px-6"
             >
@@ -144,7 +173,7 @@ function ChatInterface({ chatSession }) {
 }
 
 function NewChatForm({ onStartChat, documents }) {
-  const [selectedBook, setSelectedBook] = useState(null);
+  const [selectedBook, setSelectedBook] = useState("");
 
   const handleStart = () => {
     if (selectedBook) {
@@ -164,14 +193,22 @@ function NewChatForm({ onStartChat, documents }) {
           </CardHeader>
           <CardContent className="flex flex-col items-center gap-4">
             <p className="text-sm text-muted-foreground text-center">Select a book to begin your conversation.</p>
-            <Select onValueChange={setSelectedBook}>
+            <Select
+              onValueChange={(value) => {
+                console.log("Selected:", value); // Debug line
+                setSelectedBook(value);
+              }}
+              value={selectedBook}
+            >
               <SelectTrigger className="w-full">
-                <SelectValue placeholder="Choose a book" />
+                <SelectValue placeholder="Choose a book">
+                  {selectedBook && documents.find((d) => d.document_id === selectedBook)?.name}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 {documents && documents.length > 0 ? (
-                  documents.map((doc) => (
-                    <SelectItem key={doc.id} value={doc.id}>
+                  documents.map((doc, index) => (
+                    <SelectItem key={index} value={doc.document_id}>
                       {doc.name || doc.filename}
                     </SelectItem>
                   ))
@@ -182,7 +219,7 @@ function NewChatForm({ onStartChat, documents }) {
             </Select>
           </CardContent>
           <CardFooter className="justify-center">
-            <Button onClick={handleStart} className="w-full" disabled={!selectedBook}>
+            <Button onClick={handleStart} className="w-full" disabled={!selectedBook || selectedBook === ""}>
               <MessageSquare className="mr-2 h-4 w-4" /> Start Chat
             </Button>
           </CardFooter>
@@ -202,13 +239,15 @@ export default function ChatPage() {
   const queryClient = useQueryClient();
   const handleStartChat = async (bookId) => {
     try {
-      const book = documents.find((d) => d.id === bookId);
+      const book = documents.find((d) => d.document_id === bookId);
       const result = await createChatMutation.mutateAsync({
         title: book?.name || "New Chat",
         llm_model_id: "gemini-2.5-flash",
       });
+      result.document_id = bookId;
       queryClient.invalidateQueries({ queryKey: ["chats"] });
       setSelectedChat(result);
+      localStorage.setItem(`chat_${result.chat_id}_document`, bookId);
       toast.success("Chat created successfully!");
     } catch (error) {
       console.error("Failed to create chat:", error);
@@ -237,7 +276,13 @@ export default function ChatPage() {
         {/* {History} */}
         <History
           selectedItem={selectedChat}
-          setSelectedItem={setSelectedChat}
+          setSelectedItem={(chat) => {
+            if (chat) {
+              const storedDocId = localStorage.getItem(`chat_${chat.chat_id}_document`);
+              chat.document_id = storedDocId;
+            }
+            setSelectedChat(chat);
+          }}
           historyData={chatHistory?.chats || []}
           buttonText="New Chat"
           subtitleField="last_message"

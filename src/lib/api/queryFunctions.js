@@ -37,13 +37,7 @@ export const registerUser = async ({ name, email, password }) => {
 };
 
 // ==================== AI Generation Functions ====================
-export const generateContent = async ({
-  chat_id,
-  query,
-  llm_model_id,
-  document_list = [],
-  reranker = false,
-}) => {
+export const generateContent = async ({ chat_id, query, llm_model_id, document_list = [], reranker = false }) => {
   const response = await api({
     method: "POST",
     url: ENDPOINTS.GENERATE,
