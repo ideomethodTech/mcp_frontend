@@ -1,82 +1,35 @@
+"use client";
 
-'use client';
-
-import { useState, useEffect } from 'react';
-import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
-import { MessageSquare, Send, Book, PlusCircle, Plus, Loader2, FileText, Input } from 'lucide-react';
-import { format } from 'date-fns';
-
-import { PageHeader } from '@/components/page-header';
-import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
-import { cn } from '@/lib/utils';
-import { Skeleton } from '@/components/ui/skeleton';
+import { useState, useEffect } from "react";
+import { MessageSquare, Send, Book, Loader2, FileText } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { Card, CardContent, CardHeader, CardFooter } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import History from "@/app/componentsV2/ui/history";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import History from '@/app/componentsV2/ui/history';
+  useCreateChat,
+  useGetUserChats,
+  useGetChatMessages,
+  useGenerateContent,
+  useGetDocuments,
+} from "@/lib/api/queries";
+import { toast } from "react-toastify";
+import { useQueryClient } from "@tanstack/react-query";
 
-
-const mockHistory = [
-  {
-    id: 'chat1',
-    book: 'Oliver English Class 05',
-    date: new Date('2025-10-14'),
-    lastMessage: 'Sure, I can explain the main character...',
-    messages: [
-      { role: 'assistant', content: `Hello! How can I help you with "Oliver English Class 05" today?` },
-      { role: 'user', content: 'Can you tell me about the main character?' },
-      { role: 'assistant', content: 'Sure, I can explain the main character...' },
-    ]
-  },
-  {
-    id: 'chat2',
-    book: 'The Great Gatsby',
-    date: new Date('2025-10-12'),
-    lastMessage: 'It symbolizes the American Dream.',
-    messages: [
-      { role: 'assistant', content: `Hello! How can I help you with "The Great Gatsby" today?` },
-      { role: 'user', content: 'What is the green light?' },
-      { role: 'assistant', content: 'It symbolizes the American Dream.' },
-    ]
-  },
-];
-
-const mockBooks = [
-  'Oliver English Class 05',
-  'The Great Gatsby',
-  'Introduction to Algebra',
-  'A Brief History of Time',
-];
-
-const ChatMessage = ({
-  role,
-  content,
-  isLoading = false,
-}) => {
+const ChatMessage = ({ role, content, isLoading = false }) => {
   console.log(content);
-  const isUser = role === 'user';
+  const isUser = role === "user";
   return (
-    <div
-      className={cn(
-        'flex items-start gap-3',
-        isUser ? 'justify-end' : 'justify-start'
-      )}
-    >
+    <div className={cn("flex items-start gap-3", isUser ? "justify-end" : "justify-start")}>
       {!isUser && (
         <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-white text-sm font-semibold flex-shrink-0">
           AI
         </div>
       )}
       <div className="bg-gradient-to-br from-primary to-accent rounded-2xl rounded-tr-sm p-4 max-w-[80%]">
-
         {isLoading ? (
           <div className="space-y-2">
             <Skeleton className="h-3 w-40" />
@@ -92,43 +45,50 @@ const ChatMessage = ({
         </div>
       )}
     </div>
-  )
+  );
 };
 
-function ChatInterface({ chatSession, setChatSession }) {
-  const [messages, setMessages] = useState(chatSession.messages);
-  const [input, setInput] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
+function ChatInterface({ chatSession }) {
+  const [messages, setMessages] = useState(chatSession?.messages || []);
+  const [input, setInput] = useState("");
+  const generateMutation = useGenerateContent();
+  const queryClient = useQueryClient();
+  const { data: currentChatMessages } = useGetChatMessages(chatSession?.id);
 
-  const handleSendMessage = (e) => {
+  useEffect(() => {
+    if (currentChatMessages) {
+      setMessages(currentChatMessages);
+    }
+  }, [currentChatMessages]);
+
+  const handleSendMessage = async (e) => {
     e.preventDefault();
     if (!input.trim()) return;
 
-    const newMessages = [...messages, { role: 'user', content: input }];
+    const newMessages = [...messages, { role: "user", content: input }];
     setMessages(newMessages);
-    setInput('');
-    setIsLoading(true);
+    setInput("");
 
-    // Mock AI response
-    setTimeout(() => {
-      const response = {
-        role: 'assistant',
-        content: 'This is a mock response based on the book content. In a real application, this would be a dynamic answer generated by an AI model.',
+    try {
+      const response = await generateMutation.mutateAsync({
+        chat_id: chatSession.id,
+        query: input,
+        llm_model_id: "gemini-2.5-flash",
+      });
+
+      const aiMessage = {
+        role: "assistant",
+        content: response.answer || response.response,
       };
-      const updatedMessages = [...newMessages, response]
-      setMessages(updatedMessages);
-
-      const updatedHistoryItem = {
-        ...chatSession,
-        messages: updatedMessages,
-        lastMessage: response.content
-      }
-      const historyIndex = mockHistory.findIndex(h => h.id === chatSession.id);
-      mockHistory[historyIndex] = updatedHistoryItem;
-
-      setChatSession(updatedHistoryItem);
-      setIsLoading(false);
-    }, 1500);
+      setMessages([...newMessages, aiMessage]);
+      queryClient.invalidateQueries({
+        queryKey: ["chatMessages", chatSession.id],
+      });
+      queryClient.invalidateQueries({ queryKey: ["chats"] });
+    } catch (error) {
+      console.error("Failed to send message:", error);
+      toast.error("Failed to send message. Please try again.");
+    }
   };
 
   return (
@@ -152,7 +112,7 @@ function ChatInterface({ chatSession, setChatSession }) {
           {messages.map((msg, index) => (
             <ChatMessage key={index} role={msg.role} content={msg.content} />
           ))}
-          {isLoading && <ChatMessage role="assistant" isLoading />}
+          {generateMutation.isPending && <ChatMessage role="assistant" isLoading />}
         </div>
         {/* Input Area */}
         <div className="p-6 border-t border-border">
@@ -164,30 +124,33 @@ function ChatInterface({ chatSession, setChatSession }) {
               // className="flex-1 resize-none"
               rows={1}
               onKeyDown={(e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
+                if (e.key === "Enter" && !e.shiftKey) {
                   e.preventDefault();
                   handleSendMessage(e);
                 }
               }}
             />
-            <Button className="bg-gradient-to-r from-primary to-accent hover:opacity-90 transition-opacity px-6">
+            <Button
+              disabled={generateMutation.isPending || !input.trim()}
+              className="bg-gradient-to-r from-primary to-accent hover:opacity-90 transition-opacity px-6"
+            >
               <Send className="h-4 w-4" />
             </Button>
           </div>
         </div>
       </div>
     </div>
-  )
+  );
 }
 
-function NewChatForm({ onStartChat }) {
+function NewChatForm({ onStartChat, documents }) {
   const [selectedBook, setSelectedBook] = useState(null);
 
   const handleStart = () => {
     if (selectedBook) {
       onStartChat(selectedBook);
     }
-  }
+  };
 
   return (
     <div className="flex flex-col items-center justify-center min-h-[500px]">
@@ -206,8 +169,10 @@ function NewChatForm({ onStartChat }) {
                 <SelectValue placeholder="Choose a book" />
               </SelectTrigger>
               <SelectContent>
-                {mockBooks.map((book) => (
-                  <SelectItem key={book} value={book}>{book}</SelectItem>
+                {documents?.map((doc) => (
+                  <SelectItem key={doc.id} value={doc.id}>
+                    {doc.name || doc.filename}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -220,29 +185,32 @@ function NewChatForm({ onStartChat }) {
         </Card>
       </div>
     </div>
-  )
+  );
 }
 
 export default function ChatPage() {
-  const [selectedChat, setSelectedChat] = useState(mockHistory[0]);
-  const [isLoading, setIsLoading] = useState(false);
-
-  const handleStartChat = (book) => {
-    setIsLoading(true);
-    setSelectedChat(null);
-    setTimeout(() => {
-      const newChat = {
-        id: `chat${mockHistory.length + 1}`,
-        book,
-        date: new Date(),
-        lastMessage: `Hello! How can I help you with "${book}" today?`,
-        messages: [{ role: 'assistant', content: `Hello! How can I help you with "${book}" today?` }]
-      };
-      mockHistory.unshift(newChat);
-      setSelectedChat(newChat);
-      setIsLoading(false);
-    }, 1000);
-  }
+  const [selectedChat, setSelectedChat] = useState(null);
+  const createChatMutation = useCreateChat();
+  const generateMutation = useGenerateContent();
+  const { data: chatHistory, isLoading: isLoadingHistory } = useGetUserChats();
+  const { data: documents, isLoading: isLoadingDocs } = useGetDocuments();
+  const { data: currentChatMessages } = useGetChatMessages(selectedChat?.id);
+  const queryClient = useQueryClient();
+  const handleStartChat = async (bookId) => {
+    try {
+      const book = documents.find((d) => d.id === bookId);
+      const result = await createChatMutation.mutateAsync({
+        title: book?.name || "New Chat",
+        llm_model_id: "gemini-2.5-flash",
+      });
+      queryClient.invalidateQueries({ queryKey: ["chats"] });
+      setSelectedChat(result);
+      toast.success("Chat created successfully!");
+    } catch (error) {
+      console.error("Failed to create chat:", error);
+      toast.error("Failed to create chat. Please try again.");
+    }
+  };
 
   return (
     <div className="max-w-7xl mx-auto my-5 space-y-6">
@@ -266,24 +234,25 @@ export default function ChatPage() {
         <History
           selectedItem={selectedChat}
           setSelectedItem={setSelectedChat}
-          historyData={mockHistory}
+          historyData={chatHistory?.chats || []}
+          buttonText="New Chat"
+          subtitleField="last_message"
         />
         {/* Lesson Plan Content */}
-        {isLoading ? (
+        {createChatMutation.isPending || generateMutation.isPending || isLoadingHistory || isLoadingDocs ? (
           <div className="flex items-center justify-center h-full">
             <div className="text-center">
               <Loader2 className="mx-auto h-12 w-12 animate-spin text-primary mb-4" />
               <h3 className="text-lg font-medium text-foreground">Starting new chat...</h3>
-              <p className="text-sm text-muted-foreground">
-                Please wait a moment.
-              </p>
+              <p className="text-sm text-muted-foreground">Please wait a moment.</p>
             </div>
           </div>
         ) : selectedChat ? (
-          <ChatInterface chatSession={selectedChat} setChatSession={setSelectedChat} />
+          <ChatInterface chatSession={selectedChat} />
         ) : (
-          <NewChatForm onStartChat={handleStartChat} />)}
+          <NewChatForm onStartChat={handleStartChat} documents={documents} />
+        )}
       </div>
     </div>
-  )
+  );
 }

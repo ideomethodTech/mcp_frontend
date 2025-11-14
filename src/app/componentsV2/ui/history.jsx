@@ -3,7 +3,8 @@ import { File, Plus } from "lucide-react";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 
-const History = ({ selectedItem, setSelectedItem, historyData, buttonText = "New Lesson Plan" }) => {
+const History = ({ selectedItem, setSelectedItem, historyData, buttonText ,subtitleField }) => {
+  console.log(historyData)
   if (!historyData || historyData.length === 0) {
     return null;
   }
@@ -21,7 +22,7 @@ const History = ({ selectedItem, setSelectedItem, historyData, buttonText = "New
             <span>{item.created_at ? format(new Date(item.created_at), "dd/MM/yyyy") : "N/A"}</span>
           </div>
           <p className="font-medium text-foreground text-sm mb-1"> {item.title || "Untitled"}</p>
-          <p className="text-xs text-muted-foreground"> {item.document_name || "Unknown Book"}</p>
+          <p className="text-xs text-muted-foreground"> {item[subtitleField] || "No description"}</p>
         </button>
       </div>
     );

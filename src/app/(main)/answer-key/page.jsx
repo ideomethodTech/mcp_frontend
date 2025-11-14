@@ -135,9 +135,7 @@ function NewAnswerKeyForm({ onGenerate, documents }) {
                                 </SelectItem>
                               ))
                             ) : (
-                              <p className="text-gray-500">
-                                No books available
-                              </p>
+                              <p className="text-gray-500">No books available</p>
                             )}
                           </SelectContent>
                         </Select>
@@ -231,6 +229,7 @@ export default function AnswerKeyPage() {
           setSelectedItem={setSelectedItem}
           historyData={worksheets?.worksheets || []}
           buttonText="New Answer Key"
+          subtitleField="document_name"
         />
 
         {/* RIGHT CONTENT */}
