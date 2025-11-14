@@ -169,11 +169,15 @@ function NewChatForm({ onStartChat, documents }) {
                 <SelectValue placeholder="Choose a book" />
               </SelectTrigger>
               <SelectContent>
-                {documents?.map((doc) => (
-                  <SelectItem key={doc.id} value={doc.id}>
-                    {doc.name || doc.filename}
-                  </SelectItem>
-                ))}
+                {documents && documents.length > 0 ? (
+                  documents.map((doc) => (
+                    <SelectItem key={doc.id} value={doc.id}>
+                      {doc.name || doc.filename}
+                    </SelectItem>
+                  ))
+                ) : (
+                  <p className="text-gray-500">No books available</p>
+                )}
               </SelectContent>
             </Select>
           </CardContent>
