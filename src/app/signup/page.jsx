@@ -134,9 +134,9 @@ export default function SignupPage() {
               <Button
                 type="submit"
                 className="w-full"
-                disabled={registerMutation.isLoading}
+                disabled={registerMutation.isPending}
               >
-                {registerMutation.isLoading && (
+                {registerMutation.isPending && (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 )}
                 Create Account

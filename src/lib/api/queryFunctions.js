@@ -15,8 +15,8 @@ export const loginUser = async ({ email, password }) => {
     data: { email, password },
   });
 
-  if (response.data.token) {
-    localStorage.setItem("token", response.data.token);
+  if (response.data.access_token) {
+    localStorage.setItem("token", response.data.access_token);
   }
 
   return response.data;
@@ -29,8 +29,8 @@ export const registerUser = async ({ name, email, password }) => {
     data: { name, email, password },
   });
 
-  if (response.data.token) {
-    localStorage.setItem("token", response.data.token);
+  if (response.data.access_token) {
+    localStorage.setItem("token", response.data.access_token);
   }
 
   return response.data;

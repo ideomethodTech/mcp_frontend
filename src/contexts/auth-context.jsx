@@ -1,50 +1,32 @@
 "use client";
 
-import { createContext, useContext, useState } from "react";
+import { createContext, useContext, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { loginUser } from "@/lib/api/queryFunctions";
-import { toast } from "react-toastify";
 
 const AuthContext = createContext();
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const router = useRouter();
 
-  const signInWithEmail = async (email, password) => {
-    try {
-      const response = await loginUser({ email, password });
-      setUser(response);
-      toast.success("Successfully signed in!");
-      return response;
-    } catch (error) {
-      toast.error(error.message || "Failed to sign in");
-      throw error;
+  // Check for token on mount
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (token) {
+      setUser({ token });
     }
-  };
+    setLoading(false);
+  }, []);
 
-  const signUpWithEmail = async (email, password) => {
-    try {
-      const response = await loginUser({ email, password });
-      setUser(response);
-      toast.success("Account created!");
-      return response;
-    } catch (error) {
-      toast.error(error.message || "Failed to sign up");
-      throw error;
-    }
-  };
-
-  const signOut = async () => {
+  const signOut = () => {
+    localStorage.removeItem("token");
     setUser(null);
     router.push("/login");
   };
 
   return (
-    <AuthContext.Provider
-      value={{ user, loading, signInWithEmail, signUpWithEmail, signOut }}
-    >
+    <AuthContext.Provider value={{ user, loading, signOut }}>
       {children}
     </AuthContext.Provider>
   );
