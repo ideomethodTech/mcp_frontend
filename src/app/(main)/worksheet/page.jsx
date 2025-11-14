@@ -109,7 +109,7 @@ const WorksheetDetails = ({ item }) => {
   const worksheetData = item.data;
   return (
     <div className="lg:col-span-3">
-      <WorksheetItem item={item} questions={worksheetData.questions}></WorksheetItem>
+      <WorksheetItem item={item} questions={worksheetData?.questions}></WorksheetItem>
     </div>
   )
 }
