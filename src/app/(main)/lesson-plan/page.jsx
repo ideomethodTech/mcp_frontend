@@ -1,106 +1,86 @@
+"use client";
 
-'use client';
-
-import { useState } from 'react';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
-import { Loader2, Plus, File, FileText, Clock } from 'lucide-react';
-import { format } from 'date-fns';
-import { Button } from '@/components/ui/button';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { cn } from '@/lib/utils';
-import History from '@/app/componentsV2/ui/history';
+import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+import { Loader2, Plus, File, FileText, Clock } from "lucide-react";
+import { format } from "date-fns";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { cn } from "@/lib/utils";
+import History from "@/app/componentsV2/ui/history";
 
 const formSchema = z.object({
-  topicName: z.string().min(3, 'Topic name must be at least 3 characters.'),
-  gradeLevel: z.string().nonempty('Please select a grade level.'),
-  duration: z.string().min(1, 'Please specify a duration.'),
+  topicName: z.string().min(3, "Topic name must be at least 3 characters."),
+  gradeLevel: z.string().nonempty("Please select a grade level."),
+  duration: z.string().min(1, "Please specify a duration."),
 });
 
 const mockLessonPlan = {
   objective:
-    'Students will be able to understand the concept of photosynthesis, identify its key components (sunlight, water, carbon dioxide), and describe its importance for plant life and the ecosystem.',
+    "Students will be able to understand the concept of photosynthesis, identify its key components (sunlight, water, carbon dioxide), and describe its importance for plant life and the ecosystem.",
   materials: [
-    'Whiteboard or blackboard',
-    'Markers or chalk',
-    'Diagram of a plant cell',
-    'Video on photosynthesis (e.g., from YouTube or Khan Academy)',
-    'Worksheets with fill-in-the-blanks and labeling exercises',
-    'Art supplies: green construction paper, scissors, glue',
+    "Whiteboard or blackboard",
+    "Markers or chalk",
+    "Diagram of a plant cell",
+    "Video on photosynthesis (e.g., from YouTube or Khan Academy)",
+    "Worksheets with fill-in-the-blanks and labeling exercises",
+    "Art supplies: green construction paper, scissors, glue",
   ],
   activities: [
     {
-      title: 'Introduction (10 minutes)',
+      title: "Introduction (10 minutes)",
       description:
         "Begin with a discussion about how plants get their food. Ask students what they already know. Introduce the term 'photosynthesis'.",
     },
     {
-      title: 'Direct Instruction (15 minutes)',
+      title: "Direct Instruction (15 minutes)",
       description:
-        'Explain the process of photosynthesis using the whiteboard. Draw a simple diagram showing a plant taking in sunlight, water, and CO2, and releasing oxygen. Use the plant cell diagram to show where this happens (chloroplasts).',
+        "Explain the process of photosynthesis using the whiteboard. Draw a simple diagram showing a plant taking in sunlight, water, and CO2, and releasing oxygen. Use the plant cell diagram to show where this happens (chloroplasts).",
     },
     {
-      title: 'Visual Learning (10 minutes)',
-      description: 'Show a short, engaging video that visually explains photosynthesis.',
+      title: "Visual Learning (10 minutes)",
+      description: "Show a short, engaging video that visually explains photosynthesis.",
     },
     {
-      title: 'Group Activity: Leaf Craft (15 minutes)',
+      title: "Group Activity: Leaf Craft (15 minutes)",
       description:
-        'Students create a model of a leaf. They will label the parts involved in photosynthesis and write a short sentence explaining the process.',
+        "Students create a model of a leaf. They will label the parts involved in photosynthesis and write a short sentence explaining the process.",
     },
   ],
   outcomes:
-    'Students will be able to verbally explain the basic process of photosynthesis. They will also be able to label a diagram with the inputs and outputs of photosynthesis. Their leaf craft will serve as a visual aid for their understanding.',
+    "Students will be able to verbally explain the basic process of photosynthesis. They will also be able to label a diagram with the inputs and outputs of photosynthesis. Their leaf craft will serve as a visual aid for their understanding.",
 };
 
 const defaultValues = {
-  topicName: '',
-  gradeLevel: '',
-  duration: '',
+  topicName: "",
+  gradeLevel: "",
+  duration: "",
 };
 
 // Local mock history used to render existing lesson plans
 const mockHistory = [
   {
-    id: '1',
-    title: 'The Solar System',
-    date: new Date('2025-10-10'),
-    grade: 'Grade 5',
-    data: mockLessonPlan
+    id: "1",
+    title: "The Solar System",
+    date: new Date("2025-10-10"),
+    grade: "Grade 5",
+    data: mockLessonPlan,
   },
   {
-    id: '2',
-    title: 'Photosynthesis',
-    date: new Date('2025-10-12'),
-    grade: 'Grade 7',
+    id: "2",
+    title: "Photosynthesis",
+    date: new Date("2025-10-12"),
+    grade: "Grade 7",
     data: {
       ...mockLessonPlan,
-      objective: 'Students will understand Photosynthesis.'
-    }
-  }
+      objective: "Students will understand Photosynthesis.",
+    },
+  },
 ];
 
 function LessonPlanDetails({ item }) {
@@ -140,9 +120,7 @@ function LessonPlanDetails({ item }) {
                     <Clock className="h-5 w-5 text-primary mt-0.5" />
                     <div className="flex-1">
                       <p className="font-medium text-foreground">{activity.title}</p>
-                      <p className="text-sm text-muted-foreground mt-1">
-                        {activity.description}
-                      </p>
+                      <p className="text-sm text-muted-foreground mt-1">{activity.description}</p>
                     </div>
                   </div>
                 </div>
@@ -156,7 +134,7 @@ function LessonPlanDetails({ item }) {
         </div>
       </div>
     </div>
-  )
+  );
 }
 
 function NewLessonPlanForm({ onGenerate }) {
@@ -168,12 +146,10 @@ function NewLessonPlanForm({ onGenerate }) {
   return (
     <div className="lg:col-span-3">
       <div className="flex justify-center items-center ">
-        <Card >
+        <Card>
           <CardHeader>
             <CardTitle>Lesson Details</CardTitle>
-            <CardDescription>
-              Provide the details for your lesson plan.
-            </CardDescription>
+            <CardDescription>Provide the details for your lesson plan.</CardDescription>
           </CardHeader>
           <CardContent>
             <Form {...form}>
@@ -205,7 +181,9 @@ function NewLessonPlanForm({ onGenerate }) {
                         </FormControl>
                         <SelectContent>
                           {[...Array(12)].map((_, i) => (
-                            <SelectItem key={i + 1} value={`Grade ${i + 1}`}>Grade {i + 1}</SelectItem>
+                            <SelectItem key={i + 1} value={`Grade ${i + 1}`}>
+                              Grade {i + 1}
+                            </SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
@@ -235,7 +213,7 @@ function NewLessonPlanForm({ onGenerate }) {
         </Card>
       </div>
     </div>
-  )
+  );
 }
 
 export default function LessonPlanPage() {
@@ -252,13 +230,13 @@ export default function LessonPlanPage() {
         title: values.topicName,
         date: new Date(),
         grade: values.gradeLevel,
-        data: mockLessonPlan
+        data: mockLessonPlan,
       };
       mockHistory.unshift(newItem);
       setSelectedItem(newItem);
       setIsLoading(false);
     }, 2000);
-  }
+  };
 
   const showHistory = (item) => {
     return (
@@ -266,23 +244,19 @@ export default function LessonPlanPage() {
         key={item.id}
         onClick={() => setSelectedItem(item)}
         className={cn(
-          'w-full text-left p-2 rounded-lg border',
-          selectedItem?.id === item.id
-            ? 'bg-primary/10 border-primary'
-            : 'hover:bg-muted/50'
+          "w-full text-left p-2 rounded-lg border",
+          selectedItem?.id === item.id ? "bg-primary/10 border-primary" : "hover:bg-muted/50"
         )}
       >
         <div className="flex justify-between items-center text-xs text-muted-foreground mb-1">
           <File className="text-xs text-muted-foreground mt-1" />
-          <span>{format(item.date, 'dd/MM/yyyy')}</span>
+          <span>{format(item.date, "dd/MM/yyyy")}</span>
         </div>
         <p className="font-medium text-foreground text-sm mb-1">{item.title}</p>
-        <p className="text-xs text-muted-foreground">
-          {item.grade}
-        </p>
+        <p className="text-xs text-muted-foreground">{item.grade}</p>
       </button>
-    )
-  }
+    );
+  };
   return (
     <div className="max-w-7xl mx-auto my-5 space-y-6">
       <div className="relative overflow-hidden rounded-3xl border border-border bg-gradient-to-br from-primary/10 via-accent/10 to-primary/5 p-8 shadow-[var(--shadow-lg)]">
@@ -302,20 +276,19 @@ export default function LessonPlanPage() {
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         {/* {History} */}
-   <History
-                  selectedItem={selectedItem}
-                  setSelectedItem={setSelectedItem}
-                  historyData={mockHistory}
-                />
+        <History
+          selectedItem={selectedItem}
+          setSelectedItem={setSelectedItem}
+          historyData={mockHistory}
+          buttonText="New Lesson Plan"
+        />
         {/* Lesson Plan Content */}
         {isLoading ? (
           <div className="flex items-center justify-center h-full">
             <div className="text-center">
               <Loader2 className="mx-auto h-12 w-12 animate-spin text-primary mb-4" />
               <h3 className="text-lg font-medium text-foreground">Generating Lesson Plan...</h3>
-              <p className="text-sm text-muted-foreground">
-                Please wait while the AI builds your plan.
-              </p>
+              <p className="text-sm text-muted-foreground">Please wait while the AI builds your plan.</p>
             </div>
           </div>
         ) : selectedItem ? (
