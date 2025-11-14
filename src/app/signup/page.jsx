@@ -41,19 +41,12 @@ export default function SignupPage() {
     const router = useRouter();
     const { user, signInWithGoogle, signUpWithEmail } = useAuth();
 
-    // AUTH DISABLED: Always redirect to main app
-    useEffect(() => {
-        router.push('/');
-    }, [router]);
-
-    /* Original auth logic - commented out for now
     // Redirect if already logged in
     useEffect(() => {
         if (user) {
             router.push('/');
         }
     }, [user, router]);
-    */
     const { toast } = useToast();
     const [isLoading, setIsLoading] = useState(false);
     const [isGoogleLoading, setIsGoogleLoading] = useState(false);
@@ -70,17 +63,10 @@ export default function SignupPage() {
         setIsGoogleLoading(true);
         try {
             await signInWithGoogle();
-            toast({
-                title: 'Success',
-                description: 'Account created successfully!',
-            });
             router.push('/');
         } catch (error) {
-            toast({
-                title: 'Error',
-                description: error.message || 'Failed to sign up with Google',
-                variant: 'destructive',
-            });
+            // Error toast is handled in auth context
+            console.error('Google sign up failed:', error);
         } finally {
             setIsGoogleLoading(false);
         }
@@ -90,17 +76,10 @@ export default function SignupPage() {
         setIsLoading(true);
         try {
             await signUpWithEmail(values.email, values.password);
-            toast({
-                title: 'Success',
-                description: 'Account created successfully!',
-            });
             router.push('/');
         } catch (error) {
-            toast({
-                title: 'Error',
-                description: error.message || 'Failed to create account',
-                variant: 'destructive',
-            });
+            // Error toast is handled in auth context
+            console.error('Email sign up failed:', error);
         } finally {
             setIsLoading(false);
         }
