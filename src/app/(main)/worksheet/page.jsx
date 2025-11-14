@@ -40,8 +40,9 @@ function NewWorksheetForm({ onGenerate, documents, generateMutation }) {
   });
 
   const selectedBookId = form.watch("book");
-  const selectedBook = documents?.find((b) => b.id === selectedBookId);
-
+ const selectedBook = documents?.find((b) => b.document_id === selectedBookId);
+console.log("Selected Book:", selectedBook);
+console.log("All Documents:", documents);
   return (
     <div className="lg:col-span-3">
       <div className="flex flex-col items-center justify-center min-h-[500px]">
@@ -77,8 +78,8 @@ function NewWorksheetForm({ onGenerate, documents, generateMutation }) {
                             </FormControl>
                             <SelectContent>
                               {documents && documents.length > 0 ? (
-                                documents.map((doc) => (
-                                  <SelectItem key={doc.id} value={doc.id}>
+                                documents.map((doc, index) => (
+                                  <SelectItem key={index} value={doc.document_id}>
                                     {doc.name || doc.filename}
                                   </SelectItem>
                                 ))
@@ -96,19 +97,25 @@ function NewWorksheetForm({ onGenerate, documents, generateMutation }) {
                       name="chapter"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Select Chapter</FormLabel>
+                         <FormLabel>Select Chapter</FormLabel>
                           <Select onValueChange={field.onChange} defaultValue={field.value} disabled={!selectedBook}>
                             <FormControl>
                               <SelectTrigger>
-                                <SelectValue placeholder="Select a chapter" />
+                              <SelectValue placeholder="Select a chapter" />
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                              {selectedBook?.chapters?.map((chapter) => (
-                                <SelectItem key={chapter.id} value={chapter.id}>
-                                  {chapter.title || chapter.name}
+                              {selectedBook?.chapters && selectedBook.chapters.length > 0 ? (
+                                selectedBook.chapters.map((chapter) => (
+                                  <SelectItem key={chapter.id} value={chapter.id}>
+                                    {chapter.title || chapter.name}
+                                  </SelectItem>
+                                ))
+                              ) : (
+                                <SelectItem value="no-chapter" disabled>
+                                  No chapters available - Full book will be used
                                 </SelectItem>
-                              ))}
+                              )}
                             </SelectContent>
                           </Select>
                           <FormMessage />
@@ -187,9 +194,15 @@ export default function WorksheetPage() {
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         {/* {History} */}
-        <History historyData={worksheets?.worksheets} selectedItem={selectedItem} setSelectedItem={setSelectedItem} buttonText=" New Worksheet" subtitleField="document_name"/>
+        <History
+          historyData={worksheets?.worksheets}
+          selectedItem={selectedItem}
+          setSelectedItem={setSelectedItem}
+          buttonText=" New Worksheet"
+          subtitleField="document_name"
+        />
         {/* Woeksheet Content */}
-              {generateMutation.isPending || isLoadingHistory || isLoadingDocs ? (
+        {generateMutation.isPending || isLoadingHistory || isLoadingDocs ? (
           <div className="flex items-center justify-center h-full">
             <div className="text-center">
               <Loader2 className="mx-auto h-12 w-12 animate-spin text-primary mb-4" />
@@ -200,9 +213,7 @@ export default function WorksheetPage() {
         ) : selectedItem ? (
           <WorksheetDetails item={selectedItem} />
         ) : (
-          <NewWorksheetForm onGenerate={handleGenerate}
-            documents={documents}
-            generateMutation={generateMutation} />
+          <NewWorksheetForm onGenerate={handleGenerate} documents={documents} generateMutation={generateMutation} />
         )}
       </div>
     </div>

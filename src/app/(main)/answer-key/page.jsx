@@ -15,7 +15,7 @@ import { useGetWorksheets, useGetWorksheet, useGetDocuments } from "@/lib/api/qu
 
 const formSchema = z.object({
   book: z.string().nonempty("Please select a book."),
-  chapter: z.string().nonempty("Please select a chapter."),
+  chapter: z.string().optional(),
 });
 
 function AnswerKeyDetails({ item }) {
@@ -129,8 +129,8 @@ function NewAnswerKeyForm({ onGenerate, documents }) {
 
                           <SelectContent>
                             {documents && documents.length > 0 ? (
-                              documents.map((doc) => (
-                                <SelectItem key={doc.id} value={doc.id}>
+                              documents.map((doc, index) => (
+                                <SelectItem key={index} value={doc.document_id}>
                                   {doc.name || doc.filename}
                                 </SelectItem>
                               ))
@@ -150,20 +150,26 @@ function NewAnswerKeyForm({ onGenerate, documents }) {
                     name="chapter"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Select Chapter</FormLabel>
+                        <FormLabel>Select Chapter (Optional)</FormLabel>
                         <Select onValueChange={field.onChange} defaultValue={field.value} disabled={!selectedBook}>
                           <FormControl>
                             <SelectTrigger>
-                              <SelectValue placeholder="Select a chapter" />
+                              <SelectValue placeholder="Select a chapter (if available)" />
                             </SelectTrigger>
                           </FormControl>
 
                           <SelectContent>
-                            {selectedBook?.chapters?.map((ch) => (
-                              <SelectItem key={ch.id} value={ch.id}>
-                                {ch.title || ch.name}
+                            {selectedBook?.chapters && selectedBook.chapters.length > 0 ? (
+                              selectedBook.chapters.map((ch) => (
+                                <SelectItem key={ch.id} value={ch.id}>
+                                  {ch.title || ch.name}
+                                </SelectItem>
+                              ))
+                            ) : (
+                              <SelectItem value="no-chapter" disabled>
+                                No chapters available - Full book will be used
                               </SelectItem>
-                            ))}
+                            )}
                           </SelectContent>
                         </Select>
                         <FormMessage />
@@ -194,7 +200,9 @@ export default function AnswerKeyPage() {
 
   const handleGenerate = (values) => {
     // Match worksheet using book + chapter IDs
-    const worksheet = worksheets?.find((w) => w.document_id === values.book && w.chapter_id === values.chapter);
+    const worksheet = worksheets.worksheets?.find(
+      (w) => w.document_id === values.book && (!values.chapter || w.chapter_id === values.chapter)
+    );
 
     if (worksheet) {
       setSelectedItem(worksheet);

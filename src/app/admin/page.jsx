@@ -50,11 +50,11 @@ export default function AdminDashboardPage() {
       return;
     }
 
-    const maxSize = 10 * 1024 * 1024; // 10MB
-    if (file.size > maxSize) {
-      toast.error("File size must be less than 10MB");
-      return;
-    }
+    // const maxSize = 10 * 1024 * 1024; // 10MB
+    // if (file.size > maxSize) {
+    //   toast.error("File size must be less than 10MB");
+    //   return;
+    // }
 
     try {
       // Send ONLY the file, not an object
