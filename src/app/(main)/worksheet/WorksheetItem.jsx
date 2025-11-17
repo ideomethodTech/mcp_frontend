@@ -4,13 +4,14 @@ import Link from "next/link";
 import React from "react";
 import { format } from "date-fns";
 
-const WorksheetItem = ({ item, questions }) => {
-  // Group questions by type
-  const mcqQuestions = questions?.filter((q) => q.type === "mcq") || [];
-  const fillUpQuestions = questions?.filter((q) => q.type === "fill_ups") || [];
-  const trueFalseQuestions = questions?.filter((q) => q.type === "true_false") || [];
-  const briefQuestions = questions?.filter((q) => q.type === "brief_qa") || [];
-  const matchQuestions = questions?.filter((q) => q.type === "match_following") || [];
+const WorksheetItem = ({ item, worksheetData }) => {
+  const data = worksheetData;
+
+  const mcqQuestions = data.mcqs || [];
+  const fillUpQuestions = data.fill_ups || [];
+  const trueFalseQuestions = data.true_false || [];
+  const briefQuestions = data.brief_qas || [];
+  const matchQuestions = data.match_following || [];
 
   return (
     <div>
@@ -20,7 +21,7 @@ const WorksheetItem = ({ item, questions }) => {
           <div className="flex items-center gap-3">
             <Sheet className="h-6 w-6 text-primary" />
             <div>
-              <h2 className="text-xl font-bold text-foreground"> {`Worksheet: ${item.title || "Untitled"}`}</h2>
+              <h2 className="text-xl font-bold text-foreground"> {`Worksheet: ${item?.title || "Untitled"}`}</h2>
               <p className="text-sm text-muted-foreground">
                 {`Generated from "${item.document_name || "Unknown"}" on ${
                   item.created_at ? format(new Date(item.created_at), "MMMM dd, yyyy") : "Unknown date"
@@ -46,7 +47,10 @@ const WorksheetItem = ({ item, questions }) => {
           <div className="max-w-4xl">
             {/* Info Box */}
             <div className="rounded-xl border-2 border-primary/20 p-6 mb-8 bg-gradient-to-br from-primary/5 to-accent/5">
-              <h3 className="text-center font-bold text-lg mb-4 uppercase tracking-wide"> CHAPTER - {item.title.toUpperCase()}</h3>
+              <h3 className="text-center font-bold text-lg mb-4 uppercase tracking-wide">
+                {" "}
+                CHAPTER - {item?.title?.toUpperCase()}
+              </h3>
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div className="flex gap-2">
                   <span className="text-muted-foreground">Name:</span>
@@ -182,6 +186,29 @@ const WorksheetItem = ({ item, questions }) => {
                           {question.right_column?.map((item, i) => (
                             <p key={i}>
                               ({i + 1}) {item}
+                            </p>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Multiple Choice Questions */}
+              {mcqQuestions.length > 0 && (
+                <div>
+                  <h3 className="text-lg font-semibold mb-4">A. Multiple Choice Questions</h3>
+                  {mcqQuestions.map((question, index) => (
+                    <div key={question.question_id} className="space-y-4 mb-6">
+                      <div>
+                        <p className="font-medium mb-2">
+                          {index + 1}. {question.question}
+                        </p>
+                        <div className="pl-4 space-y-1 text-sm">
+                          {question.options?.map((option, i) => (
+                            <p key={i}>
+                              {String.fromCharCode(97 + i)}. {option}
                             </p>
                           ))}
                         </div>

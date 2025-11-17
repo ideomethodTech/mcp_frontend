@@ -24,6 +24,8 @@ import {
   getLearnings,
   getLearning,
   updateLearningTitle,
+  getDocumentChapters,
+  getAnswerKey
 } from "./queryFunctions";
 
 // ==================== AI Generation Hooks ====================
@@ -50,6 +52,14 @@ export const useGetDocuments = (options) =>
 export const useDeleteDocument = (options) =>
   useMutation({
     mutationFn: deleteDocument,
+    ...options,
+  });
+
+export const useGetDocumentChapters = (documentId, options) =>
+  useQuery({
+    queryKey: ["chapters", documentId],
+    queryFn: () => getDocumentChapters(documentId),
+    enabled: !!documentId,
     ...options,
   });
 
@@ -157,6 +167,15 @@ export const useGetWorksheet = (worksheetId, options) =>
   useQuery({
     queryKey: ["worksheet", worksheetId],
     queryFn: () => getWorksheet(worksheetId),
+    enabled: !!worksheetId,
+    ...options,
+  });
+
+  // ==================== Answer Key Hooks ====================
+export const useGetAnswerKey = (worksheetId, options) =>
+  useQuery({
+    queryKey: ["answerKey", worksheetId],
+    queryFn: () => getAnswerKey(worksheetId),
     enabled: !!worksheetId,
     ...options,
   });

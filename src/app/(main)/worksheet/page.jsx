@@ -12,7 +12,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import WorksheetItem from "./WorksheetItem";
 import History from "@/app/componentsV2/ui/history";
-import { useGenerateWorksheet, useGetWorksheets, useGetDocuments } from "@/lib/api/queries";
+import { useGenerateWorksheet, useGetWorksheets, useGetDocuments, useGetDocumentChapters } from "@/lib/api/queries";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "react-toastify";
 
@@ -22,10 +22,10 @@ const formSchema = z.object({
 });
 
 const WorksheetDetails = ({ item }) => {
-  const worksheetData = item.worksheet_data || item.data || item;
+  const worksheetData = item.worksheet;
   return (
     <div className="lg:col-span-3">
-      <WorksheetItem item={item} questions={worksheetData?.questions}></WorksheetItem>
+      <WorksheetItem item={item}   worksheetData={worksheetData}></WorksheetItem>
     </div>
   );
 };
@@ -40,9 +40,15 @@ function NewWorksheetForm({ onGenerate, documents, generateMutation }) {
   });
 
   const selectedBookId = form.watch("book");
- const selectedBook = documents?.find((b) => b.document_id === selectedBookId);
-console.log("Selected Book:", selectedBook);
-console.log("All Documents:", documents);
+  const selectedBook = documents?.find((b) => b.document_id === selectedBookId);
+  const { data: chapters } = useGetDocumentChapters(selectedBookId);
+
+  // Attach chapters to selectedBook
+  if (selectedBook && chapters) {
+    selectedBook.chapters = chapters.messages || chapters;
+  }
+  console.log("Selected Book:", selectedBook);
+  console.log("All Documents:", documents);
   return (
     <div className="lg:col-span-3">
       <div className="flex flex-col items-center justify-center min-h-[500px]">
@@ -70,7 +76,13 @@ console.log("All Documents:", documents);
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Select Book</FormLabel>
-                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <Select
+                            onValueChange={(value) => {
+                              field.onChange(value);
+                              form.setValue("chapter", ""); // Reset chapter when book changes
+                            }}
+                            defaultValue={field.value}
+                          >
                             <FormControl>
                               <SelectTrigger>
                                 <SelectValue placeholder="Select a book" />
@@ -97,20 +109,23 @@ console.log("All Documents:", documents);
                       name="chapter"
                       render={({ field }) => (
                         <FormItem>
-                         <FormLabel>Select Chapter</FormLabel>
+                          <FormLabel>Select Chapter</FormLabel>
                           <Select onValueChange={field.onChange} defaultValue={field.value} disabled={!selectedBook}>
                             <FormControl>
                               <SelectTrigger>
-                              <SelectValue placeholder="Select a chapter" />
+                                <SelectValue placeholder="Select a chapter" />
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
                               {selectedBook?.chapters && selectedBook.chapters.length > 0 ? (
-                                selectedBook.chapters.map((chapter) => (
-                                  <SelectItem key={chapter.id} value={chapter.id}>
-                                    {chapter.title || chapter.name}
-                                  </SelectItem>
-                                ))
+                                selectedBook.chapters
+                                  .sort((a, b) => a.start_page - b.start_page)
+                                  .map((chapter, index) => (
+                                    <SelectItem key={index} value={chapter.chapter_id}>
+                                      {chapter.chapter_name} (Page {chapter.start_page}-
+                                      {chapter.end_page})
+                                    </SelectItem>
+                                  ))
                               ) : (
                                 <SelectItem value="no-chapter" disabled>
                                   No chapters available - Full book will be used

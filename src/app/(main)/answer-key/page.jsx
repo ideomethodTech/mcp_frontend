@@ -11,15 +11,112 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import History from "@/app/componentsV2/ui/history";
-import { useGetWorksheets, useGetWorksheet, useGetDocuments } from "@/lib/api/queries";
+import {
+  useGetWorksheets,
+  useGetWorksheet,
+  useGetDocuments,
+  useGetAnswerKey,
+  useGetDocumentChapters,
+} from "@/lib/api/queries";
 
 const formSchema = z.object({
   book: z.string().nonempty("Please select a book."),
   chapter: z.string().optional(),
 });
 
-function AnswerKeyDetails({ item }) {
-  const answers = item.answers || [];
+function AnswerKeyDetails({ item, worksheetData, isLoading, selectedItem, documents }) {
+  const answerKey = item || {};
+  const worksheet = worksheetData?.worksheet || worksheetData || {};
+  const book = documents?.find((doc) => doc.document_id === selectedItem?.document_id);
+  const bookName = book?.name || book?.filename;
+  const { data: chapters } = useGetDocumentChapters(selectedItem?.document_id);
+  const chapter = chapters?.messages?.find((ch) => ch.chapter_id === selectedItem?.chapter_id);
+  const chapterName = chapter?.chapter_name || "Unknown Chapter";
+  console.log("Chapters data:", chapters);
+  if (isLoading) {
+    return (
+      <div className="lg:col-span-3">
+        <div className="rounded-2xl border border-border bg-card p-1 shadow-[var(--shadow-md)]">
+          <div className="flex items-center justify-center h-64">
+            <div className="text-center">
+              <Loader2 className="mx-auto h-12 w-12 animate-spin text-primary mb-4" />
+              <h3 className="text-lg font-medium text-foreground">Loading Answer Key...</h3>
+              <p className="text-sm text-muted-foreground">Please wait while we generate the answers.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Transform the API data to match your structure
+  const transformToAnswersArray = () => {
+    const answers = [];
+
+    // Match MCQs - add safe checks
+    answerKey.mcqs?.forEach((answerObj, index) => {
+      const question = worksheet.mcqs?.find((q) => q.question_id === answerObj.question_id);
+      if (question) {
+        answers.push({
+          id: index + 1,
+          title: question.question,
+          explanation: ` ${answerObj.answer}`,
+        });
+      }
+    });
+
+    // Match Fill Ups
+    answerKey.fill_ups?.forEach((answerObj, index) => {
+      const question = worksheet.fill_ups?.find((q) => q.question_id === answerObj.question_id);
+      if (question) {
+        answers.push({
+          id: answers.length + 1,
+          title: question.question,
+          explanation: `${answerObj.answer}`,
+        });
+      }
+    });
+
+    // Match Brief QAs
+    answerKey.brief_qas?.forEach((answerObj, index) => {
+      const question = worksheet.brief_qas?.find((q) => q.question_id === answerObj.question_id);
+      if (question) {
+        answers.push({
+          id: answers.length + 1,
+          title: question.question,
+          explanation: ` ${answerObj.answer}`,
+        });
+      }
+    });
+
+    // Match True/False
+    answerKey.true_false?.forEach((answerObj, index) => {
+      const question = worksheet.true_false?.find((q) => q.question_id === answerObj.question_id);
+      if (question) {
+        answers.push({
+          id: answers.length + 1,
+          title: question.statement,
+          explanation: `${answerObj.answer}`,
+        });
+      }
+    });
+
+    // Match Following
+    answerKey.match_following?.forEach((answerObj, index) => {
+      const question = worksheet.match_following?.find((q) => q.question_id === answerObj.question_id);
+      if (question) {
+        answers.push({
+          id: answers.length + 1,
+          title: question.question || "Match the following",
+          explanation: `Answer: ${answerObj.answer}`,
+        });
+      }
+    });
+
+    return answers;
+  };
+
+  const answers = transformToAnswersArray();
 
   return (
     <div className="lg:col-span-3">
@@ -28,10 +125,14 @@ function AnswerKeyDetails({ item }) {
         <div className="flex items-start gap-3 mb-6">
           <Key className="h-6 w-6 text-primary mt-1" />
           <div>
-            <h2 className="text-2xl font-bold text-foreground"> {item.title || "Answer Key"}</h2>
+            <h2 className="text-2xl font-bold text-foreground">
+              {" "}
+              {selectedItem?.title || worksheetData?.title || "Answer Key"}
+            </h2>
             <p className="text-muted-foreground text-sm">
-              Answer Key for "{item.chapter_name || "Unknown Chapter"}" from the book "
-              {item.document_name || "Unknown Book"}"
+              <p className="text-muted-foreground text-sm">
+                Answer Key for "{chapterName || "Unknown Chapter"}" from the book "{bookName || "Unknown Book"}"
+              </p>
             </p>
           </div>
         </div>
@@ -39,12 +140,12 @@ function AnswerKeyDetails({ item }) {
         {/* Info Box */}
         <div className="rounded-xl bg-gradient-to-br from-primary/5 to-accent/5 p-6 mb-8 border border-primary/10">
           <p className="text-sm text-muted-foreground mb-2">Generated Answer Key</p>
-          <p className="text-foreground">The AI-generated answer key for the worksheet based on "{item.chapter}".</p>
+          <p className="text-foreground">The AI-generated answer key for the worksheet based on "{chapterName}".</p>
         </div>
 
         {/* Answers */}
         <div className="space-y-6">
-          {answers?.map((ans) => (
+          {answers.map((ans) => (
             <div key={ans.id} className="p-6 rounded-xl border border-border bg-muted/30">
               <div className="flex items-start gap-3">
                 <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-white font-semibold text-sm flex-shrink-0">
@@ -55,19 +156,18 @@ function AnswerKeyDetails({ item }) {
                   <p className="font-medium text-foreground mb-2">{ans.title}</p>
 
                   {ans.explanation && (
-                    <p className="text-sm text-muted-foreground italic">*Explanation: {ans.explanation}*</p>
+                    <p className="text-sm text-muted-foreground italic">
+                      <strong>Answer:</strong> {ans.explanation}
+                    </p>
                   )}
                 </div>
               </div>
             </div>
           ))}
 
-          {/* In case API sends a blob answer_key instead of list */}
           {(!answers || answers.length === 0) && (
             <div className="p-6 rounded-xl border border-border bg-muted/30">
-              <div className="text-sm text-muted-foreground whitespace-pre-wrap">
-                {item.answer_key || item.content || "No answer key available"}
-              </div>
+              <div className="text-sm text-muted-foreground whitespace-pre-wrap">No answer key available</div>
             </div>
           )}
         </div>
@@ -89,7 +189,13 @@ function NewAnswerKeyForm({ onGenerate, documents }) {
   const selectedBookId = form.watch("book");
 
   // Find selected book in API docs
-  const selectedBook = documents?.find((d) => d.id === selectedBookId);
+  const selectedBook = documents?.find((b) => b.document_id === selectedBookId);
+  const { data: chapters } = useGetDocumentChapters(selectedBookId);
+
+  // Attach chapters to selectedBook
+  if (selectedBook && chapters) {
+    selectedBook.chapters = chapters.messages || chapters;
+  }
 
   return (
     <div className="flex flex-col items-center justify-center min-h-[500px]">
@@ -120,7 +226,13 @@ function NewAnswerKeyForm({ onGenerate, documents }) {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Select Book</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <Select
+                          onValueChange={(value) => {
+                            field.onChange(value);
+                            form.setValue("chapter", ""); // Reset chapter when book changes
+                          }}
+                          defaultValue={field.value}
+                        >
                           <FormControl>
                             <SelectTrigger>
                               <SelectValue placeholder="Select a book" />
@@ -150,21 +262,23 @@ function NewAnswerKeyForm({ onGenerate, documents }) {
                     name="chapter"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Select Chapter (Optional)</FormLabel>
+                        <FormLabel>Select Chapter</FormLabel>
                         <Select onValueChange={field.onChange} defaultValue={field.value} disabled={!selectedBook}>
                           <FormControl>
                             <SelectTrigger>
-                              <SelectValue placeholder="Select a chapter (if available)" />
+                              <SelectValue placeholder="Select a chapter" />
                             </SelectTrigger>
                           </FormControl>
 
                           <SelectContent>
                             {selectedBook?.chapters && selectedBook.chapters.length > 0 ? (
-                              selectedBook.chapters.map((ch) => (
-                                <SelectItem key={ch.id} value={ch.id}>
-                                  {ch.title || ch.name}
-                                </SelectItem>
-                              ))
+                              selectedBook.chapters
+                                .sort((a, b) => a.start_page - b.start_page)
+                                .map((chapter, index) => (
+                                  <SelectItem key={index} value={chapter.chapter_id}>
+                                    {chapter.chapter_name} (Page {chapter.start_page}-{chapter.end_page})
+                                  </SelectItem>
+                                ))
                             ) : (
                               <SelectItem value="no-chapter" disabled>
                                 No chapters available - Full book will be used
@@ -196,8 +310,14 @@ export default function AnswerKeyPage() {
   // API hooks
   const { data: worksheets, isLoading: isLoadingHistory } = useGetWorksheets();
   const { data: documents, isLoading: isLoadingDocs } = useGetDocuments();
-  const { data: selectedWorksheetData } = useGetWorksheet(selectedItem?.id);
-
+  const { data: selectedWorksheetData } = useGetWorksheet(selectedItem?.worksheet_id || selectedItem?.id);
+  const { data: answerKeyData, isLoading: isLoadingAnswerKey } = useGetAnswerKey(
+    selectedItem?.worksheet_id || selectedItem?.id
+  );
+  // Add this debug log
+  console.log("🔑 ANSWER KEY DATA:", answerKeyData);
+  console.log("📝 WORKSHEET DATA:", selectedWorksheetData);
+  console.log("🎯 SELECTED ITEM:", selectedItem);
   const handleGenerate = (values) => {
     // Match worksheet using book + chapter IDs
     const worksheet = worksheets.worksheets?.find(
@@ -250,7 +370,13 @@ export default function AnswerKeyPage() {
             </div>
           </div>
         ) : selectedItem ? (
-          <AnswerKeyDetails item={selectedWorksheetData || selectedItem} />
+          <AnswerKeyDetails
+            item={answerKeyData}
+            worksheetData={selectedWorksheetData}
+            isLoading={isLoadingAnswerKey}
+            selectedItem={selectedItem}
+            documents={documents}
+          />
         ) : (
           <NewAnswerKeyForm onGenerate={handleGenerate} documents={documents} />
         )}

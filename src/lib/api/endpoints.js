@@ -15,6 +15,7 @@ const ENDPOINTS = {
   UPLOAD_DOCUMENT: "/upload-document",
   GET_DOCUMENTS: "/get-documents",
   DELETE_DOCUMENT: "/delete-document", // + /{document_id}
+  GET_CHAPTERS: "/get-chapters",
 
   // Chat Management
   CREATE_CHAT: "/create-chat",
@@ -27,6 +28,7 @@ const ENDPOINTS = {
   GENERATE_WORKSHEET: "/generate-worksheet",
   GET_WORKSHEETS: "/get-worksheets",
   GET_WORKSHEET: "/get-worksheet", // + /{worksheet_id}
+  GET_ANSWER_KEY: "/get-answer-key",
 
   // Learning Management
   CREATE_LEARNING: "/create-learning",

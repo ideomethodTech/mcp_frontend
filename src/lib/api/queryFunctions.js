@@ -167,6 +167,16 @@ export const deleteDocument = async (document_id) => {
   return response.data;
 };
 
+// ==================== Chapter Functions ====================
+export const getDocumentChapters = async (document_id) => {
+  const response = await api({
+    method: "GET",
+    url: `${ENDPOINTS.GET_CHAPTERS}/${document_id}`,
+    headers: getAuthHeaders(),
+  });
+  return response.data;
+};
+
 // ==================== Chat Management Functions ====================
 export const createChat = async ({ title, llm_model_id }) => {
   const response = await api({
@@ -258,6 +268,16 @@ export const getWorksheet = async (worksheet_id) => {
   const response = await api({
     method: "GET",
     url: `${ENDPOINTS.GET_WORKSHEET}/${worksheet_id}`,
+    headers: getAuthHeaders(),
+  });
+  return response.data;
+};
+
+// ==================== Answer Key Functions ====================
+export const getAnswerKey = async (worksheet_id) => {
+  const response = await api({
+    method: "GET",
+    url: `${ENDPOINTS.GET_ANSWER_KEY}/${worksheet_id}`,
     headers: getAuthHeaders(),
   });
   return response.data;
