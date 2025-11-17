@@ -23,6 +23,8 @@ import {
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "react-toastify";
 
+import { ClipboardList } from "lucide-react";
+
 const formSchema = z.object({
   book: z.string().nonempty("Please select a book."),
   chapter: z.string().nonempty("Please select a chapter."),
@@ -151,10 +153,13 @@ function NewLessonPlanForm({ onGenerate, generateMutation }) {
 
   return (
     <div className="lg:col-span-3">
-      <div className="flex justify-center items-center">
-        <Card>
+      <div className="flex justify-center items-center w-full">
+        <Card className="w-full max-w-2xl">
           <CardHeader>
-            <CardTitle>Lesson Details</CardTitle>
+            <div className="flex items-center gap-3 mb-2">
+              <ClipboardList className="w-6 h-6 text-muted-foreground" />
+              <CardTitle>Lesson Details</CardTitle>
+            </div>
             <CardDescription>Select book and chapter for your lesson plan.</CardDescription>
           </CardHeader>
           <CardContent>
@@ -257,7 +262,7 @@ export default function LessonPlanPage() {
   const [selectedItem, setSelectedItem] = useState(null);
   const generateMutation = useGenerateLearning();
   const { data: learnings, isLoading: isLoadingHistory } = useGetLearnings();
-  const { data: selectedLearningData } = useGetLearning(selectedItem?.learning_id); 
+  const { data: selectedLearningData } = useGetLearning(selectedItem?.learning_id);
 
   console.log("Learning Detail:", selectedLearningData);
   console.log("Selected Item:", selectedItem);

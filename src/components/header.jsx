@@ -19,9 +19,8 @@ import { usePathname } from "next/navigation";
 import { Logo } from "./icons";
 
 export function Header() {
-  const { user, signOut, userInfo } = useAuth();
+  const { signOut, userInfo } = useAuth();
   const pathname = usePathname();
-  console.log(userInfo);
   const handleLogout = async () => {
     try {
       await signOut();
