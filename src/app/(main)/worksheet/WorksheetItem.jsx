@@ -3,9 +3,17 @@ import { ExternalLink, Printer, Sheet } from "lucide-react";
 import Link from "next/link";
 import React from "react";
 import { format } from "date-fns";
+import { useGetDocumentChapters } from "@/lib/api/queries";
 
-const WorksheetItem = ({ item, worksheetData }) => {
-  const data = worksheetData;
+const WorksheetItem = ({ item, worksheetData, documents }) => {
+  const data = worksheetData?.worksheet || worksheetData || {};
+
+  const book = documents?.find((doc) => doc.document_id === item.document_id);
+  const bookName = book?.name || book?.filename || item.chapter_name || "Book";
+
+  const { data: chapters } = useGetDocumentChapters(item.document_id);
+  const chapter = chapters?.messages?.find((ch) => ch.chapter_id === item.chapter_id);
+  const chapterName = chapter?.chapter_name || item.chapter_name || "Chapter";
 
   const mcqQuestions = data.mcqs || [];
   const fillUpQuestions = data.fill_ups || [];
@@ -16,14 +24,13 @@ const WorksheetItem = ({ item, worksheetData }) => {
   return (
     <div>
       <div className="rounded-2xl border border-border bg-card shadow-[var(--shadow-md)]">
-        {/* Header with Actions */}
         <div className="p-6 border-b border-border flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Sheet className="h-6 w-6 text-primary" />
             <div>
-              <h2 className="text-xl font-bold text-foreground"> {`Worksheet: ${item?.title || "Untitled"}`}</h2>
+              <h2 className="text-xl font-bold text-foreground">{`Worksheet: ${chapterName}`}</h2>
               <p className="text-sm text-muted-foreground">
-                {`Generated from "${item.document_name || "Unknown"}" on ${
+                {`Generated from "${bookName}" on ${
                   item.created_at ? format(new Date(item.created_at), "MMMM dd, yyyy") : "Unknown date"
                 }`}
               </p>
@@ -47,10 +54,7 @@ const WorksheetItem = ({ item, worksheetData }) => {
           <div className="max-w-4xl">
             {/* Info Box */}
             <div className="rounded-xl border-2 border-primary/20 p-6 mb-8 bg-gradient-to-br from-primary/5 to-accent/5">
-              <h3 className="text-center font-bold text-lg mb-4 uppercase tracking-wide">
-                {" "}
-                CHAPTER - {item?.title?.toUpperCase()}
-              </h3>
+              <h3 className="text-center font-bold text-lg mb-4 uppercase tracking-wide">{chapterName}</h3>
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div className="flex gap-2">
                   <span className="text-muted-foreground">Name:</span>
@@ -177,39 +181,12 @@ const WorksheetItem = ({ item, worksheetData }) => {
                       <div className="grid grid-cols-2 gap-4 text-sm pl-4">
                         <div className="space-y-2">
                           {question.left_column?.map((item, i) => (
-                            <p key={i}>
-                              {String.fromCharCode(97 + i)}. {item}
-                            </p>
+                            <p key={i}>{item}</p>
                           ))}
                         </div>
                         <div className="space-y-2">
                           {question.right_column?.map((item, i) => (
-                            <p key={i}>
-                              ({i + 1}) {item}
-                            </p>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {/* Multiple Choice Questions */}
-              {mcqQuestions.length > 0 && (
-                <div>
-                  <h3 className="text-lg font-semibold mb-4">A. Multiple Choice Questions</h3>
-                  {mcqQuestions.map((question, index) => (
-                    <div key={question.question_id} className="space-y-4 mb-6">
-                      <div>
-                        <p className="font-medium mb-2">
-                          {index + 1}. {question.question}
-                        </p>
-                        <div className="pl-4 space-y-1 text-sm">
-                          {question.options?.map((option, i) => (
-                            <p key={i}>
-                              {String.fromCharCode(97 + i)}. {option}
-                            </p>
+                            <p key={i}>{item}</p>
                           ))}
                         </div>
                       </div>

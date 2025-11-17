@@ -12,7 +12,13 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import WorksheetItem from "./WorksheetItem";
 import History from "@/app/componentsV2/ui/history";
-import { useGenerateWorksheet, useGetWorksheets, useGetDocuments, useGetDocumentChapters } from "@/lib/api/queries";
+import {
+  useGenerateWorksheet,
+  useGetWorksheets,
+  useGetDocuments,
+  useGetDocumentChapters,
+  useGetWorksheet,
+} from "@/lib/api/queries";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "react-toastify";
 
@@ -21,11 +27,32 @@ const formSchema = z.object({
   chapter: z.string().nonempty("Please select a chapter."),
 });
 
-const WorksheetDetails = ({ item }) => {
-  const worksheetData = item.worksheet;
+const WorksheetDetails = ({ item, documents }) => {
+  const { data: worksheetData, isLoading } = useGetWorksheet(item.worksheet_id);
+
+  // DEBUG: Check what we actually have
+  console.log("🔍 WorksheetDetails - item:", item);
+  console.log("🔍 WorksheetDetails - documents:", documents);
+  console.log("🔍 WorksheetDetails - worksheetData:", worksheetData);
+  console.log("🔍 WorksheetDetails - isLoading:", isLoading);
+
+  if (isLoading) {
+    return (
+      <div className="lg:col-span-3">
+        <div className="flex items-center justify-center h-full">
+          <div className="text-center">
+            <Loader2 className="mx-auto h-12 w-12 animate-spin text-primary mb-4" />
+            <h3 className="text-lg font-medium text-foreground">Loading Worksheet...</h3>
+            <p className="text-sm text-muted-foreground">Please wait while we load the worksheet data.</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="lg:col-span-3">
-      <WorksheetItem item={item}   worksheetData={worksheetData}></WorksheetItem>
+      <WorksheetItem item={item} worksheetData={worksheetData} documents={documents} />
     </div>
   );
 };
@@ -122,8 +149,7 @@ function NewWorksheetForm({ onGenerate, documents, generateMutation }) {
                                   .sort((a, b) => a.start_page - b.start_page)
                                   .map((chapter, index) => (
                                     <SelectItem key={index} value={chapter.chapter_id}>
-                                      {chapter.chapter_name} (Page {chapter.start_page}-
-                                      {chapter.end_page})
+                                      {chapter.chapter_name} (Page {chapter.start_page}-{chapter.end_page})
                                     </SelectItem>
                                   ))
                               ) : (
@@ -182,8 +208,23 @@ export default function WorksheetPage() {
         true_false_num: 5,
         match_following_num: 5,
       });
+
+      const selectedBook = documents?.find((doc) => doc.document_id === values.book);
+      const bookName = selectedBook?.name || selectedBook?.filename;
+
+      const selectedBookInForm = documents?.find((b) => b.document_id === values.book);
+      const chapter = selectedBookInForm?.chapters?.find((ch) => ch.chapter_id === values.chapter);
+      const chapterName = chapter?.chapter_name;
+
+      const resultWithNames = {
+        ...result,
+        document_name: bookName,
+        chapter_name: chapterName,
+        title: bookName,
+      };
+
       queryClient.invalidateQueries({ queryKey: ["worksheets"] });
-      setSelectedItem(result);
+      setSelectedItem(resultWithNames);
     } catch (error) {
       console.error("Failed to generate worksheet:", error);
       toast.error(error.response?.data?.message || "Failed to generate worksheet. Please try again.");
@@ -214,7 +255,7 @@ export default function WorksheetPage() {
           selectedItem={selectedItem}
           setSelectedItem={setSelectedItem}
           buttonText=" New Worksheet"
-          subtitleField="document_name"
+          documents={documents}
         />
         {/* Woeksheet Content */}
         {generateMutation.isPending || isLoadingHistory || isLoadingDocs ? (
@@ -226,7 +267,7 @@ export default function WorksheetPage() {
             </div>
           </div>
         ) : selectedItem ? (
-          <WorksheetDetails item={selectedItem} />
+          <WorksheetDetails item={selectedItem} documents={documents} />
         ) : (
           <NewWorksheetForm onGenerate={handleGenerate} documents={documents} generateMutation={generateMutation} />
         )}
