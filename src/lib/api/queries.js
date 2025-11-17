@@ -9,8 +9,14 @@ import {
   getChatMessages,
   updateChatModel,
   updateChatTitle,
-  loginUser,
-  registerUser,
+  loginOrganization,
+  registerOrganization,
+  listJoinRequests,
+  approveJoinRequest,
+  rejectJoinRequest,
+  changeUserRole,
+  listOrgUsers,
+  removeUserFromOrg,
   generateWorksheet,
   getWorksheets,
   getWorksheet,
@@ -81,16 +87,55 @@ export const useUpdateChatTitle = (options) =>
     ...options,
   });
 
-// ==================== Authentication Hooks ====================
-export const useLogin = (options) =>
+// ==================== Organization Auth Hooks ====================
+export const useLoginOrganization = (options) =>
   useMutation({
-    mutationFn: loginUser,
+    mutationFn: loginOrganization,
     ...options,
   });
 
-export const useRegister = (options) =>
+export const useRegisterOrganization = (options) =>
   useMutation({
-    mutationFn: registerUser,
+    mutationFn: registerOrganization,
+    ...options,
+  });
+
+export const useListJoinRequests = (options) =>
+  useQuery({
+    queryKey: ["joinRequests"],
+    queryFn: listJoinRequests,
+    ...options,
+  });
+
+export const useApproveJoinRequest = (options) =>
+  useMutation({
+    mutationFn: approveJoinRequest,
+    ...options,
+  });
+
+export const useRejectJoinRequest = (options) =>
+  useMutation({
+    mutationFn: rejectJoinRequest,
+    ...options,
+  });
+
+export const useChangeUserRole = (options) =>
+  useMutation({
+    mutationFn: changeUserRole,
+    ...options,
+  });
+
+export const useListOrgUsers = (orgId, options) =>
+  useQuery({
+    queryKey: ["orgUsers", orgId],
+    queryFn: () => listOrgUsers(orgId),
+    enabled: !!orgId,
+    ...options,
+  });
+
+export const useRemoveUserFromOrg = (options) =>
+  useMutation({
+    mutationFn: removeUserFromOrg,
     ...options,
   });
 

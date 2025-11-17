@@ -63,7 +63,14 @@ export default function AdminDashboardPage() {
       setUploadDialogOpen(false);
       event.target.reset();
     } catch (error) {
-      console.log("Failed to upload document");
+      console.error("Failed to upload document:", error);
+      let errorMessage = "Failed to upload document";
+      if (error.response?.data?.detail) {
+        errorMessage = error.response.data.detail;
+      } else if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      }
+      toast.error(errorMessage);
     }
   };
 
@@ -126,7 +133,7 @@ export default function AdminDashboardPage() {
                         <Label htmlFor="file" className="text-right">
                           File
                         </Label>
-                        <Input id="file" name="file" type="file" className="col-span-3" required />
+                        <Input id="file" name="file" type="file" className="col-span-3  cursor-pointer" required />
                       </div>
                     </div>
                     <DialogFooter>

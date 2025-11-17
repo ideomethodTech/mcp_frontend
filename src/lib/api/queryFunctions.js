@@ -7,32 +7,105 @@ const getAuthHeaders = () => {
   return token ? { Authorization: `Bearer ${token}` } : {};
 };
 
-// ==================== Authentication Functions ====================
-export const loginUser = async ({ email, password }) => {
+// ==================== Organization Auth Functions ====================
+export const loginOrganization = async ({ org_name, email, name, password }) => {
   const response = await api({
     method: "POST",
-    url: ENDPOINTS.LOGIN,
-    data: { email, password },
+    url: ENDPOINTS.LOGIN_ORG,
+    data: { org_name, email, name, password },
   });
 
-  if (response.data.access_token) {
-    localStorage.setItem("token", response.data.access_token);
+  if (response.data.token) {
+    localStorage.setItem("token", response.data.token);
   }
+
+  // CHANGE THIS: Use the form values since API doesn't return user data
+  const userData = {
+    name: name,
+    email: email,
+    org_name: org_name,
+  };
+  localStorage.setItem("user", JSON.stringify(userData));
 
   return response.data;
 };
 
-export const registerUser = async ({ name, email, password }) => {
+export const registerOrganization = async ({ name, org_name, email, password }) => {
   const response = await api({
     method: "POST",
-    url: ENDPOINTS.REGISTER,
-    data: { name, email, password },
+    url: ENDPOINTS.REGISTER_ORG,
+    data: { name, org_name, email, password },
   });
 
-  if (response.data.access_token) {
-    localStorage.setItem("token", response.data.access_token);
+  if (response.data.token) {
+    localStorage.setItem("token", response.data.token);
   }
 
+  // CHANGE THIS: Use the form values since API doesn't return user data
+  const userData = {
+    name: name,
+    email: email,
+    org_name: org_name,
+  };
+  localStorage.setItem("user", JSON.stringify(userData));
+
+  return response.data;
+};
+
+export const listJoinRequests = async () => {
+  const response = await api({
+    method: "GET",
+    url: ENDPOINTS.LIST_JOIN_REQUESTS,
+    headers: getAuthHeaders(),
+  });
+  return response.data;
+};
+
+export const approveJoinRequest = async ({ target_user_id }) => {
+  const response = await api({
+    method: "POST",
+    url: ENDPOINTS.APPROVE_JOIN_REQUEST,
+    headers: getAuthHeaders(),
+    data: { target_user_id },
+  });
+  return response.data;
+};
+
+export const rejectJoinRequest = async ({ target_user_id }) => {
+  const response = await api({
+    method: "POST",
+    url: ENDPOINTS.REJECT_JOIN_REQUEST,
+    headers: getAuthHeaders(),
+    data: { target_user_id },
+  });
+  return response.data;
+};
+
+export const changeUserRole = async ({ target_user_id, role }) => {
+  const response = await api({
+    method: "POST",
+    url: ENDPOINTS.CHANGE_USER_ROLE,
+    headers: getAuthHeaders(),
+    data: { target_user_id, role },
+  });
+  return response.data;
+};
+
+export const listOrgUsers = async (org_id) => {
+  const response = await api({
+    method: "GET",
+    url: `${ENDPOINTS.LIST_ORG_USERS}/${org_id}/users`,
+    headers: getAuthHeaders(),
+  });
+  return response.data;
+};
+
+export const removeUserFromOrg = async (user_id) => {
+  const response = await api({
+    method: "DELETE",
+    url: `${ENDPOINTS.REMOVE_USER_FROM_ORG}/${user_id}`,
+    headers: getAuthHeaders(),
+  });
   return response.data;
 };
 

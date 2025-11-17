@@ -1,7 +1,12 @@
 const ENDPOINTS = {
-  // Authentication
-  LOGIN: "/login",
-  REGISTER: "/register",
+  LOGIN_ORG:"/login-org",
+  REGISTER_ORG:"/register-org",
+  LIST_JOIN_REQUESTS: "/org/list-join-requests",
+  APPROVE_JOIN_REQUEST: "/org/approve-join-request",
+  REJECT_JOIN_REQUEST: "/reject-join-request",
+  CHANGE_USER_ROLE: "/org/change-role",
+  LIST_ORG_USERS: "/org", // + /{org_id}/users
+  REMOVE_USER_FROM_ORG: "/org/user", // + /{user_id}
 
   // AI Generation
   GENERATE: "/generate",
