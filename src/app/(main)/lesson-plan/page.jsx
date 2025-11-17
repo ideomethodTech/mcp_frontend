@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { Loader2, Plus, File, FileText, Clock } from "lucide-react";
+import { Loader2, File, FileText, Clock } from "lucide-react";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,123 +13,121 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import History from "@/app/componentsV2/ui/history";
+import {
+  useGenerateLearning,
+  useGetLearnings,
+  useGetLearning,
+  useGetDocuments,
+  useGetDocumentChapters,
+} from "@/lib/api/queries";
+import { useQueryClient } from "@tanstack/react-query";
+import { toast } from "react-toastify";
 
 const formSchema = z.object({
-  topicName: z.string().min(3, "Topic name must be at least 3 characters."),
-  gradeLevel: z.string().nonempty("Please select a grade level."),
-  duration: z.string().min(1, "Please specify a duration."),
+  book: z.string().nonempty("Please select a book."),
+  chapter: z.string().nonempty("Please select a chapter."),
 });
 
-const mockLessonPlan = {
-  objective:
-    "Students will be able to understand the concept of photosynthesis, identify its key components (sunlight, water, carbon dioxide), and describe its importance for plant life and the ecosystem.",
-  materials: [
-    "Whiteboard or blackboard",
-    "Markers or chalk",
-    "Diagram of a plant cell",
-    "Video on photosynthesis (e.g., from YouTube or Khan Academy)",
-    "Worksheets with fill-in-the-blanks and labeling exercises",
-    "Art supplies: green construction paper, scissors, glue",
-  ],
-  activities: [
-    {
-      title: "Introduction (10 minutes)",
-      description:
-        "Begin with a discussion about how plants get their food. Ask students what they already know. Introduce the term 'photosynthesis'.",
-    },
-    {
-      title: "Direct Instruction (15 minutes)",
-      description:
-        "Explain the process of photosynthesis using the whiteboard. Draw a simple diagram showing a plant taking in sunlight, water, and CO2, and releasing oxygen. Use the plant cell diagram to show where this happens (chloroplasts).",
-    },
-    {
-      title: "Visual Learning (10 minutes)",
-      description: "Show a short, engaging video that visually explains photosynthesis.",
-    },
-    {
-      title: "Group Activity: Leaf Craft (15 minutes)",
-      description:
-        "Students create a model of a leaf. They will label the parts involved in photosynthesis and write a short sentence explaining the process.",
-    },
-  ],
-  outcomes:
-    "Students will be able to verbally explain the basic process of photosynthesis. They will also be able to label a diagram with the inputs and outputs of photosynthesis. Their leaf craft will serve as a visual aid for their understanding.",
-};
-
 const defaultValues = {
-  topicName: "",
-  gradeLevel: "",
-  duration: "",
+  book: "",
+  chapter: "",
 };
-
-// Local mock history used to render existing lesson plans
-const mockHistory = [
-  {
-    id: "1",
-    title: "The Solar System",
-    date: new Date("2025-10-10"),
-    grade: "Grade 5",
-    data: mockLessonPlan,
-  },
-  {
-    id: "2",
-    title: "Photosynthesis",
-    date: new Date("2025-10-12"),
-    grade: "Grade 7",
-    data: {
-      ...mockLessonPlan,
-      objective: "Students will understand Photosynthesis.",
-    },
-  },
-];
 
 function LessonPlanDetails({ item }) {
-  const lessonPlan = item.data;
-  console.log(item);
+  console.log("Learning Detail:", item);
+
+  const learningContent = item?.learning?.content || item?.content || "";
+  const learningTitle = item?.learning?.title || item?.title || "Lesson Plan";
+
   return (
     <div className="lg:col-span-3">
       <div className="rounded-2xl border border-border bg-card p-8 shadow-[var(--shadow-md)]">
-        {/* Lesson Plan Details */}
-        <div className="space-y-6">
+        {/* Header */}
+        <div className="mb-6">
+          <h2 className="text-2xl font-bold text-foreground mb-2">{learningTitle}</h2>
           <div className="rounded-xl bg-gradient-to-br from-primary/5 to-accent/5 p-6 border border-primary/10">
-            <p className="text-sm text-muted-foreground mb-2">Generated Lesson Plan</p>
-            <p className="text-foreground">This AI-generated lesson plan is ready for your classroom.</p>
+            <p className="text-sm text-muted-foreground mb-2">Generated Learning Path</p>
+            <p className="text-foreground">This AI-generated learning path is ready for your classroom.</p>
           </div>
+        </div>
 
-          <div>
-            <h3 className="text-lg font-semibold text-foreground mb-3">Objective</h3>
-            <p className="text-muted-foreground">{lessonPlan.objective}</p>
-          </div>
-          <div>
-            <h3 className="text-lg font-semibold text-foreground mb-3">Materials</h3>
-            <ul className="space-y-2 text-muted-foreground">
-              {lessonPlan.materials.map((material, index) => (
-                <li key={index} className="flex items-start gap-2">
-                  <span className="text-primary mt-1">•</span>
-                  <span>{material}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-          <div>
-            <h3 className="text-lg font-semibold text-foreground mb-3">Activities</h3>
-            <div className="space-y-4">
-              {lessonPlan.activities.map((activity) => (
-                <div className="p-4 rounded-xl border border-border bg-muted/30">
-                  <div className="flex items-start gap-3 mb-2">
-                    <Clock className="h-5 w-5 text-primary mt-0.5" />
-                    <div className="flex-1">
-                      <p className="font-medium text-foreground">{activity.title}</p>
-                      <p className="text-sm text-muted-foreground mt-1">{activity.description}</p>
-                    </div>
+        {/* Content */}
+        <div className="prose prose-sm max-w-none">
+          <div
+            className="text-muted-foreground leading-relaxed"
+            style={{
+              fontFamily: "inherit",
+              fontSize: "0.95rem",
+              lineHeight: "1.7",
+            }}
+          >
+            {learningContent.split("\n").map((line, index) => {
+              // Skip lines that are just "---" (horizontal rules)
+              if (line.trim() === "---") {
+                return <div key={index} className="my-0" />; // Reduced spacing
+              }
+
+              // Handle headers (lines starting with #)
+              if (line.startsWith("####")) {
+                return (
+                  <h4 key={index} className="text-base font-semibold text-foreground mt-5 mb-2">
+                    {line.replace(/^####\s*#*\s*/, "")}
+                  </h4>
+                );
+              }
+              if (line.startsWith("###")) {
+                return (
+                  <h3 key={index} className="text-lg font-semibold text-foreground mt-6 mb-3">
+                    {line.replace(/^###\s*#*\s*/, "")}
+                  </h3>
+                );
+              }
+              if (line.startsWith("##")) {
+                return (
+                  <h2 key={index} className="text-xl font-bold text-foreground mt-8 mb-4">
+                    {line.replace(/^##\s*#*\s*/, "")}
+                  </h2>
+                );
+              }
+
+              // Handle bullet points - NO bullet, just text with left padding
+              if (line.trim().startsWith("*")) {
+                return (
+                  <div key={index} className="ml-6 mb-2">
+                    <span>{line.replace(/^\s*\*\s*/, "").replace(/\*\*/g, "")}</span>
                   </div>
-                </div>
-              ))}
-            </div>
-          </div>
-          <div>
-            <h3 className="font-headline font-semibold text-lg mb-2">Outcomes</h3>
-            <p className="text-muted-foreground">{lessonPlan.outcomes}</p>
+                );
+              }
+              // Handle bold text (**text**)
+              if (line.includes("**")) {
+                const parts = line.split("**");
+                return (
+                  <p key={index} className="mb-3">
+                    {parts.map((part, i) =>
+                      i % 2 === 1 ? (
+                        <strong key={i} className="font-semibold text-foreground">
+                          {part}
+                        </strong>
+                      ) : (
+                        part
+                      )
+                    )}
+                  </p>
+                );
+              }
+
+              // Regular paragraphs
+              if (line.trim()) {
+                return (
+                  <p key={index} className="mb-3">
+                    {line}
+                  </p>
+                );
+              }
+
+              // Empty lines (reduced spacing)
+              return <div key={index} className="h-1" />;
+            })}
           </div>
         </div>
       </div>
@@ -137,75 +135,114 @@ function LessonPlanDetails({ item }) {
   );
 }
 
-function NewLessonPlanForm({ onGenerate }) {
+function NewLessonPlanForm({ onGenerate, generateMutation }) {
   const form = useForm({
     resolver: zodResolver(formSchema),
     defaultValues: defaultValues,
   });
+  const selectedBookId = form.watch("book");
+  const { data: documents } = useGetDocuments();
+  const { data: chapters } = useGetDocumentChapters(selectedBookId);
+
+  const selectedBook = documents?.find((b) => b.document_id === selectedBookId);
+  if (selectedBook && chapters) {
+    selectedBook.chapters = chapters.messages || chapters;
+  }
 
   return (
     <div className="lg:col-span-3">
-      <div className="flex justify-center items-center ">
+      <div className="flex justify-center items-center">
         <Card>
           <CardHeader>
             <CardTitle>Lesson Details</CardTitle>
-            <CardDescription>Provide the details for your lesson plan.</CardDescription>
+            <CardDescription>Select book and chapter for your lesson plan.</CardDescription>
           </CardHeader>
           <CardContent>
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onGenerate)} className="space-y-6">
-                <FormField
-                  control={form.control}
-                  name="topicName"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Topic Name</FormLabel>
-                      <FormControl>
-                        <Input placeholder="e.g., The Solar System" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <FormField
+                    control={form.control}
+                    name="book"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Select Book</FormLabel>
+                        <Select
+                          onValueChange={(value) => {
+                            field.onChange(value);
+                            form.setValue("chapter", ""); // Reset chapter when book changes
+                          }}
+                          defaultValue={field.value}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select a book" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {documents && documents.length > 0 ? (
+                              documents.map((doc, index) => (
+                                <SelectItem key={index} value={doc.document_id}>
+                                  {doc.name || doc.filename}
+                                </SelectItem>
+                              ))
+                            ) : (
+                              <p className="text-gray-500">No books available</p>
+                            )}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="chapter"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Select Chapter</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value} disabled={!selectedBook}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select a chapter" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {selectedBook?.chapters && selectedBook.chapters.length > 0 ? (
+                              selectedBook.chapters
+                                .sort((a, b) => a.start_page - b.start_page)
+                                .map((chapter, index) => (
+                                  <SelectItem key={index} value={chapter.chapter_id}>
+                                    {chapter.chapter_name} (Page {chapter.start_page}-{chapter.end_page})
+                                  </SelectItem>
+                                ))
+                            ) : (
+                              <SelectItem value="no-chapter" disabled>
+                                No chapters available - Full book will be used
+                              </SelectItem>
+                            )}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                <Button
+                  type="submit"
+                  className="w-full !mt-8"
+                  size="lg"
+                  disabled={!form.formState.isValid || generateMutation.isPending}
+                >
+                  {generateMutation.isPending ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Generating...
+                    </>
+                  ) : (
+                    "Generate Lesson Plan"
                   )}
-                />
-                <FormField
-                  control={form.control}
-                  name="gradeLevel"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Grade Level</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select a grade" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {[...Array(12)].map((_, i) => (
-                            <SelectItem key={i + 1} value={`Grade ${i + 1}`}>
-                              Grade {i + 1}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="duration"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Duration</FormLabel>
-                      <FormControl>
-                        <Input placeholder="e.g., 1 week" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <Button type="submit" className="w-full !mt-8" size="lg" disabled={!form.formState.isValid}>
-                  Generate Lesson Plan
                 </Button>
               </form>
             </Form>
@@ -217,25 +254,28 @@ function NewLessonPlanForm({ onGenerate }) {
 }
 
 export default function LessonPlanPage() {
-  const [selectedItem, setSelectedItem] = useState(mockHistory[0]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [selectedItem, setSelectedItem] = useState(null);
+  const generateMutation = useGenerateLearning();
+  const { data: learnings, isLoading: isLoadingHistory } = useGetLearnings();
+  const { data: selectedLearningData } = useGetLearning(selectedItem?.learning_id); 
 
-  const handleGenerate = (values) => {
-    setIsLoading(true);
-    setSelectedItem(null);
+  console.log("Learning Detail:", selectedLearningData);
+  console.log("Selected Item:", selectedItem);
+  const queryClient = useQueryClient();
 
-    setTimeout(() => {
-      const newItem = {
-        id: (mockHistory.length + 1).toString(),
-        title: values.topicName,
-        date: new Date(),
-        grade: values.gradeLevel,
-        data: mockLessonPlan,
-      };
-      mockHistory.unshift(newItem);
-      setSelectedItem(newItem);
-      setIsLoading(false);
-    }, 2000);
+  const handleGenerate = async (values) => {
+    try {
+      const result = await generateMutation.mutateAsync({
+        document_id: values.book,
+        chapter_id: values.chapter,
+      });
+      queryClient.invalidateQueries({ queryKey: ["learnings"] });
+      setSelectedItem(result);
+      toast.success("Lesson plan generated successfully!");
+    } catch (error) {
+      console.error("Failed to generate lesson plan:", error);
+      toast.error(error.response?.data?.message || "Failed to generate lesson plan.");
+    }
   };
 
   const showHistory = (item) => {
@@ -279,11 +319,12 @@ export default function LessonPlanPage() {
         <History
           selectedItem={selectedItem}
           setSelectedItem={setSelectedItem}
-          historyData={mockHistory}
+          historyData={learnings?.learnings || []}
           buttonText="New Lesson Plan"
+          subtitleField="document_name"
         />
         {/* Lesson Plan Content */}
-        {isLoading ? (
+        {generateMutation.isPending || isLoadingHistory ? (
           <div className="flex items-center justify-center h-full">
             <div className="text-center">
               <Loader2 className="mx-auto h-12 w-12 animate-spin text-primary mb-4" />
@@ -292,9 +333,9 @@ export default function LessonPlanPage() {
             </div>
           </div>
         ) : selectedItem ? (
-          <LessonPlanDetails item={selectedItem} />
+          <LessonPlanDetails item={selectedLearningData || selectedItem} />
         ) : (
-          <NewLessonPlanForm onGenerate={handleGenerate} />
+          <NewLessonPlanForm onGenerate={handleGenerate} generateMutation={generateMutation} />
         )}
       </div>
     </div>

@@ -284,30 +284,12 @@ export const getAnswerKey = async (worksheet_id) => {
 };
 
 // ==================== Learning Functions ====================
-export const createLearning = async ({
-  document_id,
-  chapter_id,
-  difficulty,
-  mcq_num,
-  fill_ups_num,
-  brief_qa_num,
-  true_false_num,
-  match_following_num,
-}) => {
+export const generateLearning = async ({ document_id, chapter_id }) => {
   const response = await api({
     method: "POST",
-    url: ENDPOINTS.CREATE_LEARNING,
+    url: ENDPOINTS.GENERATE_LEARNING,
     headers: getAuthHeaders(),
-    data: {
-      document_id,
-      chapter_id,
-      difficulty,
-      mcq_num,
-      fill_ups_num,
-      brief_qa_num,
-      true_false_num,
-      match_following_num,
-    },
+    data: { document_id, chapter_id },
   });
   return response.data;
 };

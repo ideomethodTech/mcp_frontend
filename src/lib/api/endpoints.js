@@ -1,6 +1,6 @@
 const ENDPOINTS = {
-  LOGIN_ORG:"/login-org",
-  REGISTER_ORG:"/register-org",
+  LOGIN_ORG: "/login-org",
+  REGISTER_ORG: "/register-org",
   LIST_JOIN_REQUESTS: "/org/list-join-requests",
   APPROVE_JOIN_REQUEST: "/org/approve-join-request",
   REJECT_JOIN_REQUEST: "/reject-join-request",
@@ -30,10 +30,10 @@ const ENDPOINTS = {
   GET_WORKSHEET: "/get-worksheet", // + /{worksheet_id}
   GET_ANSWER_KEY: "/get-answer-key",
 
-  // Learning Management
-  CREATE_LEARNING: "/create-learning",
+  // Learnings
+  GENERATE_LEARNING: "/generate-learning",
   GET_LEARNINGS: "/get-learnings",
-  GET_LEARNING: "/get-learning", // + /{learning_id}
+  GET_LEARNING: "/get-learning",
   UPDATE_LEARNING_TITLE: "/learning/update-title",
 };
 

@@ -25,7 +25,8 @@ import {
   getLearning,
   updateLearningTitle,
   getDocumentChapters,
-  getAnswerKey
+  getAnswerKey,
+  generateLearning,
 } from "./queryFunctions";
 
 // ==================== AI Generation Hooks ====================
@@ -171,7 +172,7 @@ export const useGetWorksheet = (worksheetId, options) =>
     ...options,
   });
 
-  // ==================== Answer Key Hooks ====================
+// ==================== Answer Key Hooks ====================
 export const useGetAnswerKey = (worksheetId, options) =>
   useQuery({
     queryKey: ["answerKey", worksheetId],
@@ -181,9 +182,9 @@ export const useGetAnswerKey = (worksheetId, options) =>
   });
 
 // ==================== Learning Hooks ====================
-export const useCreateLearning = (options) =>
+export const useGenerateLearning = (options) =>
   useMutation({
-    mutationFn: createLearning,
+    mutationFn: generateLearning,
     ...options,
   });
 
