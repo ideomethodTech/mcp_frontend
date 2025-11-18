@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { BookOpen } from "lucide-react";
-import { PageHeader } from "@/components/page-header";
+import { BookChapterFormHeader } from "@/components/BookChapterFormHeader";
 import { useGetDocuments, useGetDocumentChapters } from "@/lib/api/queries";
 
 const formSchema = z.object({
@@ -45,7 +45,7 @@ export function BookChapterForm({
   return (
     <div className="flex flex-col w-full min-h-[500px] col-span-7">
       <div className="w-full max-w-2xl">
-        <PageHeader title={pageHeaderTitle} description={pageHeaderDescription} icon={PageHeaderIcon} />
+        <BookChapterFormHeader title={pageHeaderTitle} description={pageHeaderDescription} icon={PageHeaderIcon} />
 
         <Card>
           <CardHeader>

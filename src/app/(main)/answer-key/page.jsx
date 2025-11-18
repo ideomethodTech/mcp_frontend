@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import {  FileText } from "lucide-react";
 import History from "@/components/ui/history";
 import { useGetWorksheets, useGetWorksheet, useGetDocuments, useGetAnswerKey } from "@/lib/api/queries";
 import { useSearchParams } from "next/navigation";
@@ -9,6 +8,7 @@ import { AnswerKeyDetails } from "./components/AnswerKeyDetails";
 import { BookChapterForm } from "@/components/ui/BookChapterForm";
 import { KeyRound } from "lucide-react";
 import { LoadingState } from "@/components/ui/LoadingState";
+import { PageHeaderBanner } from "@/components/ui/PageHeaderBanner";
 
 export default function AnswerKeyPage() {
   const [selectedItem, setSelectedItem] = useState(null);
@@ -49,28 +49,14 @@ export default function AnswerKeyPage() {
 
   return (
     <div className="max-w-7xl mx-auto my-5 space-y-6">
-      {/* HEADER */}
-      <div className="relative overflow-hidden rounded-3xl border border-border bg-gradient-to-br from-primary/10 via-accent/10 to-primary/5 p-8 shadow-[var(--shadow-lg)]">
-        <div className="relative flex items-center gap-4">
-          <div className="p-3 rounded-xl bg-gradient-to-br from-primary to-accent shadow-[var(--shadow-glow)]">
-            <FileText className="h-8 w-8 text-white" />
-          </div>
-          <div>
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-              Answer Key Generator
-            </h1>
-            <p className="text-muted-foreground mt-1 text-lg">
-              Automatically generate answer keys for your worksheets.
-            </p>
-          </div>
-        </div>
-      </div>
+      <PageHeaderBanner
+        title="Answer Key Generator"
+        description="Automatically generate answer keys for your worksheets."
+        icon={KeyRound}
+      />
 
       {isLoadingHistory || isLoadingDocs ? (
-       <LoadingState 
-  title="Loading Answer Key..." 
-  description="Please wait while we load your worksheets." 
-/>
+        <LoadingState title="Loading Answer Key..." description="Please wait while we load your worksheets." />
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-10 gap-6">
           <History

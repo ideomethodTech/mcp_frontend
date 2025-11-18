@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import {  FileText, MessageSquare } from "lucide-react";
+import { MessageSquare } from "lucide-react";
 import History from "@/components/ui/history";
 import { useCreateChat, useGetUserChats, useGenerateContent, useGetDocuments } from "@/lib/api/queries";
 import { toast } from "react-toastify";
@@ -9,6 +9,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { BookChapterForm } from "@/components/ui/BookChapterForm";
 import { ChatInterface } from "./components/ChatInterface";
 import { LoadingState } from "@/components/ui/LoadingState";
+import { PageHeaderBanner } from "@/components/ui/PageHeaderBanner";
 
 export default function ChatPage() {
   const [selectedChat, setSelectedChat] = useState(null);
@@ -37,27 +38,14 @@ export default function ChatPage() {
 
   return (
     <div className="max-w-7xl mx-auto my-5 space-y-6">
-      <div className="relative overflow-hidden rounded-3xl border border-border bg-gradient-to-br from-primary/10 via-accent/10 to-primary/5 p-8 shadow-[var(--shadow-lg)]">
-        <div className="relative flex items-center gap-4">
-          <div className="p-3 rounded-xl bg-gradient-to-br from-primary to-accent shadow-[var(--shadow-glow)]">
-            <FileText className="h-8 w-8 text-white" />
-          </div>
-          <div>
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-              Chat with Book
-            </h1>
-            <p className="text-muted-foreground mt-1 text-lg">
-              Engage in real-time conversations with your learning materials.
-            </p>
-          </div>
-        </div>
-      </div>
+      <PageHeaderBanner
+        title="Chat with Book"
+        description="Engage in real-time conversations with your learning materials."
+        icon={MessageSquare}
+      />
 
       {createChatMutation.isPending || generateMutation.isPending || isLoadingHistory || isLoadingDocs ? (
-        <LoadingState 
-  title="Loading Chats..." 
-  description="Please wait while we load your chats." 
-/>
+        <LoadingState title="Loading Chats..." description="Please wait while we load your chats." />
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-10 gap-6">
           {/* {History} */}

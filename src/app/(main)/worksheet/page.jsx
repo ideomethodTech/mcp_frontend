@@ -9,6 +9,7 @@ import { toast } from "react-toastify";
 import { BookChapterForm } from "@/components/ui/BookChapterForm";
 import { WorksheetDetails } from "./components/WorksheetDetails";
 import { LoadingState } from "@/components/ui/LoadingState";
+import { PageHeaderBanner } from "@/components/ui/PageHeaderBanner";
 
 export default function WorksheetPage() {
   const [selectedItem, setSelectedItem] = useState(null);
@@ -53,21 +54,11 @@ export default function WorksheetPage() {
 
   return (
     <div className="max-w-7xl mx-auto my-5 space-y-6">
-      <div className="relative overflow-hidden rounded-3xl border border-border bg-gradient-to-br from-primary/10 via-accent/10 to-primary/5 p-8 shadow-[var(--shadow-lg)]">
-        <div className="relative flex items-center gap-4">
-          <div className="p-3 rounded-xl bg-gradient-to-br from-primary to-accent shadow-[var(--shadow-glow)]">
-            <FileText className="h-8 w-8 text-white" />
-          </div>
-          <div>
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-              Worksheet Generator
-            </h1>
-            <p className="text-muted-foreground mt-1 text-lg">
-              Create diverse worksheets with various question types.{" "}
-            </p>
-          </div>
-        </div>
-      </div>
+      <PageHeaderBanner
+  title="Worksheet Generator"
+  description="Create diverse worksheets with various question types."
+  icon={FileText}
+/>
 
       {generateMutation.isPending || isLoadingHistory || isLoadingDocs ? (
         <LoadingState title="Loading Worksheets..." description="Please wait while we load your worksheets." />
