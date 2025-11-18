@@ -9,12 +9,15 @@ const WorksheetItem = ({ item, worksheetData, documents }) => {
   const data = worksheetData?.worksheet || worksheetData || {};
 
   const book = documents?.find((doc) => doc.document_id === item.document_id);
-  const bookName = book?.name || book?.filename || item.chapter_name || "Book";
+  const bookName = book?.name || book?.filename || item.title ||"Book";
+  console.log(book)
+  console.log(bookName)
+ 
 
   const { data: chapters } = useGetDocumentChapters(item.document_id);
   const chapter = chapters?.messages?.find((ch) => ch.chapter_id === item.chapter_id);
   const chapterName = chapter?.chapter_name || item.chapter_name || "Chapter";
-
+ console.log(chapterName)
   const mcqQuestions = data.mcqs || [];
   const fillUpQuestions = data.fill_ups || [];
   const trueFalseQuestions = data.true_false || [];

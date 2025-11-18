@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { FileText, ClipboardList } from "lucide-react";
+import {  ClipboardList } from "lucide-react";
 import History from "@/components/ui/history";
 import { useGenerateLearning, useGetLearnings, useGetLearning } from "@/lib/api/queries";
 import { useQueryClient } from "@tanstack/react-query";
@@ -50,9 +50,7 @@ export default function LessonPlanPage() {
             setSelectedItem={setSelectedItem}
             historyData={learnings?.learnings || []}
             buttonText="New Lesson Plan"
-            subtitleField="document_name"
           />
-          {/* Lesson Plan Content */}
           {selectedItem ? (
             <LessonPlanDetails item={selectedLearningData || selectedItem} />
           ) : (

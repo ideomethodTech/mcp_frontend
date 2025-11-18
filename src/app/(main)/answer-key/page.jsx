@@ -68,7 +68,7 @@ export default function AnswerKeyPage() {
             }}
             historyData={worksheets?.worksheets || []}
             buttonText="New Answer Key"
-            subtitleField="document_name"
+         
           />
 
           {selectedItem ? (

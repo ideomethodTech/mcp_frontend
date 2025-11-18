@@ -41,6 +41,7 @@ export default function WorksheetPage() {
         document_name: bookName,
         chapter_name: chapterName,
         title: bookName,
+        created_at: new Date().toISOString(),
       };
 
       queryClient.invalidateQueries({ queryKey: ["worksheets"] });

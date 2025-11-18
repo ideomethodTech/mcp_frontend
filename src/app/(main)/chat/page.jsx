@@ -48,7 +48,6 @@ export default function ChatPage() {
         <LoadingState title="Loading Chats..." description="Please wait while we load your chats." />
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-10 gap-6">
-          {/* {History} */}
           <History
             selectedItem={selectedChat}
             setSelectedItem={(chat) => {
@@ -60,10 +59,8 @@ export default function ChatPage() {
             }}
             historyData={chatHistory?.chats || []}
             buttonText="New Chat"
-            subtitleField="last_message"
             isChat={true}
           />
-          {/* Chat Content */}
           {selectedChat ? (
             <ChatInterface chatSession={selectedChat} />
           ) : (
