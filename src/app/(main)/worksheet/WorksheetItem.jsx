@@ -26,7 +26,7 @@ const WorksheetItem = ({ item, worksheetData, documents }) => {
       <div className="rounded-2xl border border-border bg-card shadow-[var(--shadow-md)]">
         <div className="p-6 border-b border-border flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Sheet className="h-6 w-6 text-primary" />
+            <Sheet className="h-6 w-6 text-primary flex-shrink-0" />
             <div>
               <h2 className="text-xl font-bold text-foreground">{`Worksheet: ${chapterName}`}</h2>
               <p className="text-sm text-muted-foreground">
@@ -42,8 +42,8 @@ const WorksheetItem = ({ item, worksheetData, documents }) => {
               Print
             </Button>
             <Button className="gap-2 bg-gradient-to-r from-primary to-accent hover:opacity-90 ">
-              <Link href="/answer-key">
-                <ExternalLink className="ml-2 h-4 w-10" /> Answer Key
+              <Link href={`/answer-key?worksheet_id=${item.worksheet_id}`} className="flex gap-2 items-center w-full">
+                <ExternalLink className=" h-4 w-10" /> Answer Key
               </Link>
             </Button>
           </div>
@@ -135,7 +135,7 @@ const WorksheetItem = ({ item, worksheetData, documents }) => {
                   {trueFalseQuestions.map((question, index) => (
                     <div key={index} className="space-y-4 mb-6">
                       <p className="font-medium mb-2">
-                        {index + 1}. {question.question}
+                        {index + 1}. {question.statement}
                       </p>
                       <div className="flex gap-6 text-sm pl-4">
                         <span className="flex items-center gap-2">
@@ -176,7 +176,7 @@ const WorksheetItem = ({ item, worksheetData, documents }) => {
                   {matchQuestions.map((question, index) => (
                     <div key={index} className="space-y-4 mb-6">
                       <p className="font-medium mb-2">
-                        {index + 1}. {question.question}
+                      {index + 1}. {question.question || "Match the following:"}
                       </p>
                       <div className="grid grid-cols-2 gap-4 text-sm pl-4">
                         <div className="space-y-2">

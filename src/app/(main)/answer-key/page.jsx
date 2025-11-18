@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -18,6 +18,7 @@ import {
   useGetAnswerKey,
   useGetDocumentChapters,
 } from "@/lib/api/queries";
+import { useSearchParams } from "next/navigation";
 
 const formSchema = z.object({
   book: z.string().nonempty("Please select a book."),
@@ -306,18 +307,29 @@ function NewAnswerKeyForm({ onGenerate, documents }) {
 
 export default function AnswerKeyPage() {
   const [selectedItem, setSelectedItem] = useState(null);
+  const searchParams = useSearchParams();
+  const worksheetIdFromUrl = searchParams.get("worksheet_id");
 
   // API hooks
   const { data: worksheets, isLoading: isLoadingHistory } = useGetWorksheets();
   const { data: documents, isLoading: isLoadingDocs } = useGetDocuments();
   const { data: selectedWorksheetData } = useGetWorksheet(selectedItem?.worksheet_id || selectedItem?.id);
   const { data: answerKeyData, isLoading: isLoadingAnswerKey } = useGetAnswerKey(
-    selectedItem?.worksheet_id || selectedItem?.id
+    worksheetIdFromUrl || selectedItem?.worksheet_id
   );
-  // Add this debug log
-  console.log("🔑 ANSWER KEY DATA:", answerKeyData);
-  console.log("📝 WORKSHEET DATA:", selectedWorksheetData);
-  console.log("🎯 SELECTED ITEM:", selectedItem);
+  useEffect(() => {
+    if (worksheetIdFromUrl && worksheets?.worksheets) {
+      const worksheetFromUrl = worksheets.worksheets.find((w) => w.worksheet_id === worksheetIdFromUrl);
+      if (worksheetFromUrl) setSelectedItem(worksheetFromUrl);
+    }
+    // Scroll to answer key section after a brief delay to ensure rendering
+      setTimeout(() => {
+        const answerKeySection = document.querySelector('.lg\\:col-span-3');
+        if (answerKeySection) answerKeySection.scrollIntoView({ behavior: 'smooth' });
+      }, 100);
+    
+  }, [worksheetIdFromUrl, worksheets]);
+
   const handleGenerate = (values) => {
     // Match worksheet using book + chapter IDs
     const worksheet = worksheets.worksheets?.find(

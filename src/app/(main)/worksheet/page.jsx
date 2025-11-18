@@ -30,12 +30,6 @@ const formSchema = z.object({
 const WorksheetDetails = ({ item, documents }) => {
   const { data: worksheetData, isLoading } = useGetWorksheet(item.worksheet_id);
 
-  // DEBUG: Check what we actually have
-  console.log("🔍 WorksheetDetails - item:", item);
-  console.log("🔍 WorksheetDetails - documents:", documents);
-  console.log("🔍 WorksheetDetails - worksheetData:", worksheetData);
-  console.log("🔍 WorksheetDetails - isLoading:", isLoading);
-
   if (isLoading) {
     return (
       <div className="lg:col-span-3">
