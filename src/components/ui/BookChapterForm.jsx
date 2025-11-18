@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { BookOpen } from "lucide-react";
-import { BookChapterFormHeader } from "@/components/BookChapterFormHeader";
+import { BookChapterFormHeader } from "./BookChapterFormHeader";
 import { useGetDocuments, useGetDocumentChapters } from "@/lib/api/queries";
 
 const formSchema = z.object({

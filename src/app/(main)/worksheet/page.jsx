@@ -33,8 +33,7 @@ export default function WorksheetPage() {
       const selectedBook = documents?.find((doc) => doc.document_id === values.book);
       const bookName = selectedBook?.name || selectedBook?.filename;
 
-      const selectedBookInForm = documents?.find((b) => b.document_id === values.book);
-      const chapter = selectedBookInForm?.chapters?.find((ch) => ch.chapter_id === values.chapter);
+      const chapter = selectedBook?.chapters?.find((ch) => ch.chapter_id === values.chapter);
       const chapterName = chapter?.chapter_name;
 
       const resultWithNames = {
@@ -55,24 +54,21 @@ export default function WorksheetPage() {
   return (
     <div className="max-w-7xl mx-auto my-5 space-y-6">
       <PageHeaderBanner
-  title="Worksheet Generator"
-  description="Create diverse worksheets with various question types."
-  icon={FileText}
-/>
+        title="Worksheet Generator"
+        description="Create diverse worksheets with various question types."
+        icon={FileText}
+      />
 
       {generateMutation.isPending || isLoadingHistory || isLoadingDocs ? (
         <LoadingState title="Loading Worksheets..." description="Please wait while we load your worksheets." />
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-10 gap-6">
-          {/* {History} */}
           <History
             historyData={worksheets?.worksheets}
             selectedItem={selectedItem}
             setSelectedItem={setSelectedItem}
             buttonText=" New Worksheet"
-            documents={documents}
           />
-          {/* Worksheet Content */}
           {selectedItem ? (
             <WorksheetDetails item={selectedItem} documents={documents} />
           ) : (

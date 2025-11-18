@@ -61,6 +61,7 @@ export default function ChatPage() {
             historyData={chatHistory?.chats || []}
             buttonText="New Chat"
             subtitleField="last_message"
+            isChat={true}
           />
           {/* Chat Content */}
           {selectedChat ? (
