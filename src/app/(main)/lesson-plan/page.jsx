@@ -1,14 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { Loader2, FileText ,ClipboardList } from "lucide-react";
-import History from "@/app/componentsV2/ui/history";
+import { Loader2, FileText, ClipboardList } from "lucide-react";
+import History from "@/components/ui/history";
 import { useGenerateLearning, useGetLearnings, useGetLearning } from "@/lib/api/queries";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "react-toastify";
 import { BookChapterForm } from "@/components/ui/BookChapterForm";
 import { LessonPlanDetails } from "./components/LessonPlanDetails";
-
 
 export default function LessonPlanPage() {
   const [selectedItem, setSelectedItem] = useState(null);

@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Presentation, Loader2, Download, Palette, Layers, FileText, FileType } from "lucide-react";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
-import History from "@/app/componentsV2/ui/history";
+import History from "@/components/ui/history";
 import { BookChapterForm } from "@/components/ui/BookChapterForm";
 
 const mockHistory = [

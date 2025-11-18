@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Loader2, FileText } from "lucide-react";
-import History from "@/app/componentsV2/ui/history";
+import History from "@/components/ui/history";
 import { useGetWorksheets, useGetWorksheet, useGetDocuments, useGetAnswerKey } from "@/lib/api/queries";
 import { useSearchParams } from "next/navigation";
 import { AnswerKeyDetails } from "./components/AnswerKeyDetails";

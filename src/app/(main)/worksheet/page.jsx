@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { FileText, Loader2 } from "lucide-react";
-import History from "@/app/componentsV2/ui/history";
+import History from "@/components/ui/history";
 import { useGenerateWorksheet, useGetWorksheets, useGetDocuments } from "@/lib/api/queries";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "react-toastify";

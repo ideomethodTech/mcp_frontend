@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Loader2, FileText, MessageSquare } from "lucide-react";
-import History from "@/app/componentsV2/ui/history";
+import History from "@/components/ui/history";
 import { useCreateChat, useGetUserChats, useGenerateContent, useGetDocuments } from "@/lib/api/queries";
 import { toast } from "react-toastify";
 import { useQueryClient } from "@tanstack/react-query";
