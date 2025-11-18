@@ -43,7 +43,7 @@ const History = ({ selectedItem, setSelectedItem, historyData, buttonText, docum
   
 
   return (
-    <div className="lg:col-span-1">
+    <div className="lg:col-span-3">
       <div className="rounded-2xl border border-border bg-card p-6 shadow-[var(--shadow-md)]">
         <Button
           className="w-full mb-4 bg-gradient-to-r from-primary to-accent hover:opacity-90 transition-opacity"
