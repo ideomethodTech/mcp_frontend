@@ -33,7 +33,7 @@ export default function AppLayout({
         <SidebarInset>
           <div className="flex flex-col h-screen">
             <Header />
-            <main className="flex-1 overflow-auto">{children}</main>
+            <main className="flex-1 overflow-auto px-6">{children}</main>
           </div>
         </SidebarInset>
       </SidebarProvider>

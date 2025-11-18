@@ -366,7 +366,11 @@ export default function AnswerKeyPage() {
         {/* HISTORY SECTION */}
         <History
           selectedItem={selectedItem}
-          setSelectedItem={setSelectedItem}
+          setSelectedItem={(item) => {
+    // Remove the URL parameter when selecting from history
+    window.history.replaceState(null, '', '/answer-key');
+    setSelectedItem(item);
+  }}
           historyData={worksheets?.worksheets || []}
           buttonText="New Answer Key"
           subtitleField="document_name"
