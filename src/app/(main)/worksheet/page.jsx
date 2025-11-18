@@ -1,13 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { FileText, Loader2 } from "lucide-react";
+import { FileText } from "lucide-react";
 import History from "@/components/ui/history";
 import { useGenerateWorksheet, useGetWorksheets, useGetDocuments } from "@/lib/api/queries";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "react-toastify";
 import { BookChapterForm } from "@/components/ui/BookChapterForm";
 import { WorksheetDetails } from "./components/WorksheetDetails";
+import { LoadingState } from "@/components/ui/LoadingState";
 
 export default function WorksheetPage() {
   const [selectedItem, setSelectedItem] = useState(null);
@@ -69,13 +70,7 @@ export default function WorksheetPage() {
       </div>
 
       {generateMutation.isPending || isLoadingHistory || isLoadingDocs ? (
-        <div className="flex items-center justify-center min-h-[400px]">
-          <div className="text-center">
-            <Loader2 className="mx-auto h-12 w-12 animate-spin text-primary mb-4" />
-            <h3 className="text-lg font-medium text-foreground">Loading Worksheets...</h3>
-            <p className="text-sm text-muted-foreground">Please wait while we load your worksheets.</p>
-          </div>
-        </div>
+        <LoadingState title="Loading Worksheets..." description="Please wait while we load your worksheets." />
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-10 gap-6">
           {/* {History} */}

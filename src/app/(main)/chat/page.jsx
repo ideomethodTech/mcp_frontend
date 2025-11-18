@@ -1,13 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { Loader2, FileText, MessageSquare } from "lucide-react";
+import {  FileText, MessageSquare } from "lucide-react";
 import History from "@/components/ui/history";
 import { useCreateChat, useGetUserChats, useGenerateContent, useGetDocuments } from "@/lib/api/queries";
 import { toast } from "react-toastify";
 import { useQueryClient } from "@tanstack/react-query";
 import { BookChapterForm } from "@/components/ui/BookChapterForm";
 import { ChatInterface } from "./components/ChatInterface";
+import { LoadingState } from "@/components/ui/LoadingState";
 
 export default function ChatPage() {
   const [selectedChat, setSelectedChat] = useState(null);
@@ -53,13 +54,10 @@ export default function ChatPage() {
       </div>
 
       {createChatMutation.isPending || generateMutation.isPending || isLoadingHistory || isLoadingDocs ? (
-        <div className="flex items-center justify-center min-h-[400px]">
-          <div className="text-center">
-            <Loader2 className="mx-auto h-12 w-12 animate-spin text-primary mb-4" />
-            <h3 className="text-lg font-medium text-foreground">Loading Chats...</h3>
-            <p className="text-sm text-muted-foreground">Please wait while we load your chats.</p>
-          </div>
-        </div>
+        <LoadingState 
+  title="Loading Chats..." 
+  description="Please wait while we load your chats." 
+/>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-10 gap-6">
           {/* {History} */}

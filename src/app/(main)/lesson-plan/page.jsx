@@ -1,13 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { Loader2, FileText, ClipboardList } from "lucide-react";
+import {  FileText, ClipboardList } from "lucide-react";
 import History from "@/components/ui/history";
 import { useGenerateLearning, useGetLearnings, useGetLearning } from "@/lib/api/queries";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "react-toastify";
 import { BookChapterForm } from "@/components/ui/BookChapterForm";
 import { LessonPlanDetails } from "./components/LessonPlanDetails";
+import { LoadingState } from "@/components/ui/LoadingState";
 
 export default function LessonPlanPage() {
   const [selectedItem, setSelectedItem] = useState(null);
@@ -50,13 +51,7 @@ export default function LessonPlanPage() {
       </div>
 
       {generateMutation.isPending || isLoadingHistory ? (
-        <div className="flex items-center justify-center min-h-[400px]">
-          <div className="text-center">
-            <Loader2 className="mx-auto h-12 w-12 animate-spin text-primary mb-4" />
-            <h3 className="text-lg font-medium text-foreground">Loading Lesson Plans...</h3>
-            <p className="text-sm text-muted-foreground">Please wait while we load your lesson plans.</p>
-          </div>
-        </div>
+        <LoadingState title="Loading Lesson Plans..." description="Please wait while we load your lesson plans." />
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-10 gap-6">
           <History

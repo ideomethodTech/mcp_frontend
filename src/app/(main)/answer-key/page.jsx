@@ -1,13 +1,14 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Loader2, FileText } from "lucide-react";
+import {  FileText } from "lucide-react";
 import History from "@/components/ui/history";
 import { useGetWorksheets, useGetWorksheet, useGetDocuments, useGetAnswerKey } from "@/lib/api/queries";
 import { useSearchParams } from "next/navigation";
 import { AnswerKeyDetails } from "./components/AnswerKeyDetails";
 import { BookChapterForm } from "@/components/ui/BookChapterForm";
 import { KeyRound } from "lucide-react";
+import { LoadingState } from "@/components/ui/LoadingState";
 
 export default function AnswerKeyPage() {
   const [selectedItem, setSelectedItem] = useState(null);
@@ -66,13 +67,10 @@ export default function AnswerKeyPage() {
       </div>
 
       {isLoadingHistory || isLoadingDocs ? (
-        <div className="flex items-center justify-center min-h-[400px]">
-          <div className="text-center">
-            <Loader2 className="mx-auto h-12 w-12 animate-spin text-primary mb-4" />
-            <h3 className="text-lg font-medium text-foreground">Loading Answer Key...</h3>
-            <p className="text-sm text-muted-foreground">Please wait while we load your worksheets.</p>
-          </div>
-        </div>
+       <LoadingState 
+  title="Loading Answer Key..." 
+  description="Please wait while we load your worksheets." 
+/>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-10 gap-6">
           <History

@@ -1,11 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { Presentation, Loader2, Download, Palette, Layers, FileText, FileType } from "lucide-react";
+import { Presentation, Download, Palette, Layers, FileText, FileType } from "lucide-react";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import History from "@/components/ui/history";
 import { BookChapterForm } from "@/components/ui/BookChapterForm";
+import { LoadingState } from "@/components/ui/LoadingState";
 
 const mockHistory = [
   {
@@ -36,7 +37,7 @@ const mockHistory = [
 
 function PptDetails({ item }) {
   return (
-    <div className="lg:col-span-3">
+    <div className="lg:col-span-7">
       <div className="rounded-2xl border border-border bg-card shadow-[var(--shadow-md)]">
         {/* Header with Actions */}
         <div className="p-6 border-b border-border">
@@ -180,34 +181,29 @@ export default function PptGeneratorPage() {
           </div>
         </div>
       </div>
-      <div className="grid grid-cols-1 lg:grid-cols-10 gap-6">
-        {/* {History} */}
-        <History selectedItem={selectedPpt} setSelectedItem={setSelectedPpt} historyData={mockHistory} />
 
-        {/* PPT generator Content */}
-        {isLoading ? (
-          <div className="flex items-center justify-center h-full">
-            <div className="text-center">
-              <Loader2 className="mx-auto h-12 w-12 animate-spin text-primary mb-4" />
-              <h3 className="text-lg font-medium text-foreground">Generating Presentation...</h3>
-              <p className="text-sm text-muted-foreground">Please wait while the AI crafts your slides.</p>
-            </div>
-          </div>
-        ) : selectedPpt ? (
-          <PptDetails item={selectedPpt} />
-        ) : (
-          <BookChapterForm
-            onGenerate={handleGenerate}
-            pageHeaderTitle="PPT Generator"
-            pageHeaderDescription="Transform book chapters into engaging presentations."
-            pageHeaderIcon={FileText}
-            cardTitle="Generate a New Presentation"
-            cardDescription="Choose a book and chapter to automatically create a PowerPoint presentation."
-            buttonText="Generate Presentation"
-            includeChapters={true}
-          />
-        )}
-      </div>
+      {isLoading ? (
+        <LoadingState title="Generating Presentation..." description="Please wait while the AI crafts your slides." />
+      ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-10 gap-6">
+          <History selectedItem={selectedPpt} setSelectedItem={setSelectedPpt} historyData={mockHistory} />
+
+          {selectedPpt ? (
+            <PptDetails item={selectedPpt} />
+          ) : (
+            <BookChapterForm
+              onGenerate={handleGenerate}
+              pageHeaderTitle="PPT Generator"
+              pageHeaderDescription="Transform book chapters into engaging presentations."
+              pageHeaderIcon={FileText}
+              cardTitle="Generate a New Presentation"
+              cardDescription="Choose a book and chapter to automatically create a PowerPoint presentation."
+              buttonText="Generate Presentation"
+              includeChapters={true}
+            />
+          )}
+        </div>
+      )}
     </div>
   );
 }
