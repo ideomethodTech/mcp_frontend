@@ -1,13 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { Loader2, FileText } from "lucide-react";
+import { Loader2, FileText ,ClipboardList } from "lucide-react";
 import History from "@/app/componentsV2/ui/history";
 import { useGenerateLearning, useGetLearnings, useGetLearning } from "@/lib/api/queries";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "react-toastify";
-import { NewLessonPlanForm } from "./components/NewLessonPlanForm";
+import { BookChapterForm } from "@/components/ui/BookChapterForm";
 import { LessonPlanDetails } from "./components/LessonPlanDetails";
+
 
 export default function LessonPlanPage() {
   const [selectedItem, setSelectedItem] = useState(null);
@@ -70,7 +71,16 @@ export default function LessonPlanPage() {
           {selectedItem ? (
             <LessonPlanDetails item={selectedLearningData || selectedItem} />
           ) : (
-            <NewLessonPlanForm onGenerate={handleGenerate} generateMutation={generateMutation} />
+            <BookChapterForm
+              onGenerate={handleGenerate}
+              pageHeaderTitle="Lesson Plan Generator"
+              pageHeaderDescription="Generate structured lesson plans for any topic or chapter"
+              pageHeaderIcon={ClipboardList}
+              cardTitle="Book & Chapter Selection"
+              cardDescription="Choose the book and chapter for your lesson plan."
+              buttonText="Generate Lesson Plan"
+              includeChapters={true}
+            />
           )}
         </div>
       )}

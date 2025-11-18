@@ -1,12 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { Loader2, FileText } from "lucide-react";
+import { Loader2, FileText, MessageSquare } from "lucide-react";
 import History from "@/app/componentsV2/ui/history";
 import { useCreateChat, useGetUserChats, useGenerateContent, useGetDocuments } from "@/lib/api/queries";
 import { toast } from "react-toastify";
 import { useQueryClient } from "@tanstack/react-query";
-import { NewChatForm } from "./components/NewChatForm";
+import { BookChapterForm } from "@/components/ui/BookChapterForm";
 import { ChatInterface } from "./components/ChatInterface";
 
 export default function ChatPage() {
@@ -80,7 +80,16 @@ export default function ChatPage() {
           {selectedChat ? (
             <ChatInterface chatSession={selectedChat} />
           ) : (
-            <NewChatForm onStartChat={handleStartChat} documents={documents} />
+            <BookChapterForm
+              onGenerate={handleStartChat}
+              pageHeaderTitle="Chat with Book"
+              pageHeaderDescription="Engage in real-time conversations with your learning materials."
+              pageHeaderIcon={MessageSquare}
+              cardTitle="Start a New Chat"
+              cardDescription="Select a book to begin your conversation."
+              buttonText="Start Chat"
+              includeChapters={false}
+            />
           )}
         </div>
       )}

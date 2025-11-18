@@ -6,7 +6,8 @@ import History from "@/app/componentsV2/ui/history";
 import { useGetWorksheets, useGetWorksheet, useGetDocuments, useGetAnswerKey } from "@/lib/api/queries";
 import { useSearchParams } from "next/navigation";
 import { AnswerKeyDetails } from "./components/AnswerKeyDetails";
-import { NewAnswerKeyForm } from "./components/NewAnswerKeyForm";
+import { BookChapterForm } from "@/components/ui/BookChapterForm";
+import { KeyRound } from "lucide-react";
 
 export default function AnswerKeyPage() {
   const [selectedItem, setSelectedItem] = useState(null);
@@ -86,7 +87,6 @@ export default function AnswerKeyPage() {
             subtitleField="document_name"
           />
 
-          {/* RIGHT CONTENT */}
           {selectedItem ? (
             <AnswerKeyDetails
               item={answerKeyData}
@@ -96,7 +96,16 @@ export default function AnswerKeyPage() {
               documents={documents}
             />
           ) : (
-            <NewAnswerKeyForm onGenerate={handleGenerate} documents={documents} />
+            <BookChapterForm
+              onGenerate={handleGenerate}
+              pageHeaderTitle="Answer Key Generator"
+              pageHeaderDescription="Automatically generate answer keys for your worksheets."
+              pageHeaderIcon={KeyRound}
+              cardTitle="Book & Chapter Selection"
+              cardDescription="Choose the book and chapter for your Answer Key."
+              buttonText="Generate Answer Key"
+              includeChapters={true}
+            />
           )}
         </div>
       )}

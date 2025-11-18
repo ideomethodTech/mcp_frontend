@@ -6,7 +6,7 @@ import History from "@/app/componentsV2/ui/history";
 import { useGenerateWorksheet, useGetWorksheets, useGetDocuments } from "@/lib/api/queries";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "react-toastify";
-import { NewWorksheetForm } from "./components/NewWorksheetForm";
+import { BookChapterForm } from "@/components/ui/BookChapterForm";
 import { WorksheetDetails } from "./components/WorksheetDetails";
 
 export default function WorksheetPage() {
@@ -90,7 +90,16 @@ export default function WorksheetPage() {
           {selectedItem ? (
             <WorksheetDetails item={selectedItem} documents={documents} />
           ) : (
-            <NewWorksheetForm onGenerate={handleGenerate} documents={documents} generateMutation={generateMutation} />
+            <BookChapterForm
+              onGenerate={handleGenerate}
+              pageHeaderTitle="Worksheet Generator"
+              pageHeaderDescription="Create diverse worksheets with various question types."
+              pageHeaderIcon={FileText}
+              cardTitle="Book & Chapter Selection"
+              cardDescription="Choose the book and chapter to generate a worksheet."
+              buttonText="Generate Worksheet"
+              includeChapters={true}
+            />
           )}
         </div>
       )}
