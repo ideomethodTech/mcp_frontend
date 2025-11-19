@@ -18,10 +18,18 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useState } from "react";
-import { useGetDocuments, useUploadDocument, useDeleteDocument } from "@/lib/api/queries";
+import {
+  useGetDocuments,
+  useUploadDocument,
+  useDeleteDocument,
+  useApproveJoinRequest,
+  useRejectJoinRequest,
+  useRemoveUserFromOrg,
+} from "@/lib/api/queries";
 import { toast } from "react-toastify";
 import { Loader2 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
+import UserManagement from "./components/UserManagement";
 
 export default function AdminDashboardPage() {
   const queryClient = useQueryClient();
@@ -86,12 +94,14 @@ export default function AdminDashboardPage() {
       console.log("Failed to delete document");
     }
   };
+
   return (
     <div>
       <h1 className="font-headline text-3xl font-bold tracking-tight mb-4">Admin Dashboard</h1>
       <Tabs defaultValue="books">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="books">Book Management</TabsTrigger>
+          <TabsTrigger value="users">User Management</TabsTrigger>
           <TabsTrigger value="activity">User Activity</TabsTrigger>
           <TabsTrigger value="config">Tool Configuration</TabsTrigger>
         </TabsList>
@@ -211,6 +221,9 @@ export default function AdminDashboardPage() {
               </Table>
             </CardContent>
           </Card>
+        </TabsContent>
+        <TabsContent value="users">
+          <UserManagement />
         </TabsContent>
         <TabsContent value="activity">
           <Card>

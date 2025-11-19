@@ -24,6 +24,7 @@ export const loginOrganization = async ({ org_name, email, name, password }) => 
     name: name,
     email: email,
     org_name: org_name,
+    role: response.data.role || "admin",
   };
   localStorage.setItem("user", JSON.stringify(userData));
 
@@ -46,6 +47,7 @@ export const registerOrganization = async ({ name, org_name, email, password }) 
     name: name,
     email: email,
     org_name: org_name,
+    role: response.data.role || "admin",
   };
   localStorage.setItem("user", JSON.stringify(userData));
 
