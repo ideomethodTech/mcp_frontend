@@ -30,18 +30,42 @@ export const uploadBook = async (data) => {
   return response.data;
 };
 
-export const getBook = async (data) => {
+export const getBook = async () => {
   const response = await api({
-    url: ENDPOINTS.GET_BOOK,
+    url: `${ENDPOINTS.GET_BOOK}`,
+    method: "GET",
+  });
+  return response.data;
+};
+
+//Worksheet
+export const createWorksheet = async (data) => {
+  const response = await api({
+    url: ENDPOINTS.GEBERATE_WORKSHEET,
     method: "POST",
     data: {
-      book_url: data.book_url,
-      book_name: data.book_name,
+      book_id: data.book_id,
+      chapter: data.chapter,
       uid: data.uid
     },
   });
   return response.data;
 };
+
+export const createLessonPlan = async (data) => {
+  const response = await api({
+    url: ENDPOINTS.GEBERATE_LESSONPLAN,
+    method: "POST",
+    data: {
+      book_id: data.book_id,
+      chapter: data.chapter,
+      uid: data.uid,
+      weeks: data.weeks
+    },
+  });
+  return response.data;
+};
+
 
 // Chat Management Functions
 export const createChat = async (data) => {
@@ -49,7 +73,6 @@ export const createChat = async (data) => {
     url: ENDPOINTS.CREATE_CHAT,
     method: "POST",
     data: {
-      chat_id: data.chat_id || "",
       chat_title: data.chat_title,
       uid: data.uid
     },

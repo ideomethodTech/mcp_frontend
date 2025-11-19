@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 import { MessageSquare, Send, Book, PlusCircle, Plus, Loader2, FileText, Input } from 'lucide-react';
 import { format } from 'date-fns';
 
@@ -22,6 +22,10 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import History from '@/app/componentsV2/ui/history';
+import { useChatDetails, useCreateChat, useGetBook, useUserChats } from '@/lib/api/queries';
+import { useAuth } from '@/contexts/auth-context';
+import { getNavItemByUrl } from '@/app/utils';
+import { useQueryClient } from '@tanstack/react-query';
 
 
 const mockHistory = [
@@ -61,7 +65,7 @@ const ChatMessage = ({
   content,
   isLoading = false,
 }) => {
-  console.log(content);
+  // console.log(content);
   const isUser = role === 'user';
   return (
     <div
@@ -96,7 +100,7 @@ const ChatMessage = ({
 };
 
 function ChatInterface({ chatSession, setChatSession }) {
-  const [messages, setMessages] = useState(chatSession.messages);
+  const [messages, setMessages] = useState(chatSession?.messages);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
@@ -180,7 +184,7 @@ function ChatInterface({ chatSession, setChatSession }) {
   )
 }
 
-function NewChatForm({ onStartChat }) {
+function NewChatForm({ onStartChat, data }) {
   const [selectedBook, setSelectedBook] = useState(null);
 
   const handleStart = () => {
@@ -201,19 +205,24 @@ function NewChatForm({ onStartChat }) {
           </CardHeader>
           <CardContent className="flex flex-col items-center gap-4">
             <p className="text-sm text-muted-foreground text-center">Select a book to begin your conversation.</p>
-            <Select onValueChange={setSelectedBook}>
+            <Select onValueChange={(val) => setSelectedBook(JSON.parse(val))}>
               <SelectTrigger className="w-full">
                 <SelectValue placeholder="Choose a book" />
               </SelectTrigger>
               <SelectContent>
-                {mockBooks.map((book) => (
-                  <SelectItem key={book} value={book}>{book}</SelectItem>
+                {data?.map((book) => (
+                  <SelectItem
+                    key={book.book_id}
+                    value={JSON.stringify(book)}
+                  >
+                    {book.book_name}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </CardContent>
           <CardFooter className="justify-center">
-            <Button onClick={handleStart} className="w-full" disabled={!selectedBook}>
+            <Button onClick={() => onStartChat(selectedBook)} disabled={!selectedBook}>
               <MessageSquare className="mr-2 h-4 w-4" /> Start Chat
             </Button>
           </CardFooter>
@@ -224,26 +233,44 @@ function NewChatForm({ onStartChat }) {
 }
 
 export default function ChatPage() {
-  const [selectedChat, setSelectedChat] = useState(mockHistory[0]);
+  const [selectedChatId, setSelectedChatId] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
+  const pathname = usePathname();
+  const navItem = getNavItemByUrl(pathname);
+  const uid = "nn170kZPMuWZlbzGbVps3YVyG9J3";
+  const queryClient = useQueryClient();
+
+  // Fetch chat list
+  const { data: userChats, isLoading: chatsLoading } = useUserChats(uid);
+
+  // Fetch selected chat messages
+  const { data: chatMessages, isLoading: messagesLoading } = useChatDetails(uid, selectedChatId, {
+    enabled: !!selectedChatId,
+  });
+
+  // Create Chat
+  const { mutate: createChatMutation, isPending: creatingChat } = useCreateChat({
+    onSuccess: (data) => {
+      // new chat created → refresh chat list
+      queryClient.invalidateQueries(["userChats", uid]);
+
+      setSelectedChatId(data.chat_id);
+    },
+  });
+  const { data: bookData, isLoading: isBookDataLoading, refetch: refetchBooks } = useGetBook(uid);
 
   const handleStartChat = (book) => {
-    setIsLoading(true);
-    setSelectedChat(null);
-    setTimeout(() => {
-      const newChat = {
-        id: `chat${mockHistory.length + 1}`,
-        book,
-        date: new Date(),
-        lastMessage: `Hello! How can I help you with "${book}" today?`,
-        messages: [{ role: 'assistant', content: `Hello! How can I help you with "${book}" today?` }]
-      };
-      mockHistory.unshift(newChat);
-      setSelectedChat(newChat);
-      setIsLoading(false);
-    }, 1000);
-  }
+    createChatMutation({ uid, chat_title: book.book_name });
+  };
 
+  // Get selected chat object
+  // if(userChats){  const selectedChatObj = userChats?.find((c) => c.chat_id === selectedChatId);
+  // }
+  useEffect(() => {
+    if (bookData) {
+      console.log("📚 Book Data Loaded:", bookData);
+    }
+  }, [bookData]);
   return (
     <div className="max-w-7xl mx-auto my-5 space-y-6">
       <div className="relative overflow-hidden rounded-3xl border border-border bg-gradient-to-br from-primary/10 via-accent/10 to-primary/5 p-8 shadow-[var(--shadow-lg)]">
@@ -253,10 +280,10 @@ export default function ChatPage() {
           </div>
           <div>
             <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-              Chat with Book
+              {navItem.title}
             </h1>
             <p className="text-muted-foreground mt-1 text-lg">
-              Engage in real-time conversations with your learning materials.
+              {navItem.description}
             </p>
           </div>
         </div>
@@ -264,12 +291,13 @@ export default function ChatPage() {
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         {/* {History} */}
         <History
-          selectedItem={selectedChat}
-          setSelectedItem={setSelectedChat}
-          historyData={mockHistory}
+          item={navItem.itemtype}
+          selectedItem={selectedChatId}
+          setSelectedItem={setSelectedChatId}
+          historyData={userChats || []}
         />
         {/* Lesson Plan Content */}
-        {isLoading ? (
+        {creatingChat || messagesLoading ? (
           <div className="flex items-center justify-center h-full">
             <div className="text-center">
               <Loader2 className="mx-auto h-12 w-12 animate-spin text-primary mb-4" />
@@ -279,10 +307,18 @@ export default function ChatPage() {
               </p>
             </div>
           </div>
-        ) : selectedChat ? (
-          <ChatInterface chatSession={selectedChat} setChatSession={setSelectedChat} />
+        ) : selectedChatId ? (
+          <ChatInterface chatSession={{
+            id: selectedChatObj?.chat_id,
+            book: selectedChatObj?.chat_title,
+            messages: chatMessages || [],
+          }} setChatSession={setSelectedChatId} />
+        ) : isBookDataLoading ? (
+          <div className="flex items-center justify-center">
+            <Loader2 className="h-10 w-10 animate-spin text-primary" />
+          </div>
         ) : (
-          <NewChatForm onStartChat={handleStartChat} />)}
+          <NewChatForm onStartChat={handleStartChat} data={bookData?.content} />)}
       </div>
     </div>
   )

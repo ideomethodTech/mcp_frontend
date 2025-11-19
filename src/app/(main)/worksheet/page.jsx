@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -31,6 +31,10 @@ import {
 } from '@/components/ui/select';
 import WorksheetItem from './WorksheetItem';
 import History from '@/app/componentsV2/ui/history';
+import { useCreateWorksheet, useGetBook } from '@/lib/api/queries';
+import { getNavItemByUrl } from '@/app/utils';
+import { usePathname } from 'next/navigation';
+import { useQueryClient } from '@tanstack/react-query';
 
 const formSchema = z.object({
   book: z.string().nonempty('Please select a book.'),
@@ -114,27 +118,26 @@ const WorksheetDetails = ({ item }) => {
   )
 }
 
-function NewWorksheetForm({ onGenerate }) {
-  const form = useForm({
+function NewWorksheetForm({ onGenerate, data}) {
+    const [selectedBookInForm, setSelectedBookInForm] = useState(null);
+    const [selectedChapter, setSelectedChapter] = useState(null);
+
+   const form = useForm({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      book: '',
-      chapter: '',
+      book: "",
+      chapter: "",
     },
   });
 
-  const selectedBookName = form.watch('book');
-  const selectedBook = mockData.books.find(b => b.name === selectedBookName);
+  const selectedBookId = form.watch("book");
+  const selectedBook = data?.find((b) => b.book_id === selectedBookId);
 
   return (
     <div className="lg:col-span-3">
       <div className="flex flex-col items-center justify-center min-h-[500px]">
         <div className="w-full max-w-2xl">
-          <PageHeader
-            title="Worksheet Generator"
-            description="Create diverse worksheets with various question types."
-            icon={FileText}
-          />
+        
           <Card>
             <CardHeader>
               <div className="flex items-center gap-3 mb-2">
@@ -155,15 +158,25 @@ function NewWorksheetForm({ onGenerate }) {
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Select Book</FormLabel>
-                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <Select onValueChange={(val) => {
+                            setSelectedBookInForm(JSON.parse(val))
+                            }} defaultValue={field.value}>
                             <FormControl>
                               <SelectTrigger>
                                 <SelectValue placeholder="Select a book" />
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                              {mockData.books.map((book) => (
+                              {/* {mockData.books.map((book) => (
                                 <SelectItem key={book.name} value={book.name}>{book.name}</SelectItem>
+                              ))} */}
+                              {data?.map((book) => (
+                                <SelectItem
+                                  key={book.book_id}
+                                  value={book.book_id}
+                                >
+                                  {book.book_name}
+                                </SelectItem>
                               ))}
                             </SelectContent>
                           </Select>
@@ -177,15 +190,22 @@ function NewWorksheetForm({ onGenerate }) {
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Select Chapter</FormLabel>
-                          <Select onValueChange={field.onChange} defaultValue={field.value} disabled={!selectedBook}>
+                          <Select onValueChange={(val) => {
+                            setSelectedBookInForm(JSON.parse(val))
+                            }} defaultValue={field.value} disabled={!selectedBook}>
                             <FormControl>
                               <SelectTrigger>
                                 <SelectValue placeholder="Select a chapter" />
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                              {selectedBook?.chapters.map((chapter) => (
-                                <SelectItem key={chapter.name} value={chapter.name}>{chapter.name}</SelectItem>
+                             {selectedBook?.chapters?.map((chapter) => (
+                                <SelectItem
+                                  key={chapter}
+                                  value={chapter}
+                                >
+                                  {chapter}
+                                </SelectItem>
                               ))}
                             </SelectContent>
                           </Select>
@@ -195,7 +215,7 @@ function NewWorksheetForm({ onGenerate }) {
                     />
                   </div>
 
-                  <Button type="submit" className="w-full !mt-8" size="lg" disabled={!form.formState.isValid}>
+                  <Button type="submit" className="w-full !mt-8" size="lg" onClick={() => onGenerate(selectedBook,selectedChapter)} disabled={!form.formState.isValid}>
                     Generate Worksheet
                   </Button>
                 </form>
@@ -211,22 +231,29 @@ function NewWorksheetForm({ onGenerate }) {
 export default function WorksheetPage() {
   const [selectedItem, setSelectedItem] = useState(mockHistory[0]);
   const [isLoading, setIsLoading] = useState(false);
+  const pathname = usePathname();
+  const navItem = getNavItemByUrl(pathname);
+  const uid = "nn170kZPMuWZlbzGbVps3YVyG9J3";
+  const queryClient = useQueryClient();
 
-  const handleGenerate = (values) => {
-    setIsLoading(true);
-    setSelectedItem(null);
-    setTimeout(() => {
-      const newItem = {
-        id: (mockHistory.length + 1).toString(),
-        title: values.chapter,
-        date: new Date(),
-        book: values.book,
-        data: mockWorksheetData
-      };
-      mockHistory.unshift(newItem);
-      setSelectedItem(newItem);
-      setIsLoading(false);
-    }, 2000);
+  const { data: bookData, isLoading: isBookDataLoading } = useGetBook(uid);
+  useEffect(() => {
+    if (bookData) {
+      console.log("📚 Book Data Loaded:", bookData);
+    }
+  }, [bookData]);
+
+  const{mutate: createworksheetmutation, isPending: creatingWorksheet} = useCreateWorksheet({
+      onSuccess: (data) => {
+      // new chat created → refresh chat list
+      // queryClient.invalidateQueries(["userChats", uid]);
+
+      selectedItem(data.chat_id);
+    },
+  })
+  const handleGenerate = (selectedbook,selectedchapter) => {
+    console.log("handlegenrate", selectedbook,selectedchapter);
+    //  createworksheetmutation({ book_id:selectedbook.book_id,uid });
   }
 
   return (<div className="max-w-7xl mx-auto my-5 space-y-6">
@@ -237,16 +264,17 @@ export default function WorksheetPage() {
         </div>
         <div>
           <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-            Worksheet Generator
+            {navItem.title}
           </h1>
           <p className="text-muted-foreground mt-1 text-lg">
-            Create diverse worksheets with various question types.            </p>
+            {navItem.description}           </p>
         </div>
       </div>
     </div>
     <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
       {/* {History} */}
       <History
+        item={navItem.itemtype}
         historyData={mockHistory}
         selectedItem={selectedItem}
         setSelectedItem={setSelectedItem}
@@ -256,7 +284,7 @@ export default function WorksheetPage() {
         <div className="flex items-center justify-center h-full">
           <div className="text-center">
             <Loader2 className="mx-auto h-12 w-12 animate-spin text-primary mb-4" />
-            <h3 className="text-lg font-medium text-foreground">Generating Worksheet...</h3>
+            <h3 className="text-lg font-medium text-foreground">Generating {navItem.itemtype}...</h3>
             <p className="text-sm text-muted-foreground">
               Please wait while the AI prepares the questions.
             </p>
@@ -265,7 +293,7 @@ export default function WorksheetPage() {
       ) : selectedItem ? (
         <WorksheetDetails item={selectedItem} />
       ) : (
-        <NewWorksheetForm onGenerate={handleGenerate} />
+       bookData && <NewWorksheetForm onGenerate={handleGenerate} data={bookData.content} />
       )}
     </div>
   </div>);

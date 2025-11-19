@@ -1,11 +1,11 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { Loader2, Plus, File, FileText, Clock } from 'lucide-react';
+import { Loader2, Plus, File, FileText, Clock, BookOpen } from 'lucide-react';
 import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import {
@@ -33,6 +33,9 @@ import {
 } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import History from '@/app/componentsV2/ui/history';
+import { usePathname } from 'next/navigation';
+import { getNavItemByUrl } from '@/app/utils';
+import { useCreateLessonPlan, useGetBook } from '@/lib/api/queries';
 
 const formSchema = z.object({
   topicName: z.string().min(3, 'Topic name must be at least 3 characters.'),
@@ -105,7 +108,7 @@ const mockHistory = [
 
 function LessonPlanDetails({ item }) {
   const lessonPlan = item.data;
-  console.log(item);
+  // console.log(item);
   return (
     <div className="lg:col-span-3">
       <div className="rounded-2xl border border-border bg-card p-8 shadow-[var(--shadow-md)]">
@@ -159,61 +162,99 @@ function LessonPlanDetails({ item }) {
   )
 }
 
-function NewLessonPlanForm({ onGenerate }) {
+function NewLessonPlanForm({ onGenerate,data }) {
   const form = useForm({
     resolver: zodResolver(formSchema),
-    defaultValues: defaultValues,
+     defaultValues: {
+      book: "",
+      chapter: "",
+    },
   });
 
+    const handleStart = () => {
+    if (selectedBook) {
+      onStartChat(selectedBook);
+    }
+  }
+  const selectedBookId = form.watch("book");
+  const selectedBook = data?.find((b) => b.book_id === selectedBookId);
   return (
-    <div className="lg:col-span-3">
-      <div className="flex justify-center items-center ">
-        <Card >
-          <CardHeader>
-            <CardTitle>Lesson Details</CardTitle>
-            <CardDescription>
-              Provide the details for your lesson plan.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(onGenerate)} className="space-y-6">
-                <FormField
-                  control={form.control}
-                  name="topicName"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Topic Name</FormLabel>
-                      <FormControl>
-                        <Input placeholder="e.g., The Solar System" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="gradeLevel"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Grade Level</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select a grade" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {[...Array(12)].map((_, i) => (
-                            <SelectItem key={i + 1} value={`Grade ${i + 1}`}>Grade {i + 1}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
+      <div className="lg:col-span-3">
+      <div className="flex flex-col items-center justify-center min-h-[500px]">
+        <div className="w-full max-w-2xl">
+        
+          <Card>
+            <CardHeader>
+              <div className="flex items-center gap-3 mb-2">
+                <BookOpen className="w-6 h-6 text-muted-foreground" />
+                <CardTitle className="font-headline text-xl">Book & Chapter Selection</CardTitle>
+              </div>
+              <CardDescription>
+                Choose the book and chapter to generate a worksheet.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Form {...form}>
+                <form onSubmit={form.handleSubmit(onGenerate)} className="space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <FormField
+                      control={form.control}
+                      name="book"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Select Book</FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select a book" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {/* {mockData.books.map((book) => (
+                                <SelectItem key={book.name} value={book.name}>{book.name}</SelectItem>
+                              ))} */}
+                              {data?.map((book) => (
+                                <SelectItem
+                                  key={book.book_id}
+                                  value={book.book_id}
+                                >
+                                  {book.book_name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="chapter"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Select Chapter</FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={field.value} disabled={!selectedBook}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select a chapter" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                             {selectedBook?.chapters?.map((chapter) => (
+                                <SelectItem
+                                  key={chapter}
+                                  value={chapter}
+                                >
+                                  {chapter}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                      <FormField
                   control={form.control}
                   name="duration"
                   render={({ field }) => (
@@ -226,13 +267,16 @@ function NewLessonPlanForm({ onGenerate }) {
                     </FormItem>
                   )}
                 />
-                <Button type="submit" className="w-full !mt-8" size="lg" disabled={!form.formState.isValid}>
-                  Generate Lesson Plan
-                </Button>
-              </form>
-            </Form>
-          </CardContent>
-        </Card>
+                  </div>
+
+                  <Button type="submit" className="w-full !mt-8" size="lg" disabled={!form.formState.isValid}>
+                    Generate Worksheet
+                  </Button>
+                </form>
+              </Form>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   )
@@ -241,48 +285,40 @@ function NewLessonPlanForm({ onGenerate }) {
 export default function LessonPlanPage() {
   const [selectedItem, setSelectedItem] = useState(mockHistory[0]);
   const [isLoading, setIsLoading] = useState(false);
-
-  const handleGenerate = (values) => {
-    setIsLoading(true);
-    setSelectedItem(null);
-
-    setTimeout(() => {
-      const newItem = {
-        id: (mockHistory.length + 1).toString(),
-        title: values.topicName,
-        date: new Date(),
-        grade: values.gradeLevel,
-        data: mockLessonPlan
-      };
-      mockHistory.unshift(newItem);
-      setSelectedItem(newItem);
+  const pathname = usePathname();
+  const navItem = getNavItemByUrl(pathname);
+  const uid = "nn170kZPMuWZlbzGbVps3YVyG9J3";
+  const { mutate: createLessonPlanMutation, isPending: creatingLesson } =
+  useCreateLessonPlan({
+    onSuccess: (data) => {
+      console.log("Lesson Plan Created:", data);
+      setSelectedItem(data);      // Or data.id if backend returns id
       setIsLoading(false);
-    }, 2000);
-  }
+    },
+    onError: (err) => {
+      console.error("Error creating lesson plan:", err);
+      setIsLoading(false);
+    }
+  });
 
-  const showHistory = (item) => {
-    return (
-      <button
-        key={item.id}
-        onClick={() => setSelectedItem(item)}
-        className={cn(
-          'w-full text-left p-2 rounded-lg border',
-          selectedItem?.id === item.id
-            ? 'bg-primary/10 border-primary'
-            : 'hover:bg-muted/50'
-        )}
-      >
-        <div className="flex justify-between items-center text-xs text-muted-foreground mb-1">
-          <File className="text-xs text-muted-foreground mt-1" />
-          <span>{format(item.date, 'dd/MM/yyyy')}</span>
-        </div>
-        <p className="font-medium text-foreground text-sm mb-1">{item.title}</p>
-        <p className="text-xs text-muted-foreground">
-          {item.grade}
-        </p>
-      </button>
-    )
-  }
+  const { data: bookData, isLoading: isBookDataLoading } = useGetBook(uid);
+  useEffect(() => {
+    if (bookData) {
+      console.log("📚 Book Data Loaded:", bookData);
+    }
+  }, [bookData]);
+
+  const handleGenerate = ({book_id,chapter,uid,weeks}) => {
+  setIsLoading(true);
+  setSelectedItem(null);
+
+  createLessonPlanMutation({
+    book_id: book_id,
+    chapter: chapter,
+    uid: uid,
+    weeks: weeks,    // or based on logic
+  });
+  };
   return (
     <div className="max-w-7xl mx-auto my-5 space-y-6">
       <div className="relative overflow-hidden rounded-3xl border border-border bg-gradient-to-br from-primary/10 via-accent/10 to-primary/5 p-8 shadow-[var(--shadow-lg)]">
@@ -292,10 +328,10 @@ export default function LessonPlanPage() {
           </div>
           <div>
             <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-              Lesson Plan Generator
-            </h1>
+          {navItem.title}
+                      </h1>
             <p className="text-muted-foreground mt-1 text-lg">
-              Generate structured lesson plans for any topic or chapter
+              {navItem.description} 
             </p>
           </div>
         </div>
@@ -303,6 +339,7 @@ export default function LessonPlanPage() {
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         {/* {History} */}
    <History
+           item={navItem.itemtype}
                   selectedItem={selectedItem}
                   setSelectedItem={setSelectedItem}
                   historyData={mockHistory}
@@ -312,7 +349,7 @@ export default function LessonPlanPage() {
           <div className="flex items-center justify-center h-full">
             <div className="text-center">
               <Loader2 className="mx-auto h-12 w-12 animate-spin text-primary mb-4" />
-              <h3 className="text-lg font-medium text-foreground">Generating Lesson Plan...</h3>
+              <h3 className="text-lg font-medium text-foreground">Generating {navItem.itemtype}...</h3>
               <p className="text-sm text-muted-foreground">
                 Please wait while the AI builds your plan.
               </p>
@@ -321,7 +358,7 @@ export default function LessonPlanPage() {
         ) : selectedItem ? (
           <LessonPlanDetails item={selectedItem} />
         ) : (
-          <NewLessonPlanForm onGenerate={handleGenerate} />
+          <NewLessonPlanForm onGenerate={handleGenerate}  data={bookData?.content} />
         )}
       </div>
     </div>

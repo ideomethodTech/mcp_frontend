@@ -7,6 +7,8 @@ import {
   getUserChats,
   getChatDetails,
   loginUser,
+  createWorksheet,
+  createLessonPlan,
 } from "./queryFunctions";
 
 // AI Generation Hooks
@@ -23,9 +25,25 @@ export const useUploadBook = (options) =>
     ...options,
   });
 
-export const useGetBook = (options) =>
+export const useGetBook = (uid, options = {}) =>
+  useQuery({
+    queryKey: ["books", uid],
+    queryFn: () => getBook(),
+    enabled: !!uid,
+    ...options,
+  });
+
+//worksheet
+export const useCreateWorksheet = (options) =>
   useMutation({
-    mutationFn: getBook,
+    mutationFn: createWorksheet,
+    ...options,
+  });
+
+//lesson plan
+export const useCreateLessonPlan = (options) =>
+  useMutation({
+    mutationFn: createLessonPlan,
     ...options,
   });
 
@@ -35,6 +53,7 @@ export const useCreateChat = (options) =>
     mutationFn: createChat,
     ...options,
   });
+
 
 export const useUserChats = (uid, options) =>
   useQuery({
