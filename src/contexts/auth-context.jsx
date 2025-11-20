@@ -12,6 +12,7 @@ import { auth, googleProvider } from '@/lib/firebase';
 import { useRouter } from 'next/navigation';
 import { loginUser } from '@/lib/api/queryFunctions';
 import { toast } from 'react-toastify';
+import { useLogin } from '@/lib/api/queries';
 
 const AuthContext = createContext();
 
@@ -20,7 +21,24 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
+  const { mutateAsync: login } = useLogin();
+
   useEffect(() => {
+     if (process.env.NODE_ENV === "development") {
+    const fakeUser = {
+      uid: "dev-user-123",
+      email: "dev@example.com",
+      displayName: "Dev User",
+      photoURL: null,
+      emailVerified: true,
+    };
+
+    console.log("🚀 Development mode: Auto-login active");
+    setUser(fakeUser);
+    setLoading(false);
+    return; // <-- skip real Firebase listener
+  }
+
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setUser(user);
       setLoading(false);
@@ -41,7 +59,7 @@ export function AuthProvider({ children }) {
       const accessToken = await firebaseUser.getIdToken();
       
       // Step 2: Backend login API - THIS MUST SUCCEED
-      const backendResponse = await loginUser({
+      const backendResponse = await login({
         role: "user",
         uid: firebaseUser.uid,
         email: firebaseUser.email,
@@ -153,7 +171,7 @@ export function AuthProvider({ children }) {
       const accessToken = await firebaseUser.getIdToken();
       
       // Step 2: Backend login API - THIS MUST SUCCEED
-      const backendResponse = await loginUser({
+      const {backendResponse} = await loginUser({
         role: "user",
         uid: firebaseUser.uid,
         email: firebaseUser.email,
