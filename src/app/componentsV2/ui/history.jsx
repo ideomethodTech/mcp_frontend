@@ -38,7 +38,7 @@ const History = ({ selectedItem, setSelectedItem, historyData, item }) => {
           <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">
             History
           </p>
-          {historyData.chats.length !== 0 && historyData.chats.map((item, index) => (
+          {historyData?.chats?.length !== 0 && historyData?.chats?.map((item, index) => (
             historyItem({ index, item:item, selectedItem, setSelectedItem })
           ))}
         </div>

@@ -14,7 +14,8 @@ import {
 // AI Generation Hooks
 export const useGenerateContent = (options) =>
   useMutation({
-    mutationFn: generateContent,
+    mutationFn: ({ chat_id, uid, prompt }) =>
+      generateContent({ chat_id, uid, prompt }),
     ...options,
   });
 
@@ -25,11 +26,11 @@ export const useUploadBook = (options) =>
     ...options,
   });
 
-export const useGetBook = (uid, options = {}) =>
+export const useGetBook = ( options = {}) =>
   useQuery({
-    queryKey: ["books", uid],
+    queryKey: ["books"],
     queryFn: () => getBook(),
-    enabled: !!uid,
+    enabled: true,
     ...options,
   });
 
