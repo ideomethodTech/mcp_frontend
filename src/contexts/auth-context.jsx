@@ -1,18 +1,9 @@
-'use client';
+"use client";
 
-import { createContext, useContext, useEffect, useState } from 'react';
-import { 
-  onAuthStateChanged, 
-  signInWithPopup, 
-  signOut as firebaseSignOut,
-  signInWithEmailAndPassword,
-  createUserWithEmailAndPassword 
-} from 'firebase/auth';
-import { auth, googleProvider } from '@/lib/firebase';
-import { useRouter } from 'next/navigation';
-import { loginUser } from '@/lib/api/queryFunctions';
-import { toast } from 'react-toastify';
-import { useLogin } from '@/lib/api/queries';
+import { createContext, useContext, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { toast } from "react-toastify";
+import api from "@/lib/api";
 
 const AuthContext = createContext();
 
@@ -21,214 +12,77 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
-  const { mutateAsync: login } = useLogin();
-
   useEffect(() => {
-     if (process.env.NODE_ENV === "development") {
-    const fakeUser = {
-      uid: "dev-user-123",
-      email: "dev@example.com",
-      displayName: "Dev User",
-      photoURL: null,
-      emailVerified: true,
-    };
-
-    console.log("🚀 Development mode: Auto-login active");
-    setUser(fakeUser);
-    setLoading(false);
-    return; // <-- skip real Firebase listener
-  }
-
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setUser(user);
+    if (process.env.NODE_ENV === "development") {
+      const fakeUser = {
+        uid: "dev-user-123",
+        email: "dev@example.com",
+        username: "Dev User",
+      };
+      console.log("🚀 Development mode: Auto-login active");
+      setUser(fakeUser);
       setLoading(false);
-    });
+      return;
+    }
 
-    return () => unsubscribe();
+    // Check for existing session
+    const storedUser = localStorage.getItem("user");
+    if (storedUser) {
+      setUser(JSON.parse(storedUser));
+    }
+    setLoading(false);
   }, []);
 
-  const signInWithGoogle = async () => {
-    let firebaseUser = null;
-    
-    try {
-      // Step 1: Firebase authentication
-      const result = await signInWithPopup(auth, googleProvider);
-      firebaseUser = result.user;
-      
-      // Get Firebase access token
-      const accessToken = await firebaseUser.getIdToken();
-      
-      // Step 2: Backend login API - THIS MUST SUCCEED
-      const backendResponse = await login({
-        role: "user",
-        uid: firebaseUser.uid,
-        email: firebaseUser.email,
-        username: firebaseUser.displayName || firebaseUser.email?.split('@')[0],
-        access_token: accessToken,
-        refresh_token: "",
-        profile_details: {
-          displayName: firebaseUser.displayName,
-          photoURL: firebaseUser.photoURL,
-          emailVerified: firebaseUser.emailVerified
-        }
-      });
-      
-      console.log('Backend login response:', backendResponse);
-      toast.success('Successfully signed in!');
-      return firebaseUser;
-      
-    } catch (error) {
-      console.error('Authentication error:', error);
-      
-      // If backend login failed but Firebase succeeded, sign out from Firebase
-      if (firebaseUser) {
-        try {
-          await firebaseSignOut(auth);
-          console.log('Firebase signout completed due to backend login failure');
-        } catch (signOutError) {
-          console.error('Error signing out from Firebase:', signOutError);
-        }
-      }
-      
-      // Show appropriate error message
-      if (error.name === 'APINotFoundError' || error.message?.includes('CORS')) {
-        toast.error('Server connection failed. Please try again later.');
-      } else {
-        toast.error(error.message || 'Failed to sign in. Please try again.');
-      }
-      
-      throw error;
-    }
-  };
-
   const signInWithEmail = async (email, password) => {
-    let firebaseUser = null;
-    
     try {
-      // Step 1: Firebase authentication
-      const result = await signInWithEmailAndPassword(auth, email, password);
-      firebaseUser = result.user;
-      
-      // Get Firebase access token
-      const accessToken = await firebaseUser.getIdToken();
-      
-      // Step 2: Backend login API - THIS MUST SUCCEED
-      const backendResponse = await loginUser({
-        role: "user",
-        uid: firebaseUser.uid,
-        email: firebaseUser.email,
-        username: firebaseUser.displayName || email.split('@')[0],
-        access_token: accessToken,
-        refresh_token: "",
-        profile_details: {
-          displayName: firebaseUser.displayName,
-          photoURL: firebaseUser.photoURL,
-          emailVerified: firebaseUser.emailVerified
-        }
+      const response = await api({
+        url: "/login",
+        method: "POST",
+        data: {
+          email: email,
+          password: password,
+        },
       });
-      
-      console.log('Backend login response:', backendResponse);
-      toast.success('Successfully signed in!');
-      return firebaseUser;
-      
-    } catch (error) {
-      console.error('Authentication error:', error);
-      
-      // If backend login failed but Firebase succeeded, sign out from Firebase
-      if (firebaseUser) {
-        try {
-          await firebaseSignOut(auth);
-          console.log('Firebase signout completed due to backend login failure');
-        } catch (signOutError) {
-          console.error('Error signing out from Firebase:', signOutError);
-        }
-      }
-      
-      // Show appropriate error message
-      if (error.name === 'APINotFoundError' || error.message?.includes('CORS')) {
-        toast.error('Server connection failed. Please try again later.');
-      } else if (error.code === 'auth/wrong-password') {
-        toast.error('Invalid password. Please try again.');
-      } else if (error.code === 'auth/user-not-found') {
-        toast.error('No account found with this email.');
-      } else {
-        toast.error(error.message || 'Failed to sign in. Please try again.');
-      }
-      
-      throw error;
-    }
-  };
 
-  const signUpWithEmail = async (email, password) => {
-    let firebaseUser = null;
-    
-    try {
-      // Step 1: Firebase authentication
-      const result = await createUserWithEmailAndPassword(auth, email, password);
-      firebaseUser = result.user;
-      
-      // Get Firebase access token
-      const accessToken = await firebaseUser.getIdToken();
-      
-      // Step 2: Backend login API - THIS MUST SUCCEED
-      const {backendResponse} = await loginUser({
-        role: "user",
-        uid: firebaseUser.uid,
-        email: firebaseUser.email,
-        username: email.split('@')[0],
-        access_token: accessToken,
-        refresh_token: "",
-        profile_details: {
-          displayName: firebaseUser.displayName,
-          photoURL: firebaseUser.photoURL,
-          emailVerified: firebaseUser.emailVerified
-        }
-      });
-      
-      console.log('Backend login response:', backendResponse);
-      toast.success('Account created successfully!');
-      return firebaseUser;
-      
+      const userData = response.data;
+
+      localStorage.setItem("user", JSON.stringify(userData));
+      if (userData.access_token) {
+        localStorage.setItem("access_token", userData.access_token);
+      }
+
+      setUser(userData);
+      toast.success("Successfully signed in!");
+      return userData;
     } catch (error) {
-      console.error('Authentication error:', error);
-      
-      // If backend login failed but Firebase succeeded, sign out from Firebase
-      if (firebaseUser) {
-        try {
-          await firebaseSignOut(auth);
-          console.log('Firebase signout completed due to backend registration failure');
-        } catch (signOutError) {
-          console.error('Error signing out from Firebase:', signOutError);
-        }
-      }
-      
-      // Show appropriate error message
-      if (error.name === 'APINotFoundError' || error.message?.includes('CORS')) {
-        toast.error('Server connection failed. Please try again later.');
-      } else if (error.code === 'auth/email-already-in-use') {
-        toast.error('An account with this email already exists.');
-      } else if (error.code === 'auth/weak-password') {
-        toast.error('Password should be at least 6 characters.');
+      console.error("Login error:", error);
+
+      if (error.response?.status === 401) {
+        toast.error("Invalid email or password.");
+      } else if (error.response?.status === 404) {
+        toast.error("No account found with this email.");
       } else {
-        toast.error(error.message || 'Failed to create account. Please try again.');
+        toast.error(error.message || "Failed to sign in. Please try again.");
       }
-      
+
       throw error;
     }
   };
 
   const signOut = async () => {
     try {
-      await firebaseSignOut(auth);
-      router.push('/login');
+      localStorage.removeItem("user");
+      localStorage.removeItem("access_token");
+      setUser(null);
+      router.push("/login");
     } catch (error) {
-      console.error('Error signing out:', error);
+      console.error("Error signing out:", error);
       throw error;
     }
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, signInWithGoogle, signInWithEmail, signUpWithEmail, signOut }}>
+    <AuthContext.Provider value={{ user, loading, signInWithEmail, signOut }}>
       {children}
     </AuthContext.Provider>
   );
@@ -237,8 +91,7 @@ export function AuthProvider({ children }) {
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
 };
-
