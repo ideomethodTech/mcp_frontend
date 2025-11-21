@@ -12,23 +12,37 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
-  useEffect(() => {
-    if (process.env.NODE_ENV === "development") {
-      const fakeUser = {
-        uid: "dev-user-123",
-        email: "dev@example.com",
-        username: "Dev User",
-      };
-      console.log("🚀 Development mode: Auto-login active");
-      setUser(fakeUser);
-      setLoading(false);
-      return;
-    }
+  // useEffect(() => {
+  //   if (process.env.NODE_ENV === "development") {
+  //     const fakeUser = {
+  //       uid: "dev-user-123",
+  //       email: "dev@example.com",
+  //       username: "Dev User",
+  //     };
+  //     console.log("🚀 Development mode: Auto-login active");
+  //     setUser(fakeUser);
+  //     setLoading(false);
+  //     return;
+  //   }
 
+  //   // Check for existing session
+  //   const storedUser = localStorage.getItem("user");
+  //   if (storedUser) {
+  //     setUser(JSON.parse(storedUser));
+  //   }
+  //   setLoading(false);
+  // }, []);
+
+  useEffect(() => {
     // Check for existing session
     const storedUser = localStorage.getItem("user");
     if (storedUser) {
-      setUser(JSON.parse(storedUser));
+      try {
+        setUser(JSON.parse(storedUser));
+      } catch (error) {
+        console.error("Failed to parse stored user:", error);
+        localStorage.removeItem("user");
+      }
     }
     setLoading(false);
   }, []);
