@@ -99,13 +99,8 @@ export const loginUser = async (data) => {
     url: ENDPOINTS.LOGIN,
     method: "POST",
     data: {
-      role: data.role,
-      uid: data.uid || "",
       email: data.email,
-      username: data.username,
-      access_token: data.access_token || "",
-      refresh_token: data.refresh_token || "",
-      profile_details: data.profile_details || {}
+      password: data.password
     },
   });
   return response.data;
