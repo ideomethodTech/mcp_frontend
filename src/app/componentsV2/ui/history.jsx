@@ -4,7 +4,7 @@ import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
 
 const History = ({ selectedItem, setSelectedItem, historyData, item }) => {
-  console.log("historydata",selectedItem,historyData);
+  // console.log("historydata",selectedItem,historyData);
   const historyItem = ({ index, item, selectedItem, setSelectedItem }) => {
     return (
       <div key={index}>
@@ -20,9 +20,9 @@ const History = ({ selectedItem, setSelectedItem, historyData, item }) => {
           <span>  {item.created_at}
           </span>
         </div>
-        <p className="font-medium text-foreground text-sm mb-1">{item.title}</p>
-        <p className="text-xs text-muted-foreground">
-          {item.book}
+        <p className="font-medium text-foreground text-sm mb-1">{item.title ? item.title : item.chapter}</p>
+        <p className="text-xs text-muted-foreground truncate">
+          {item.book? item.book : (item?.content?.worksheet? item?.content?.worksheet.title : item?.content?.lesson_plan.title)}
         </p>
       </button>
       </div>
@@ -41,6 +41,10 @@ const History = ({ selectedItem, setSelectedItem, historyData, item }) => {
           {historyData?.chats?.length !== 0 && historyData?.chats?.map((item, index) => (
             historyItem({ index, item:item, selectedItem, setSelectedItem })
           ))}
+          {
+            historyData?.content && historyData?.content?.map((item, index) => (
+            historyItem({ index, item:item, selectedItem, setSelectedItem })))
+          }
         </div>
       </div>
     </div>

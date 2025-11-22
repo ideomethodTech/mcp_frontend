@@ -1,10 +1,11 @@
 import axios from "axios";
+
 export const baseURL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
 
 const api = (config) => {
   const axiosInstance = axios.create({
     baseURL,
-    timeout: 60000,
+    timeout: 100000,
     headers: {
       "Content-Type": "application/json",
     },
