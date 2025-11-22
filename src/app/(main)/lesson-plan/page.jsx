@@ -37,6 +37,7 @@ import { usePathname } from 'next/navigation';
 import { getNavItemByUrl } from '@/app/utils';
 import { useQueryClient } from '@tanstack/react-query';
 import { useCreateLessonPlan, useGetBook, useUserLessonPlan } from '@/lib/api/queries';
+import LessonPlanItem from './components/LessonPlanItem';
 // import { useCreateLessonPlan, useGetBook } from '@/lib/api/queries';
 
 const formSchema = z.object({
@@ -109,57 +110,11 @@ const mockHistory = [
 ];
 
 function LessonPlanDetails({ item }) {
-  const lessonPlan = item.data;
-  // console.log(item);
+  // const lessonPlan = item.data;
+  console.log(" lp item", item);
   return (
     <div className="lg:col-span-3">
-      <div className="rounded-2xl border border-border bg-card p-8 shadow-[var(--shadow-md)]">
-        {/* Lesson Plan Details */}
-        <div className="space-y-6">
-          <div className="rounded-xl bg-gradient-to-br from-primary/5 to-accent/5 p-6 border border-primary/10">
-            <p className="text-sm text-muted-foreground mb-2">Generated Lesson Plan</p>
-            <p className="text-foreground">This AI-generated lesson plan is ready for your classroom.</p>
-          </div>
-
-          <div>
-            <h3 className="text-lg font-semibold text-foreground mb-3">Objective</h3>
-            <p className="text-muted-foreground">{lessonPlan.objective}</p>
-          </div>
-          <div>
-            <h3 className="text-lg font-semibold text-foreground mb-3">Materials</h3>
-            <ul className="space-y-2 text-muted-foreground">
-              {lessonPlan.materials.map((material, index) => (
-                <li key={index} className="flex items-start gap-2">
-                  <span className="text-primary mt-1">•</span>
-                  <span>{material}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-          <div>
-            <h3 className="text-lg font-semibold text-foreground mb-3">Activities</h3>
-            <div className="space-y-4">
-              {lessonPlan.activities.map((activity) => (
-                <div className="p-4 rounded-xl border border-border bg-muted/30">
-                  <div className="flex items-start gap-3 mb-2">
-                    <Clock className="h-5 w-5 text-primary mt-0.5" />
-                    <div className="flex-1">
-                      <p className="font-medium text-foreground">{activity.title}</p>
-                      <p className="text-sm text-muted-foreground mt-1">
-                        {activity.description}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-          <div>
-            <h3 className="font-headline font-semibold text-lg mb-2">Outcomes</h3>
-            <p className="text-muted-foreground">{lessonPlan.outcomes}</p>
-          </div>
-        </div>
-      </div>
+      <LessonPlanItem  item={item}></LessonPlanItem>
     </div>
   )
 }
@@ -167,7 +122,7 @@ function LessonPlanDetails({ item }) {
 function NewLessonPlanForm({ onGenerate, data }) {
   const [selectedBook, setSelectedBook] = useState(null);
   const [selectedChapter, setSelectedChapter] = useState(null);
-  const [selectedDuration, setselectedDuration] = useState(null);
+  const [selectedDuration, setselectedDuration] = useState(2);
 
   const form = useForm({
     resolver: zodResolver(formSchema),
@@ -269,7 +224,7 @@ function NewLessonPlanForm({ onGenerate, data }) {
                         </FormItem>
                       )}
                     />
-                    <FormField
+                    {/* <FormField
                       control={form.control}
                       name="duration"
                       render={({ field }) => (
@@ -288,11 +243,11 @@ function NewLessonPlanForm({ onGenerate, data }) {
                           <FormMessage />
                         </FormItem>
                       )}
-                    />
+                    /> */}
                   </div>
 
                   <Button type="submit" className="w-full !mt-8" size="lg" >
-                    Generate Worksheet
+                    Generate Lesson Plan
                   </Button>
                 </form>
               </Form>
@@ -331,9 +286,10 @@ export default function LessonPlanPage() {
     },
   });
 
-  const handleGenerate = (book, chapter, weekCount) => {
+  const handleGenerate = (book, chapter, weekCount =2  ) => {
     if (!book) return;
 
+    console.log("bcuw",book,"d",chapter,"s", weekCount);
     generateLessonPlan({
       book_id: book.id,
       chapter: chapter,
