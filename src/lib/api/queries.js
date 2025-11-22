@@ -73,7 +73,7 @@ export const useUserWorksheet = ( uid, options = {}) =>
 // Lesson Plan
 export const useCreateLessonPlan = (options) =>
   useMutation({
-    mutationFn: createWorksheet,
+    mutationFn: createLessonPlan,
     ...options,
   });
 

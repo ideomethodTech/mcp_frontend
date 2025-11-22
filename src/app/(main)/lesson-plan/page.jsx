@@ -40,81 +40,12 @@ import { useCreateLessonPlan, useGetBook, useUserLessonPlan } from '@/lib/api/qu
 import LessonPlanItem from './components/LessonPlanItem';
 // import { useCreateLessonPlan, useGetBook } from '@/lib/api/queries';
 
-const formSchema = z.object({
-  topicName: z.string().min(3, 'Topic name must be at least 3 characters.'),
-  gradeLevel: z.string().nonempty('Please select a grade level.'),
-  duration: z.string().min(1, 'Please specify a duration.'),
-});
-
-const mockLessonPlan = {
-  objective:
-    'Students will be able to understand the concept of photosynthesis, identify its key components (sunlight, water, carbon dioxide), and describe its importance for plant life and the ecosystem.',
-  materials: [
-    'Whiteboard or blackboard',
-    'Markers or chalk',
-    'Diagram of a plant cell',
-    'Video on photosynthesis (e.g., from YouTube or Khan Academy)',
-    'Worksheets with fill-in-the-blanks and labeling exercises',
-    'Art supplies: green construction paper, scissors, glue',
-  ],
-  activities: [
-    {
-      title: 'Introduction (10 minutes)',
-      description:
-        "Begin with a discussion about how plants get their food. Ask students what they already know. Introduce the term 'photosynthesis'.",
-    },
-    {
-      title: 'Direct Instruction (15 minutes)',
-      description:
-        'Explain the process of photosynthesis using the whiteboard. Draw a simple diagram showing a plant taking in sunlight, water, and CO2, and releasing oxygen. Use the plant cell diagram to show where this happens (chloroplasts).',
-    },
-    {
-      title: 'Visual Learning (10 minutes)',
-      description: 'Show a short, engaging video that visually explains photosynthesis.',
-    },
-    {
-      title: 'Group Activity: Leaf Craft (15 minutes)',
-      description:
-        'Students create a model of a leaf. They will label the parts involved in photosynthesis and write a short sentence explaining the process.',
-    },
-  ],
-  outcomes:
-    'Students will be able to verbally explain the basic process of photosynthesis. They will also be able to label a diagram with the inputs and outputs of photosynthesis. Their leaf craft will serve as a visual aid for their understanding.',
-};
-
-const defaultValues = {
-  topicName: '',
-  gradeLevel: '',
-  duration: '',
-};
-
-// Local mock history used to render existing lesson plans
-const mockHistory = [
-  {
-    id: '1',
-    title: 'The Solar System',
-    date: new Date('2025-10-10'),
-    grade: 'Grade 5',
-    data: mockLessonPlan
-  },
-  {
-    id: '2',
-    title: 'Photosynthesis',
-    date: new Date('2025-10-12'),
-    grade: 'Grade 7',
-    data: {
-      ...mockLessonPlan,
-      objective: 'Students will understand Photosynthesis.'
-    }
-  }
-];
-
-function LessonPlanDetails({ item }) {
+function LessonPlanDetails({ item , isgenrated}) {
   // const lessonPlan = item.data;
   console.log(" lp item", item);
   return (
     <div className="lg:col-span-3">
-      <LessonPlanItem  item={item}></LessonPlanItem>
+      <LessonPlanItem  item={item} isgenrated={isgenrated}></LessonPlanItem>
     </div>
   )
 }
@@ -125,7 +56,6 @@ function NewLessonPlanForm({ onGenerate, data }) {
   const [selectedDuration, setselectedDuration] = useState(2);
 
   const form = useForm({
-    resolver: zodResolver(formSchema),
     defaultValues: {
       book: "",
       chapter: "",
@@ -337,10 +267,10 @@ export default function LessonPlanPage() {
             </div>
           </div>
         ) : slectedLessonPlan ? (
-          <LessonPlanDetails item={slectedLessonPlan} />
+          <LessonPlanDetails item={slectedLessonPlan} isgenrated={false}/>
         ) :
           lpdata ? (
-            <LessonPlanDetails item={lpdata} />
+            <LessonPlanDetails item={lpdata} isgenrated={true}/>
           ) :
             (
               <NewLessonPlanForm onGenerate={handleGenerate} data={bookData?.content} />

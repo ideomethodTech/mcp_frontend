@@ -45,8 +45,10 @@ const ActivityTag = ({ children }) => (
 
 /* ------------------ Main Component ------------------ */
 
-const LessonPlanItem = ({ item }) => {
-  const lesson_plan = item.content?.lesson_plan;
+const LessonPlanItem = ({ item , isgenrated =false }) => {
+  const lesson_plan = isgenrated
+    ? item
+    : item?.content?.lesson_plan;
 
   return (
     <div className="max-w-6xl mx-auto space-y-8 p-6">
