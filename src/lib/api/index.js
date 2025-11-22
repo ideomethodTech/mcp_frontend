@@ -13,7 +13,7 @@ const api = (config) => {
   // ADD THIS: Request interceptor to add auth token
   axiosInstance.interceptors.request.use(
     (config) => {
-      const token = localStorage.getItem("access_token");
+      const token = localStorage.getItem('access_token');
       if (token) {
         config.headers.Authorization = `Bearer ${token}`;
       }
@@ -24,27 +24,22 @@ const api = (config) => {
     }
   );
 
-  // ADD THIS BEFORE YOUR API CALLS
-  // api.interceptors.request.use(
-  //   (config) => {
-  //     // Log and BLOCK get_chapters calls
-  //     if (config.url?.includes("get_chapters")) {
-  //       console.error("🚫 BLOCKED: Infinite get_chapters call from:", new Error().stack);
-  //       return Promise.reject(new Error("get_chapters endpoint removed"));
-  //     }
-  //     return config;
-  //   },
-  //   (error) => Promise.reject(error)
-  // );
-
   // Add response interceptor for error handling
   axiosInstance.interceptors.response.use(
     (response) => {
       // Check if response is HTML when JSON is expected
       const contentType = response.headers["content-type"];
-      if (typeof contentType === "string" && contentType.includes("text/html")) {
-        console.error("Received HTML response when JSON was expected:", response.config.url);
-        const error = new Error(`API endpoint returned HTML instead of JSON: ${response.config.url}`);
+      if (
+        typeof contentType === "string" &&
+        contentType.includes("text/html")
+      ) {
+        console.error(
+          "Received HTML response when JSON was expected:",
+          response.config.url
+        );
+        const error = new Error(
+          `API endpoint returned HTML instead of JSON: ${response.config.url}`
+        );
         error.name = "HTMLResponseError";
         throw error;
       }
@@ -53,17 +48,35 @@ const api = (config) => {
     (error) => {
       // Handle cases where error response is HTML (like 404 pages)
       const contentType = error.response?.headers?.["content-type"];
-      if (typeof contentType === "string" && contentType.includes("text/html")) {
-        console.error("API Error: Received HTML error page instead of JSON:", error.config?.url);
-        const customError = new Error(`API endpoint not found: ${error.config?.url}`);
+      if (
+        typeof contentType === "string" &&
+        contentType.includes("text/html")
+      ) {
+        console.error(
+          "API Error: Received HTML error page instead of JSON:",
+          error.config?.url
+        );
+        const customError = new Error(
+          `API endpoint not found: ${error.config?.url}`
+        );
         customError.name = "APINotFoundError";
         return Promise.reject(customError);
       }
 
       // Handle specific JSON parse errors
-      if (error.message?.includes("Unexpected token") && error.message?.includes("<!DOCTYPE")) {
-        console.error("JSON Parse Error - API returned HTML:", error.config?.url);
-        const customError = new Error(`Invalid JSON response from API: ${error.config?.url || "unknown endpoint"}`);
+      if (
+        error.message?.includes("Unexpected token") &&
+        error.message?.includes("<!DOCTYPE")
+      ) {
+        console.error(
+          "JSON Parse Error - API returned HTML:",
+          error.config?.url
+        );
+        const customError = new Error(
+          `Invalid JSON response from API: ${
+            error.config?.url || "unknown endpoint"
+          }`
+        );
         customError.name = "JSONParseError";
         return Promise.reject(customError);
       }
@@ -78,3 +91,5 @@ const api = (config) => {
 };
 
 export default api;
+
+

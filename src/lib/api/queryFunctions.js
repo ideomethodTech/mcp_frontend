@@ -19,7 +19,7 @@ export const uploadBook = async (data) => {
     data: {
       book_url: data.book_url,
       book_name: data.book_name,
-      uid: data.uid,
+      uid: data.uid
     },
   });
   return response.data;
@@ -41,12 +41,25 @@ export const createWorksheet = async (data) => {
     data: {
       book_id: data.book_id,
       chapter: data.chapter,
-      uid: data.uid,
+      uid: data.uid
     },
   });
   return response.data;
 };
 
+export const createLessonPlan = async (data) => {
+  const response = await api({
+    url: ENDPOINTS.GEBERATE_LESSONPLAN,
+    method: "POST",
+    data: {
+      book_id: data.book_id,
+      chapter: data.chapter,
+      uid: data.uid,
+      weeks: data.weeks
+    },
+  });
+  return response.data;
+};
 
 
 // Chat Management Functions
@@ -56,7 +69,7 @@ export const createChat = async (data) => {
     method: "POST",
     data: {
       chat_title: data.chat_title,
-      uid: data.uid,
+      uid: data.uid
     },
   });
   return response.data;
@@ -87,36 +100,8 @@ export const loginUser = async (data) => {
     method: "POST",
     data: {
       email: data.email,
-      password: data.password,
+      password: data.password
     },
   });
   return response.data;
 };
-
-
-
-// Lesson Plan Functions
-export const getLessonPlans = async (uid) => {
-  const response = await api({
-    url: ENDPOINTS.GET_LESSON_PLANS,
-    method: "GET",
-    params: { uid },
-  });
-  return response.data;
-};
-
-export const createLessonPlan = async (data) => {
-  const response = await api({
-    url: ENDPOINTS.CREATE_LESSON_PLAN,
-    method: "POST",
-    data: {
-      book_id: data.book_id,
-      chapter: data.chapter,
-      uid: data.uid,
-      weeks: data.weeks,
-    },
-  });
-  return response.data;
-};
-
-
