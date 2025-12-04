@@ -21,6 +21,7 @@ import { Logo } from "./icons";
 export function Header() {
   const { user, signOut } = useAuth();
   const pathname = usePathname();
+  console.log(user)
 
   const handleLogout = async () => {
     try {

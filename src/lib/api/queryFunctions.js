@@ -28,6 +28,8 @@ export const generateAnswerKey = async ({ worksheet_id, book_id, uid, chapter })
   });
   return response.data;
 };
+
+
 // Book Management Functions
 export const uploadBook = async (data) => {
   const response = await api({
@@ -42,10 +44,11 @@ export const uploadBook = async (data) => {
   return response.data;
 };
 
-export const getBook = async () => {
+export const getBooks = async (uid = null) => {
   const response = await api({
-    url: `${ENDPOINTS.GET_BOOK}`,
+    url: ENDPOINTS.GET_BOOK,
     method: "GET",
+    params: uid ? { uid } : {},
   });
   return response.data;
 };

@@ -2,7 +2,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import {
   generateContent,
   uploadBook,
-  getBook,
+  getBooks,
   createChat,
   getUserChats,
   getChatDetails,
@@ -45,7 +45,7 @@ export const useUploadBook = (options) =>
 export const useGetBook = (options = {}) =>
   useQuery({
     queryKey: ["books"],
-    queryFn: () => getBook(),
+    queryFn: () => getBooks(),
     enabled: true,
 
     ...options,
