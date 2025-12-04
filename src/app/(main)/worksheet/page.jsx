@@ -31,98 +31,35 @@ import {
 } from '@/components/ui/select';
 import WorksheetItem from './WorksheetItem';
 import History from '@/app/componentsV2/ui/history';
-import { useCreateWorksheet, useGetBook } from '@/lib/api/queries';
-import { getNavItemByUrl } from '@/app/utils';
+import { getNavItemByUrl, parseWorksheet } from '@/app/utils';
 import { usePathname } from 'next/navigation';
 import { useQueryClient } from '@tanstack/react-query';
+import { useGenerateWorksheet, useGetBook, useUserWorksheet } from '@/lib/api/queries';
 
 const formSchema = z.object({
   book: z.string().nonempty('Please select a book.'),
   chapter: z.string().nonempty('Please select a chapter.'),
 });
 
-const mockWorksheetData = {
-  questions: [
-    {
-      id: 1,
-      type: 'mcq',
-      question: 'What was known to the brahmin?',
-      options: ['Magic', 'Mantra', 'Secret'],
-    },
-    {
-      id: 2,
-      type: 'mcq',
-      question: 'Who accompanied Rundhu to the town?',
-      options: ['All the students', 'Villagers', 'Sattu'],
-    },
-    {
-      id: 3,
-      type: 'mcq',
-      question: 'Who stopped them on the way to the dense forest?',
-      options: ['Gang of dacoits', 'Villagers', 'Students'],
-    },
-    {
-      id: 4,
-      type: 'mcq',
-      question: 'Who was the leader of the gang of dacoits they met first?',
-      options: ['Mangal Singh', 'Dilaver Singh', 'Rundhu'],
-    },
-  ],
-};
-
-const mockHistory = [
-  {
-    id: '1',
-    title: 'The Brahmin and the Disciple',
-    date: new Date('2025-10-13'),
-    book: 'Oliver English Class 05',
-    data: mockWorksheetData,
-  },
-  {
-    id: '2',
-    title: 'Chapter 1',
-    date: new Date('2025-10-11'),
-    book: 'The Great Gatsby',
-    data: {
-      ...mockWorksheetData,
-      questions: mockWorksheetData.questions.slice(0, 2)
-    }
-  },
-];
-
-const mockData = {
-  books: [
-    {
-      name: 'Oliver English Class 05',
-      chapters: [
-        { name: 'The Brahmin and the Disciple (Story)', pages: '7 - 16' },
-        { name: 'Another Chapter', pages: '17 - 28' },
-      ]
-    },
-    {
-      name: 'The Great Gatsby',
-      chapters: [
-        { name: 'Chapter 1', pages: '1 - 20' },
-        { name: 'Chapter 2', pages: '21 - 45' },
-      ]
-    }
-  ]
-}
-
 const WorksheetDetails = ({ item }) => {
-  const worksheetData = item.data;
+  if(!item){
+    return
+  }
+  console.log("item",item);
+  // const worksheetData = parseWorksheet(item.content?.worksheet);
+  // console.log(worksheetData);
   return (
     <div className="lg:col-span-3">
-      <WorksheetItem item={item} questions={worksheetData?.questions}></WorksheetItem>
+      <WorksheetItem  item={item}></WorksheetItem>
     </div>
   )
 }
 
-function NewWorksheetForm({ onGenerate, data}) {
-    const [selectedBookInForm, setSelectedBookInForm] = useState(null);
-    const [selectedChapter, setSelectedChapter] = useState(null);
+function NewWorksheetForm({ onGenerate, data }) {
+  const [selectedBook, setSelectedBook] = useState(null);
+  const [selectedChapter, setSelectedChapter] = useState(null);
 
-   const form = useForm({
+  const form = useForm({
     resolver: zodResolver(formSchema),
     defaultValues: {
       book: "",
@@ -130,14 +67,17 @@ function NewWorksheetForm({ onGenerate, data}) {
     },
   });
 
-  const selectedBookId = form.watch("book");
-  const selectedBook = data?.find((b) => b.book_id === selectedBookId);
+  const handleGenerate = () => {
+    if (selectedBook && selectedChapter) {
+      onGenerate(selectedBook, selectedChapter);
+    }
+  }
 
   return (
     <div className="lg:col-span-3">
       <div className="flex flex-col items-center justify-center min-h-[500px]">
         <div className="w-full max-w-2xl">
-        
+
           <Card>
             <CardHeader>
               <div className="flex items-center gap-3 mb-2">
@@ -150,7 +90,9 @@ function NewWorksheetForm({ onGenerate, data}) {
             </CardHeader>
             <CardContent>
               <Form {...form}>
-                <form onSubmit={form.handleSubmit(onGenerate)} className="space-y-6">
+                <form onSubmit={form.handleSubmit(() => {
+                  onGenerate(selectedBook, selectedChapter);
+                })} className="space-y-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <FormField
                       control={form.control}
@@ -159,8 +101,10 @@ function NewWorksheetForm({ onGenerate, data}) {
                         <FormItem>
                           <FormLabel>Select Book</FormLabel>
                           <Select onValueChange={(val) => {
-                            setSelectedBookInForm(JSON.parse(val))
-                            }} defaultValue={field.value}>
+                            const parsed = JSON.parse(val);
+                            setSelectedBook(parsed);
+                            form.setValue("book", parsed.book_name);
+                          }} defaultValue={field.value}>
                             <FormControl>
                               <SelectTrigger>
                                 <SelectValue placeholder="Select a book" />
@@ -173,7 +117,7 @@ function NewWorksheetForm({ onGenerate, data}) {
                               {data?.map((book) => (
                                 <SelectItem
                                   key={book.book_id}
-                                  value={book.book_id}
+                                  value={JSON.stringify(book)}
                                 >
                                   {book.book_name}
                                 </SelectItem>
@@ -191,18 +135,20 @@ function NewWorksheetForm({ onGenerate, data}) {
                         <FormItem>
                           <FormLabel>Select Chapter</FormLabel>
                           <Select onValueChange={(val) => {
-                            setSelectedBookInForm(JSON.parse(val))
-                            }} defaultValue={field.value} disabled={!selectedBook}>
+                            const parsed = JSON.parse(val);
+                            setSelectedChapter(parsed);
+                            form.setValue("chapter", parsed);
+                          }} defaultValue={field.value} disabled={!selectedBook}>
                             <FormControl>
                               <SelectTrigger>
                                 <SelectValue placeholder="Select a chapter" />
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                             {selectedBook?.chapters?.map((chapter) => (
+                              {selectedBook?.chapters?.map((chapter) => (
                                 <SelectItem
                                   key={chapter}
-                                  value={chapter}
+                                  value={JSON.stringify(chapter)}
                                 >
                                   {chapter}
                                 </SelectItem>
@@ -215,7 +161,7 @@ function NewWorksheetForm({ onGenerate, data}) {
                     />
                   </div>
 
-                  <Button type="submit" className="w-full !mt-8" size="lg" onClick={() => onGenerate(selectedBook,selectedChapter)} disabled={!form.formState.isValid}>
+                  <Button type="submit" className="w-full !mt-8" size="lg" disabled={!selectedBook || !selectedChapter}>
                     Generate Worksheet
                   </Button>
                 </form>
@@ -229,33 +175,43 @@ function NewWorksheetForm({ onGenerate, data}) {
 }
 
 export default function WorksheetPage() {
-  const [selectedItem, setSelectedItem] = useState(mockHistory[0]);
   const [isLoading, setIsLoading] = useState(false);
+  const [worksheetData, setWorksheetData] = useState(null);
+
   const pathname = usePathname();
   const navItem = getNavItemByUrl(pathname);
   const uid = "nn170kZPMuWZlbzGbVps3YVyG9J3";
   const queryClient = useQueryClient();
+  // All worksheets
+  const { data: userworksheet, isLoading: worksheetsLoading } = useUserWorksheet("uid_127");
 
-  const { data: bookData, isLoading: isBookDataLoading } = useGetBook(uid);
-  useEffect(() => {
-    if (bookData) {
-      console.log("📚 Book Data Loaded:", bookData);
-    }
-  }, [bookData]);
+  // Selected worksheet
+  const [selectedworksheet, setSelectedworksheet] = useState(null);
+  // Books
+  const { data: bookData, isLoading: bookLoading } = useGetBook();
 
-  const{mutate: createworksheetmutation, isPending: creatingWorksheet} = useCreateWorksheet({
-      onSuccess: (data) => {
-      // new chat created → refresh chat list
-      // queryClient.invalidateQueries(["userChats", uid]);
-
-      selectedItem(data.chat_id);
+  // Create chat
+  const { mutate: generateWSMutation, isPending: generatingWS, data: aiResponse } = useGenerateWorksheet({
+    onSuccess: (data) => {
+      // data.answer or data.message (depending on your API)
+      setWorksheetData(data.worksheet);
     },
-  })
-  const handleGenerate = (selectedbook,selectedchapter) => {
-    console.log("handlegenrate", selectedbook,selectedchapter);
-    //  createworksheetmutation({ book_id:selectedbook.book_id,uid });
-  }
+  });
 
+  const handleGenerate = (book, chapter) => {
+    if (!book) return;
+    //  "book_id": "54b67574-dd07-4e87-a828-be3592e48d1b",
+    //     "chapter" : "Chapter 1: Introduction to Science",
+    //     "uid": "nn170kZPMuWZlbzGbVps3YVyG9J3"
+    generateWSMutation({
+      book_id: book.id,
+      chapter: chapter,
+      uid: uid,
+    });
+  };
+
+  // const 
+  console.log("selectedworksheet",selectedworksheet)
   return (<div className="max-w-7xl mx-auto my-5 space-y-6">
     <div className="relative overflow-hidden rounded-3xl border border-border bg-gradient-to-br from-primary/10 via-accent/10 to-primary/5 p-8 shadow-[var(--shadow-lg)]">
       <div className="relative flex items-center gap-4">
@@ -275,12 +231,12 @@ export default function WorksheetPage() {
       {/* {History} */}
       <History
         item={navItem.itemtype}
-        historyData={mockHistory}
-        selectedItem={selectedItem}
-        setSelectedItem={setSelectedItem}
+        historyData={userworksheet || ""}
+        selectedItem={selectedworksheet}
+        setSelectedItem={setSelectedworksheet}
       />
       {/* Woeksheet Content */}
-      {isLoading ? (
+      {isLoading || generatingWS ? (
         <div className="flex items-center justify-center h-full">
           <div className="text-center">
             <Loader2 className="mx-auto h-12 w-12 animate-spin text-primary mb-4" />
@@ -290,10 +246,12 @@ export default function WorksheetPage() {
             </p>
           </div>
         </div>
-      ) : selectedItem ? (
-        <WorksheetDetails item={selectedItem} />
-      ) : (
-       bookData && <NewWorksheetForm onGenerate={handleGenerate} data={bookData.content} />
+      ) : selectedworksheet ? (
+        <WorksheetDetails item={selectedworksheet}/>
+      ) : worksheetData ? (
+        <WorksheetDetails item={worksheetData}/>
+      ) : 
+        (<NewWorksheetForm onGenerate={handleGenerate} data={bookData?.content} />
       )}
     </div>
   </div>);

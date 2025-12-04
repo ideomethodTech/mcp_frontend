@@ -11,6 +11,23 @@ export const generateContent = async ({ chat_id, uid, prompt }) => {
   return response.data;
 };
 
+export const generateWorksheet = async ({ book_id, uid, chapter }) => {
+  const response = await api({
+    url: ENDPOINTS.GEBERATE_WORKSHEET,
+    method: "POST",
+    data: { book_id, uid, chapter },
+  });
+  return response.data;
+};
+
+export const generateAnswerKey = async ({ worksheet_id, book_id, uid, chapter }) => {
+  const response = await api({
+    url: ENDPOINTS.GENERATE_ANSWER_KEY,
+    method: "POST",
+    data: { worksheet_id,book_id, uid, chapter },
+  });
+  return response.data;
+};
 // Book Management Functions
 export const uploadBook = async (data) => {
   const response = await api({
@@ -47,6 +64,45 @@ export const createWorksheet = async (data) => {
   return response.data;
 };
 
+export const getWorksheet = async (uid) => {
+  if (!uid) throw new Error("User ID is required");
+
+  const response = await api({
+    url: ENDPOINTS.GET_USER_WORKSHEET,
+    method: "GET",
+    params: { uid },   // ✅ Correct way to pass query params
+  });
+
+  return response.data;
+};
+
+
+// lesson plan 
+export const createLessonPlan = async (data) => {
+  const response = await api({
+    url: ENDPOINTS.GEBERATE_LESSONPLAN,
+    method: "POST",
+    data: {
+      book_id: data.book_id,
+      chapter: data.chapter,
+      uid: data.uid,
+      weeks: data.weeks
+    },
+  });
+  return response.data;
+};
+
+export const getLessonPlan = async (uid) => {
+  if (!uid) throw new Error("User ID is required");
+
+  const response = await api({
+    url: ENDPOINTS.GET_USER_LESSON_PLAN,
+    method: "GET",
+    params: { uid },   // ✅ Correct way to pass query params
+  });
+
+  return response.data;
+};
 
 
 // Chat Management Functions
@@ -72,7 +128,7 @@ export const getUserChats = async (uid) => {
 };
 
 export const getChatDetails = async (uid, chatId) => {
-  if (!uid || !chatId) throw new Error("User ID and Chat ID are required");
+  // if (!uid || !chatId) throw new Error("User ID and Chat ID are required");
   const response = await api({
     url: `${ENDPOINTS.GET_CHAT_DETAILS}/${uid}/${chatId}`,
     method: "GET",

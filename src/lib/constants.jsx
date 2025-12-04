@@ -67,3 +67,27 @@ export const ADMIN_NAV_ITEM = {
 };
 
 export const TOOLS = NAV_ITEMS.filter(item => item.href !== '/');
+
+export const QUESTION_TYPES = {
+  MULTIPLE_CHOICE: "multiple_choice",
+  TRUE_FALSE: "true_false",
+  FILL_IN_BLANK: "fill_in_blank",
+  SHORT_ANSWER: "short_answer"
+};
+
+export function segregateQuestions(questions = []) {
+  return {
+    multipleChoice: questions.filter(
+      (q) => q.type === QUESTION_TYPES.MULTIPLE_CHOICE
+    ),
+    trueFalse: questions.filter(
+      (q) => q.type === QUESTION_TYPES.TRUE_FALSE
+    ),
+    fillInTheBlanks: questions.filter(
+      (q) => q.type === QUESTION_TYPES.FILL_IN_BLANK
+    ),
+    shortAnswer: questions.filter(
+      (q) => q.type === QUESTION_TYPES.SHORT_ANSWER
+    ),
+  };
+}

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -33,6 +33,8 @@ import {
 } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import History from '@/app/componentsV2/ui/history';
+import { useSearchParams } from 'next/navigation';
+import { parseAnswerKey } from '@/app/utils';
 
 
 const formSchema = z.object({
@@ -93,6 +95,8 @@ const mockData = {
 }
 
 function AnswerKeyDetails({ item }) {
+  const answerKeyDetails = parseAnswerKey(item.answer_key);
+  console.log(answerKeyDetails);
   return(
     <div className="lg:col-span-3">
           <div className="rounded-2xl border border-border bg-card p-8 shadow-[var(--shadow-md)]">
@@ -100,9 +104,9 @@ function AnswerKeyDetails({ item }) {
             <div className="flex items-start gap-3 mb-6">
               <Key className="h-6 w-6 text-primary mt-1" />
               <div>
-                <h2 className="text-2xl font-bold text-foreground">The Brahmin and the Disciple</h2>
+                <h2 className="text-2xl font-bold text-foreground">{item.chapter}</h2>
                 <p className="text-muted-foreground text-sm">
-                  Answer Key for 'The Brahmin and the Disciple (Story)' from the book 'Oliver English Class 05'
+                  Answer Key for '{item.chapter}' from the book 'Oliver English Class 05'
                 </p>
               </div>
             </div>
@@ -110,79 +114,58 @@ function AnswerKeyDetails({ item }) {
             {/* Info Box */}
             <div className="rounded-xl bg-gradient-to-br from-primary/5 to-accent/5 p-6 mb-8 border border-primary/10">
               <p className="text-sm text-muted-foreground mb-2">Generated Answer Key</p>
-              <p className="text-foreground">The AI-generated answer key for the worksheet based on 'The Brahmin and the Disciple (Story)'.</p>
+              <p className="text-foreground">The AI-generated answer key for the worksheet based on '{item.chapter}'.</p>
             </div>
 
             {/* Answers */}
             <div className="space-y-6">
-              <div className="p-6 rounded-xl border border-border bg-muted/30">
-                <div className="flex items-start gap-3">
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-white font-semibold text-sm flex-shrink-0">
-                    1
-                  </div>
-                  <div className="flex-1">
-                    <p className="font-medium text-foreground mb-2">c) Jupiter</p>
-                    <p className="text-sm text-muted-foreground italic">
-                      *Explanation: Jupiter is the largest planet in our solar system by a large margin.*
-                    </p>
-                  </div>
-                </div>
-              </div>
+            <h3 className="text-lg font-semibold mb-4">A. Multiple Choice Questions</h3>
 
-              <div className="p-6 rounded-xl border border-border bg-muted/30">
+              {answerKeyDetails?.multipleChoice?.map((e)=>(
+                <div className="p-6 rounded-xl border border-border bg-muted/30">
                 <div className="flex items-start gap-3">
                   <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-white font-semibold text-sm flex-shrink-0">
-                    2
+                    {e.questionNumber}
                   </div>
                   <div className="flex-1">
-                    <p className="font-medium text-foreground mb-2">b) Mars</p>
+                    <p className="font-medium text-foreground mb-2">{e.answer}</p>
                     <p className="text-sm text-muted-foreground italic">
-                      *Explanation: Mars is often called the Red Planet due to its reddish appearance from iron oxide on its surface.*
+                      *Explanation: {e.explanation}*
                     </p>
                   </div>
                 </div>
               </div>
+              ))}
 
-              <div className="p-6 rounded-xl border border-border bg-muted/30">
+             <h3 className="text-lg font-semibold mb-4">B. True or False</h3>
+
+              {answerKeyDetails?.trueFalse?.map((e)=>(
+                <div className="p-6 rounded-xl border border-border bg-muted/30">
                 <div className="flex items-start gap-3">
                   <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-white font-semibold text-sm flex-shrink-0">
-                    3
+                    {e.questionNumber}
                   </div>
                   <div className="flex-1">
-                    <p className="font-medium text-foreground mb-2">Mercury</p>
-                    <p className="text-sm text-muted-foreground italic">
-                      *Explanation: Mercury is the innermost planet in our solar system.*
-                    </p>
+                    <p className="font-medium text-foreground mb-2">{e.answer}</p>
                   </div>
                 </div>
               </div>
+              ))}
 
-              <div className="p-6 rounded-xl border border-border bg-muted/30">
+             <h3 className="text-lg font-semibold mb-4">C. Fill in the Blanks</h3>
+
+              {answerKeyDetails?.fillInTheBlanks?.map((e)=>(
+                <div className="p-6 rounded-xl border border-border bg-muted/30">
                 <div className="flex items-start gap-3">
                   <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-white font-semibold text-sm flex-shrink-0">
-                    4
+                    {e.questionNumber}
                   </div>
                   <div className="flex-1">
-                    <p className="font-medium text-foreground mb-2">third</p>
-                    <p className="text-sm text-muted-foreground italic">
-                      *Explanation: The order of planets from the Sun is Mercury, Venus, Earth, Mars, Jupiter, Saturn, Uranus, Neptune.*
-                    </p>
+                    <p className="font-medium text-foreground mb-2">{e.answer}</p>
                   </div>
                 </div>
               </div>
-
-              <div className="p-6 rounded-xl border border-border bg-muted/30">
-                <div className="flex items-start gap-3">
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-white font-semibold text-sm flex-shrink-0">
-                    5
-                  </div>
-                  <div className="flex-1">
-                    <p className="font-medium text-foreground mb-2">
-                      Saturn's rings are made of billions of small particles of ice and rock. They are very wide but relatively thin.
-                    </p>
-                  </div>
-                </div>
-              </div>
+              ))}    
             </div>
             </div>
             </div>
@@ -302,6 +285,22 @@ export default function AnswerKeyPage() {
       setIsLoading(false);
     }, 2000);
   }
+  const searchParams = useSearchParams();
+  const [answerData, setAnswerData] = useState(null);
+
+  useEffect(() => {
+    const encoded = searchParams.get("data");
+
+    if (encoded) {
+      try {
+        const parsed = JSON.parse(decodeURIComponent(encoded));
+        setAnswerData(parsed);
+        console.log("parsed", parsed);
+      } catch (e) {
+        console.error("Failed to parse answer key:", e);
+      }
+    }
+  }, [searchParams]);
 
   return (
     <div className="max-w-7xl mx-auto my-5 space-y-6">
@@ -327,7 +326,7 @@ export default function AnswerKeyPage() {
           historyData={mockHistory}
         />
         {/* Lesson Plan Content */}
-        {isLoading ? (
+        {false ? (
           <div className="flex items-center justify-center h-full">
             <div className="text-center">
               <Loader2 className="mx-auto h-12 w-12 animate-spin text-primary mb-4" />
@@ -337,9 +336,9 @@ export default function AnswerKeyPage() {
               </p>
             </div>
           </div>
-        ) : selectedItem ? (
+        ) : false ? (
           <AnswerKeyDetails item={selectedItem} />
-        ) : (
+        ) : answerData? (<AnswerKeyDetails item={answerData} />) :(
           <NewAnswerKeyForm onGenerate={handleGenerate} />
         )}
       </div>
