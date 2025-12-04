@@ -10,35 +10,30 @@ import {
   createWorksheet,
   createLessonPlan,
   generateWorksheet,
-  getUserWorksheets,
   generateAnswerKey,
-
-  getLessonPlans,
+  getLessonPlan,
   getWorksheet,
-  getLessonPlan
+  registerUser,
 } from "./queryFunctions";
 
 // AI Generation Hooks
 export const useGenerateContent = (options) =>
   useMutation({
-    mutationFn: ({ chat_id, uid, prompt }) =>
-      generateContent({ chat_id, uid, prompt }),
+    mutationFn: ({ chat_id, uid, prompt }) => generateContent({ chat_id, uid, prompt }),
     ...options,
-  }); 
+  });
 
 export const useGenerateWorksheet = (options) =>
   useMutation({
-    mutationFn: ({ book_id, uid, chapter }) =>
-      generateWorksheet({ book_id, uid, chapter }),
+    mutationFn: ({ book_id, uid, chapter }) => generateWorksheet({ book_id, uid, chapter }),
     ...options,
-  }); 
+  });
 
 export const useGenerateAnswerKey = (options) =>
   useMutation({
-    mutationFn: ({ worksheet_id, book_id, uid, chapter }) =>
-      generateAnswerKey({ worksheet_id, book_id, uid, chapter }),
+    mutationFn: ({ worksheet_id, book_id, uid, chapter }) => generateAnswerKey({ worksheet_id, book_id, uid, chapter }),
     ...options,
-  }); 
+  });
 
 // Book Management Hooks
 export const useUploadBook = (options) =>
@@ -52,7 +47,7 @@ export const useGetBook = (options = {}) =>
     queryKey: ["books"],
     queryFn: () => getBook(),
     enabled: true,
-  
+
     ...options,
   });
 
@@ -63,9 +58,9 @@ export const useCreateWorksheet = (options) =>
     ...options,
   });
 
-export const useUserWorksheet = ( uid, options = {}) =>
+export const useUserWorksheet = (uid, options = {}) =>
   useQuery({
-    queryKey: ["ws",uid],
+    queryKey: ["ws", uid],
     queryFn: () => getWorksheet(uid),
     enabled: true,
     ...options,
@@ -78,9 +73,9 @@ export const useCreateLessonPlan = (options) =>
     ...options,
   });
 
-export const useUserLessonPlan = ( uid, options = {}) =>
+export const useUserLessonPlan = (uid, options = {}) =>
   useQuery({
-    queryKey: ["lp",uid],
+    queryKey: ["lp", uid],
     queryFn: () => getLessonPlan(uid),
     enabled: true,
     ...options,
@@ -98,7 +93,7 @@ export const useUserChats = (uid, options) =>
     queryKey: ["userChats", uid],
     queryFn: () => getUserChats(uid),
     enabled: !!uid,
-    
+
     ...options,
   });
 
@@ -111,28 +106,23 @@ export const useChatDetails = (uid, chatId, options) =>
   });
 
 // Authentication Hooks
+export const useRegister = (options) =>
+  useMutation({
+    mutationFn: registerUser,
+    ...options,
+  });
+
 export const useLogin = (options) =>
   useMutation({
     mutationFn: loginUser,
     ...options,
   });
 
-
-
 // Lesson Plan Hooks
 export const useGetLessonPlans = (uid, options = {}) =>
   useQuery({
     queryKey: ["lessonPlans", uid],
-    queryFn: () => getLessonPlans(uid),
+    queryFn: () => getLessonPlan(uid),
     enabled: !!uid,
-   
     ...options,
   });
-
-export const useCreateLessonPlan = (options = {}) =>
-  useMutation({
-    mutationFn: createLessonPlan,
-    ...options,
-  });
-
-
