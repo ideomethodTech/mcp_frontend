@@ -24,10 +24,12 @@ export const generateAnswerKey = async ({ worksheet_id, book_id, uid, chapter })
   const response = await api({
     url: ENDPOINTS.GENERATE_ANSWER_KEY,
     method: "POST",
-    data: { worksheet_id,book_id, uid, chapter },
+    data: { worksheet_id, book_id, uid, chapter },
   });
   return response.data;
 };
+
+
 // Book Management Functions
 export const uploadBook = async (data) => {
   const response = await api({
@@ -36,16 +38,17 @@ export const uploadBook = async (data) => {
     data: {
       book_url: data.book_url,
       book_name: data.book_name,
-      uid: data.uid
+      uid: data.uid,
     },
   });
   return response.data;
 };
 
-export const getBook = async () => {
+export const getBooks = async (uid = null) => {
   const response = await api({
-    url: `${ENDPOINTS.GET_BOOK}`,
+    url: ENDPOINTS.GET_BOOK,
     method: "GET",
+    params: uid ? { uid } : {},
   });
   return response.data;
 };
@@ -58,7 +61,7 @@ export const createWorksheet = async (data) => {
     data: {
       book_id: data.book_id,
       chapter: data.chapter,
-      uid: data.uid
+      uid: data.uid,
     },
   });
   return response.data;
@@ -70,14 +73,13 @@ export const getWorksheet = async (uid) => {
   const response = await api({
     url: ENDPOINTS.GET_USER_WORKSHEET,
     method: "GET",
-    params: { uid },   // ✅ Correct way to pass query params
+    params: { uid }, // ✅ Correct way to pass query params
   });
 
   return response.data;
 };
 
-
-// lesson plan 
+// lesson plan
 export const createLessonPlan = async (data) => {
   const response = await api({
     url: ENDPOINTS.GEBERATE_LESSONPLAN,
@@ -86,7 +88,7 @@ export const createLessonPlan = async (data) => {
       book_id: data.book_id,
       chapter: data.chapter,
       uid: data.uid,
-      weeks: data.weeks
+      weeks: data.weeks,
     },
   });
   return response.data;
@@ -98,12 +100,11 @@ export const getLessonPlan = async (uid) => {
   const response = await api({
     url: ENDPOINTS.GET_USER_LESSON_PLAN,
     method: "GET",
-    params: { uid },   // ✅ Correct way to pass query params
+    params: { uid }, // ✅ Correct way to pass query params
   });
 
   return response.data;
 };
-
 
 // Chat Management Functions
 export const createChat = async (data) => {
@@ -112,7 +113,7 @@ export const createChat = async (data) => {
     method: "POST",
     data: {
       chat_title: data.chat_title,
-      uid: data.uid
+      uid: data.uid,
     },
   });
   return response.data;
@@ -143,7 +144,22 @@ export const loginUser = async (data) => {
     method: "POST",
     data: {
       email: data.email,
-      password: data.password
+      password: data.password,
+    },
+  });
+  return response.data;
+};
+
+export const registerUser = async (data) => {
+  const response = await api({
+    url: ENDPOINTS.SIGNUP,
+    method: "POST",
+    data: {
+      email: data.email,
+      password: data.password,
+      username: data.username,
+      role: "user",
+      profile_details: {},
     },
   });
   return response.data;

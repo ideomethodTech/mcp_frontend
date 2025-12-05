@@ -12,27 +12,6 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
-  // useEffect(() => {
-  //   if (process.env.NODE_ENV === "development") {
-  //     const fakeUser = {
-  //       uid: "dev-user-123",
-  //       email: "dev@example.com",
-  //       username: "Dev User",
-  //     };
-  //     console.log("🚀 Development mode: Auto-login active");
-  //     setUser(fakeUser);
-  //     setLoading(false);
-  //     return;
-  //   }
-
-  //   // Check for existing session
-  //   const storedUser = localStorage.getItem("user");
-  //   if (storedUser) {
-  //     setUser(JSON.parse(storedUser));
-  //   }
-  //   setLoading(false);
-  // }, []);
-
   useEffect(() => {
     // Check for existing session
     const storedUser = localStorage.getItem("user");
@@ -44,6 +23,7 @@ export function AuthProvider({ children }) {
         localStorage.removeItem("user");
       }
     }
+
     setLoading(false);
   }, []);
 
@@ -95,11 +75,7 @@ export function AuthProvider({ children }) {
     }
   };
 
-  return (
-    <AuthContext.Provider value={{ user, loading, signInWithEmail, signOut }}>
-      {children}
-    </AuthContext.Provider>
-  );
+  return <AuthContext.Provider value={{ user, loading, signInWithEmail, signOut }}>{children}</AuthContext.Provider>;
 }
 
 export const useAuth = () => {
