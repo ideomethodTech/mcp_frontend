@@ -5,7 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { FilePlus2, Trash2, Loader2 } from "lucide-react";
+import { FilePlus2, Trash2, Loader2, Upload } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -21,13 +21,17 @@ import { useToast } from "@/hooks/use-toast";
 import { useUploadBook, useGetBook } from "@/lib/api/queries";
 import { useAuth } from "@/contexts/auth-context";
 import { useQueryClient } from "@tanstack/react-query";
+import { storage } from "@/lib/firebase"; // Import your Firebase storage instance
+import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
 
 export default function AdminDashboardPage() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [bookName, setBookName] = useState("");
-  const [bookUrl, setBookUrl] = useState("");
+  const [bookFile, setBookFile] = useState(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [isUploading, setIsUploading] = useState(false);
 
   const uploadMutation = useUploadBook({
     onSuccess: () => {
@@ -37,7 +41,8 @@ export default function AdminDashboardPage() {
       });
       setIsDialogOpen(false);
       setBookName("");
-      setBookUrl("");
+      setBookFile(null);
+      setUploadProgress(0);
       queryClient.invalidateQueries({ queryKey: ["books"] });
     },
     onError: (error) => {
@@ -50,8 +55,22 @@ export default function AdminDashboardPage() {
   });
 
   const booksQuery = useGetBook();
-
   const { user } = useAuth();
+
+  const handleFileChange = (e) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.type !== "application/pdf") {
+        toast({
+          title: "Invalid file type",
+          description: "Please upload a PDF file",
+          variant: "destructive",
+        });
+        return;
+      }
+      setBookFile(file);
+    }
+  };
 
   const handleUpload = async () => {
     const uid = user?.user.uid;
@@ -65,21 +84,76 @@ export default function AdminDashboardPage() {
       return;
     }
 
-    if (!bookName || !bookUrl) {
+    if (!bookName || !bookFile) {
       toast({
         title: "Missing information",
-        description: "Please provide book name and book URL",
+        description: "Please provide book name and select a file",
         variant: "destructive",
       });
       return;
     }
 
-    // Call the upload API
-    uploadMutation.mutate({
-      book_name: bookName,
-      book_url: bookUrl,
-      uid: uid,
-    });
+    setIsUploading(true);
+
+    try {
+      // Create a unique filename
+      const timestamp = Date.now();
+      const fileName = `books/${uid}/${timestamp}_${bookFile.name}`;
+      const storageRef = ref(storage, fileName);
+
+      // Upload file to Firebase Storage
+      const uploadTask = uploadBytesResumable(storageRef, bookFile);
+
+      uploadTask.on(
+        "state_changed",
+        (snapshot) => {
+          // Track upload progress
+          const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+          setUploadProgress(progress);
+        },
+        (error) => {
+          // Handle upload error
+          console.error("Upload error:", error);
+          toast({
+            title: "Upload failed",
+            description: "Failed to upload file to storage",
+            variant: "destructive",
+          });
+          setIsUploading(false);
+        },
+        async () => {
+          // Upload completed successfully, get download URL
+          try {
+            const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+            
+            // Now call the backend API with the Firebase URL
+            uploadMutation.mutate({
+              book_name: bookName,
+              book_url: downloadURL,
+              uid: uid,
+            });
+            
+            setIsUploading(false);
+          } catch (error) {
+            console.error("Error getting download URL:", error);
+            toast({
+              title: "Error",
+              description: "Failed to get file URL",
+              variant: "destructive",
+            });
+            setIsUploading(false);
+          }
+        }
+      );
+    } catch (error) {
+      console.error("Upload error:", error);
+      toast({
+        title: "Upload failed",
+        description: "An error occurred during upload",
+        variant: "destructive",
+      });
+      setIsUploading(false);
+    }
   };
 
   const books = booksQuery.data?.content || [];
@@ -110,7 +184,7 @@ export default function AdminDashboardPage() {
                   <DialogHeader>
                     <DialogTitle>Upload New Book</DialogTitle>
                     <DialogDescription>
-                      Enter the URL of an online PDF or document. It will be processed and indexed automatically.
+                      Select a PDF file to upload. It will be stored in Firebase and processed automatically.
                     </DialogDescription>
                   </DialogHeader>
                   <div className="grid gap-4 py-4">
@@ -124,25 +198,56 @@ export default function AdminDashboardPage() {
                         className="col-span-3"
                         value={bookName}
                         onChange={(e) => setBookName(e.target.value)}
+                        disabled={isUploading || uploadMutation.isPending}
                       />
                     </div>
                     <div className="grid grid-cols-4 items-center gap-4">
-                      <Label htmlFor="book_url" className="text-right">
-                        Book URL
+                      <Label htmlFor="book_file" className="text-right">
+                        PDF File
                       </Label>
-                      <Input
-                        id="book_url"
-                        placeholder="https://example.com/book.pdf"
-                        className="col-span-3"
-                        value={bookUrl}
-                        onChange={(e) => setBookUrl(e.target.value)}
-                      />
+                      <div className="col-span-3">
+                        <Input
+                          id="book_file"
+                          type="file"
+                          accept="application/pdf"
+                          onChange={handleFileChange}
+                          disabled={isUploading || uploadMutation.isPending}
+                        />
+                        {bookFile && (
+                          <p className="text-sm text-muted-foreground mt-2">
+                            Selected: {bookFile.name}
+                          </p>
+                        )}
+                      </div>
                     </div>
+                    {isUploading && (
+                      <div className="col-span-4">
+                        <div className="w-full bg-secondary rounded-full h-2">
+                          <div
+                            className="bg-primary h-2 rounded-full transition-all duration-300"
+                            style={{ width: `${uploadProgress}%` }}
+                          />
+                        </div>
+                        <p className="text-sm text-muted-foreground mt-2 text-center">
+                          Uploading: {Math.round(uploadProgress)}%
+                        </p>
+                      </div>
+                    )}
                   </div>
                   <DialogFooter>
-                    <Button type="submit" onClick={handleUpload} disabled={uploadMutation.isPending}>
-                      {uploadMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                      {uploadMutation.isPending ? "Uploading..." : "Upload"}
+                    <Button
+                      type="submit"
+                      onClick={handleUpload}
+                      disabled={isUploading || uploadMutation.isPending}
+                    >
+                      {(isUploading || uploadMutation.isPending) && (
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      )}
+                      {isUploading
+                        ? "Uploading to Storage..."
+                        : uploadMutation.isPending
+                        ? "Processing..."
+                        : "Upload"}
                     </Button>
                   </DialogFooter>
                 </DialogContent>
