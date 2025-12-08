@@ -94,23 +94,26 @@ function ChatInterface({ chatSession, setChatSession }) {
   const [messages, setMessages] = useState(chatSession?.messages);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const { mutate: createChatMutation, isPending: creatingChat , data: aiResponse} = useGenerateContent({onSuccess: (data) => {
-    // data.answer or data.message (depending on your API)
-    const aiMessage = {
-      role: 'assistant',
-      content: data || "No response",
-    };
+  const { mutate: createChatMutation, isPending: creatingChat, data: aiResponse } = useGenerateContent({
+    onSuccess: (data) => {
+      // data.answer or data.message (depending on your API)
+      const aiMessage = {
+        role: 'assistant',
+        content: data || "No response",
+      };
 
-    setMessages((prev) => [...prev, aiMessage]);
-  },});
+      setMessages((prev) => [...prev, aiMessage]);
+    },
+  });
 
- useEffect(() => {
-  if (!chatSession?.messages?.length) {
-    setMessages(mockHistory[0].messages);
-  } else {
-    setMessages(chatSession.messages);
-  }
-}, [chatSession]);
+  useEffect(() => {
+    if (!chatSession?.messages?.length) {
+      setMessages(mockHistory[0].messages);
+    } else {
+      setMessages(chatSession.messages);
+    }
+    console.log("chatSession",chatSession)
+  }, [chatSession]);
 
   const handleSendMessage = (prompt) => {
     if (!prompt.trim()) return;
@@ -161,12 +164,12 @@ function ChatInterface({ chatSession, setChatSession }) {
                 if (e.key === 'Enter' && !e.shiftKey) {
                   e.preventDefault();
                   handleSendMessage(input);
-                  setInput(""); 
+                  setInput("");
                 }
               }}
             />
             <Button className="bg-gradient-to-r from-primary to-accent hover:opacity-90 transition-opacity px-6">
-              <Send className="h-4 w-4" onClick={() => handleSendMessage(input)}/>
+              <Send className="h-4 w-4" onClick={() => handleSendMessage(input)} />
             </Button>
           </div>
         </div>
@@ -226,9 +229,9 @@ function NewChatForm({ onStartChat, data }) {
 export default function ChatPage() {
   const pathname = usePathname();
   const navItem = getNavItemByUrl(pathname);
-
-  const uid = "nn170kZPMuWZlbzGbVps3YVyG9J3";
-
+  const { user } = useAuth();   // ✅ dynamically fetched
+  const uid = user?.user?.uid;
+  console.log("user", user);
   // All Chats
   const { data: userChats, isLoading: chatsLoading } = useUserChats(uid);
 
@@ -240,14 +243,38 @@ export default function ChatPage() {
     uid,
     selectedChat?.id,
   );
+  const formattedMessages = chatMessages?.messages?.flatMap((msg) => [
+  { role: "user", content: msg.prompt },
+  { role: "assistant", content: msg.response }
+]) || [];
+
 
   // Books
   const { data: bookData, isLoading: bookLoading } = useGetBook();
 
   // Create chat
-  const { mutate: createChatMutation, isPending: creatingChat } = useCreateChat();
+  const { mutate: createChatMutation, isPending: creatingChat } = useCreateChat({
+    onSuccess: (data) => {
+      // ✅ Backend returns this:
+      // {
+      //   message,
+      //   uid,
+      //   chat_title,
+      //   chat_id
+      // }
 
+      const newChat = {
+        id: data.chat_id,         // ✅ IMPORTANT
+        chat_id: data.chat_id,
+        chat_title: data.chat_title,
+        uid: data.uid,
+      };
+
+      setSelectedChat(newChat);   // ✅ THIS TRIGGERS CHAT UI
+    },
+  });
   const handleStartChat = (book) => {
+    console.log(uid);
     createChatMutation({
       uid,
       chat_title: book.book_name
@@ -255,7 +282,7 @@ export default function ChatPage() {
   };
 
   // FIX — Get selected chat object
-  const selectedChatObj = userChats?.chats.find(c => c.chat_id === selectedChat?.id);
+const selectedChatObj = userChats?.chats.find(c => c.id === selectedChat?.id);
   return (
     <div className="max-w-7xl mx-auto my-5 space-y-6">
       <div className="relative overflow-hidden rounded-3xl border border-border bg-gradient-to-br from-primary/10 via-accent/10 to-primary/5 p-8 shadow-[var(--shadow-lg)]">
@@ -279,7 +306,8 @@ export default function ChatPage() {
           item={navItem.itemtype}
           selectedItem={selectedChat}
           setSelectedItem={setSelectedChat}
-          historyData={userChats || []}
+          historyData={userChats?.chats || []}
+          isChat={true}
         />
         {/* Lesson Plan Content */}
         {creatingChat || messagesLoading ? (
@@ -295,8 +323,8 @@ export default function ChatPage() {
         ) : selectedChat ? (
           <ChatInterface chatSession={{
             id: selectedChat.id,
-            book: selectedChatObj?.chat_title,
-            messages: chatMessages?.messages || [],
+            book: selectedChat?.chat_title,
+            messages: formattedMessages || [],
             uid: uid,
           }} setChatSession={setSelectedChat} />
         ) : bookLoading ? (

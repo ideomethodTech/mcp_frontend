@@ -8,14 +8,19 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import React from 'react';
 
-const WorksheetItem = ({  item  }) => {
+const WorksheetItem = ({ item , bookId , isNew}) => {
     const router = useRouter();
 
+    
     const { mutate: generateAnswerKey, isPending } = useGenerateAnswerKey({
         onSuccess: (data) => {
             // data = answer key returned from backend
-            const encoded = encodeURIComponent(JSON.stringify(data));
-            router.push(`/answer-key?data=${encoded}`);
+            const encoded = encodeURIComponent(
+                encodeURIComponent(JSON.stringify(data.answer_key))
+            );
+
+            router.push(`/answer-key?answer_key=${encoded}`);
+
         },
         onError: (err) => {
             console.error("Failed to generate answer key", err);
@@ -25,15 +30,18 @@ const WorksheetItem = ({  item  }) => {
     const handleAnswerKey = () => {
         generateAnswerKey({
             worksheet_id: item.id,
-            book_id: item.book_id,
+            book_id: bookId,
             uid: item.uid,
             chapter: item.chapter,
+            worksheet_id: item.worksheet.worksheet_id
         });
     };
+    // const worksheetData = segregateQuestions(item?.worksheet?.questions ? item?.content?.worksheet?.questions : item?.content?.worksheet?.worksheet.questions);
+    const worksheetData = segregateQuestions(isNew? item.questions : item?.content?.worksheet?.questions);
 
-    const worksheetData = segregateQuestions(item?.content?.worksheet?.questions ? item?.content?.worksheet?.questions : item?.content?.worksheet?.worksheet.questions);
+    console.log("worksheetData", item);
+        console.log("worksheetDataaa", isNew);
 
-    console.log("worksheetData",worksheetData);
     return (
         <div>
             <div className="rounded-2xl border border-border bg-card shadow-[var(--shadow-md)]">
@@ -42,7 +50,7 @@ const WorksheetItem = ({  item  }) => {
                     <div className="flex items-center gap-3">
                         <Sheet className="h-6 w-6 text-primary" />
                         <div>
-                            <h2 className="text-xl font-bold text-foreground">Worksheet: {worksheetData.title}</h2>
+                            <h2 className="text-xl font-bold text-foreground">Worksheet: {item.worksheet?.itle}</h2>
                             <p className="text-sm text-muted-foreground">
                                 Generated from {item.chapter} on
                             </p>
@@ -109,7 +117,7 @@ const WorksheetItem = ({  item  }) => {
                                 <div key={index} className="space-y-4">
                                     <div>
                                         <p className="font-medium mb-2">
-                                            {index +1}. {question.question}
+                                            {index + 1}. {question.question}
                                         </p>
                                         <div className="pl-4 space-y-1 text-sm">
                                             {question.options?.map((option, i) => (
@@ -157,14 +165,14 @@ const WorksheetItem = ({  item  }) => {
                             <div>
                                 <h3 className="text-lg font-semibold mb-4">B. Short Answer Questions</h3>
                                 <div className="space-y-4">
-                                     {worksheetData?.shortAnswer?.map((question, index) => (
+                                    {worksheetData?.shortAnswer?.map((question, index) => (
                                         <div>
-                                        <p className="font-medium mb-2">{index + 1}. {question.question}</p>
-                                        <div className="space-y-2">
-                                            {question.expected_answer}
+                                            <p className="font-medium mb-2">{index + 1}. {question.question}</p>
+                                            <div className="space-y-2">
+                                                {question.expected_answer}
+                                            </div>
                                         </div>
-                                    </div>
-                                   
+
                                     ))}
                                 </div>
                             </div>

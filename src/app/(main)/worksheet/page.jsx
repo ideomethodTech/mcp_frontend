@@ -35,22 +35,24 @@ import { getNavItemByUrl, parseWorksheet } from '@/app/utils';
 import { usePathname } from 'next/navigation';
 import { useQueryClient } from '@tanstack/react-query';
 import { useGenerateWorksheet, useGetBook, useUserWorksheet } from '@/lib/api/queries';
+import { useAuth } from '@/contexts/auth-context';
 
 const formSchema = z.object({
   book: z.string().nonempty('Please select a book.'),
   chapter: z.string().nonempty('Please select a chapter.'),
 });
 
-const WorksheetDetails = ({ item }) => {
-  if(!item){
+const WorksheetDetails = ({ item, bookId, isNew }) => {
+  if (!item) {
     return
   }
-  console.log("item",item);
+  console.log("item", item);
   // const worksheetData = parseWorksheet(item.content?.worksheet);
   // console.log(worksheetData);
+
   return (
     <div className="lg:col-span-3">
-      <WorksheetItem  item={item}></WorksheetItem>
+      <WorksheetItem item={item} bookId={bookId} isNew={isNew}></WorksheetItem>
     </div>
   )
 }
@@ -77,6 +79,7 @@ function NewWorksheetForm({ onGenerate, data }) {
     <div className="lg:col-span-3">
       <div className="flex flex-col items-center justify-center min-h-[500px]">
         <div className="w-full max-w-2xl">
+
 
           <Card>
             <CardHeader>
@@ -177,13 +180,16 @@ function NewWorksheetForm({ onGenerate, data }) {
 export default function WorksheetPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [worksheetData, setWorksheetData] = useState(null);
+  const [selectedBookId, setSelectedBookId] = useState(null);
+  const [isNewWorksheet, setIsNewWorksheet] = useState(false);
 
+  const { user } = useAuth();   // ✅ dynamically fetched
+  const uid = user?.user?.uid;
   const pathname = usePathname();
   const navItem = getNavItemByUrl(pathname);
-  const uid = "nn170kZPMuWZlbzGbVps3YVyG9J3";
   const queryClient = useQueryClient();
   // All worksheets
-  const { data: userworksheet, isLoading: worksheetsLoading } = useUserWorksheet("uid_127");
+  const { data: userworksheet, isLoading: worksheetsLoading } = useUserWorksheet(uid);
 
   // Selected worksheet
   const [selectedworksheet, setSelectedworksheet] = useState(null);
@@ -195,11 +201,16 @@ export default function WorksheetPage() {
     onSuccess: (data) => {
       // data.answer or data.message (depending on your API)
       setWorksheetData(data.worksheet);
-    },
+    }
   });
 
   const handleGenerate = (book, chapter) => {
+
     if (!book) return;
+    setSelectedBookId(book.id); // ✅ STORE BOOK ID
+    setIsNewWorksheet(true);   // ✅ THIS IS NEW
+    setSelectedworksheet(null); // ✅ Clear old history selection
+
     //  "book_id": "54b67574-dd07-4e87-a828-be3592e48d1b",
     //     "chapter" : "Chapter 1: Introduction to Science",
     //     "uid": "nn170kZPMuWZlbzGbVps3YVyG9J3"
@@ -210,49 +221,52 @@ export default function WorksheetPage() {
     });
   };
 
-  // const 
-  console.log("selectedworksheet",selectedworksheet)
-  return (<div className="max-w-7xl mx-auto my-5 space-y-6">
-    <div className="relative overflow-hidden rounded-3xl border border-border bg-gradient-to-br from-primary/10 via-accent/10 to-primary/5 p-8 shadow-[var(--shadow-lg)]">
-      <div className="relative flex items-center gap-4">
-        <div className="p-3 rounded-xl bg-gradient-to-br from-primary to-accent shadow-[var(--shadow-glow)]">
-          <FileText className="h-8 w-8 text-white" />
-        </div>
-        <div>
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-            {navItem.title}
-          </h1>
-          <p className="text-muted-foreground mt-1 text-lg">
-            {navItem.description}           </p>
-        </div>
-      </div>
-    </div>
-    <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-      {/* {History} */}
-      <History
-        item={navItem.itemtype}
-        historyData={userworksheet || ""}
-        selectedItem={selectedworksheet}
-        setSelectedItem={setSelectedworksheet}
-      />
-      {/* Woeksheet Content */}
-      {isLoading || generatingWS ? (
-        <div className="flex items-center justify-center h-full">
-          <div className="text-center">
-            <Loader2 className="mx-auto h-12 w-12 animate-spin text-primary mb-4" />
-            <h3 className="text-lg font-medium text-foreground">Generating {navItem.itemtype}...</h3>
-            <p className="text-sm text-muted-foreground">
-              Please wait while the AI prepares the questions.
-            </p>
+  return (
+    <div className="max-w-7xl mx-auto my-5 space-y-6">
+      <div className="relative overflow-hidden rounded-3xl border border-border bg-gradient-to-br from-primary/10 via-accent/10 to-primary/5 p-8 shadow-[var(--shadow-lg)]">
+        <div className="relative flex items-center gap-4">
+          <div className="p-3 rounded-xl bg-gradient-to-br from-primary to-accent shadow-[var(--shadow-glow)]">
+            <FileText className="h-8 w-8 text-white" />
+          </div>
+          <div>
+            <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+              {navItem.title}
+            </h1>
+            <p className="text-muted-foreground mt-1 text-lg">
+              {navItem.description}           </p>
           </div>
         </div>
-      ) : selectedworksheet ? (
-        <WorksheetDetails item={selectedworksheet}/>
-      ) : worksheetData ? (
-        <WorksheetDetails item={worksheetData}/>
-      ) : 
-        (<NewWorksheetForm onGenerate={handleGenerate} data={bookData?.content} />
-      )}
+      </div>
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        {/* {History} */}
+        <History
+          item={navItem.itemtype}
+          historyData={userworksheet?.content || []}
+          selectedItem={selectedworksheet}
+          setSelectedItem={(item) => {
+            setSelectedworksheet(item);
+            setIsNewWorksheet(false);   // ✅ NOT NEW
+          }}
+        />
+        {/* Woeksheet Content */}
+        {isLoading || generatingWS ? (
+          <div className="flex items-center justify-center h-full">
+            <div className="text-center">
+              <Loader2 className="mx-auto h-12 w-12 animate-spin text-primary mb-4" />
+              <h3 className="text-lg font-medium text-foreground">Generating {navItem.itemtype}...</h3>
+              <p className="text-sm text-muted-foreground">
+                Please wait while the AI prepares the questions.
+              </p>
+            </div>
+          </div>
+        ) : selectedworksheet ? (
+          <WorksheetDetails item={selectedworksheet} isNew={false}/>
+        ) : worksheetData ? (
+          <WorksheetDetails item={worksheetData} bookId={selectedBookId} isNew={isNewWorksheet} />
+        ) :
+          (<NewWorksheetForm onGenerate={handleGenerate} data={bookData?.content} />
+          )}
+      </div>
     </div>
-  </div>);
+  );
 }

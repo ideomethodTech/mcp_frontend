@@ -60,6 +60,15 @@ export const NAV_ITEMS = [
   },
 ];
 
+export const ITEM_TYPES = {
+  TILE: 'tile',
+  CHAT: 'Chat',
+  LESSON_PLAN: 'Lesson Plan',
+  WORKSHEET: 'Worksheet',
+  ANSWER_KEY: 'Answer Key',
+  PPT: 'PPT',
+};
+
 export const ADMIN_NAV_ITEM = {
   title: 'Admin',
   href: '/admin',

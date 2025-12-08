@@ -95,82 +95,172 @@ const mockData = {
 }
 
 function AnswerKeyDetails({ item }) {
-  const answerKeyDetails = parseAnswerKey(item.answer_key);
-  console.log(answerKeyDetails);
-  return(
+  const data = item.answer_key;
+  if (!data) return null;
+
+  return (
     <div className="lg:col-span-3">
-          <div className="rounded-2xl border border-border bg-card p-8 shadow-[var(--shadow-md)]">
-            {/* Header */}
-            <div className="flex items-start gap-3 mb-6">
-              <Key className="h-6 w-6 text-primary mt-1" />
-              <div>
-                <h2 className="text-2xl font-bold text-foreground">{item.chapter}</h2>
-                <p className="text-muted-foreground text-sm">
-                  Answer Key for '{item.chapter}' from the book 'Oliver English Class 05'
-                </p>
-              </div>
-            </div>
+      <div className="rounded-2xl border border-border bg-card p-8 shadow-[var(--shadow-md)]">
 
-            {/* Info Box */}
-            <div className="rounded-xl bg-gradient-to-br from-primary/5 to-accent/5 p-6 mb-8 border border-primary/10">
-              <p className="text-sm text-muted-foreground mb-2">Generated Answer Key</p>
-              <p className="text-foreground">The AI-generated answer key for the worksheet based on '{item.chapter}'.</p>
-            </div>
+        {/* Header */}
+        <div className="flex items-start gap-3 mb-8">
+          <Key className="h-7 w-7 text-primary mt-1" />
+          <div>
+            <h2 className="text-3xl font-bold text-foreground">
+              {data.worksheet_title}
+            </h2>
+            <p className="text-muted-foreground text-sm mt-1">
+              Chapter: {data.chapter} • {data.total_questions} Questions
+            </p>
+          </div>
+        </div>
 
-            {/* Answers */}
-            <div className="space-y-6">
-            <h3 className="text-lg font-semibold mb-4">A. Multiple Choice Questions</h3>
+        {/* Info Box */}
+        <div className="rounded-xl bg-gradient-to-br from-primary/5 to-accent/5 p-6 mb-10 border border-primary/10">
+          <p className="text-foreground text-lg font-medium">
+            AI-Generated Answer Key
+          </p>
+          <p className="text-muted-foreground text-sm mt-1">
+            Below is the detailed answer explanation for each question.
+          </p>
+        </div>
 
-              {answerKeyDetails?.multipleChoice?.map((e)=>(
-                <div className="p-6 rounded-xl border border-border bg-muted/30">
-                <div className="flex items-start gap-3">
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-white font-semibold text-sm flex-shrink-0">
-                    {e.questionNumber}
-                  </div>
-                  <div className="flex-1">
-                    <p className="font-medium text-foreground mb-2">{e.answer}</p>
-                    <p className="text-sm text-muted-foreground italic">
-                      *Explanation: {e.explanation}*
+        {/* All Questions */}
+        <div className="space-y-10">
+          {data.answers.map((q) => (
+            <div
+              key={q.question_number}
+              className="rounded-xl border bg-muted/20 p-6 shadow-sm border-border"
+            >
+              {/* Question Number */}
+              <div className="flex items-start gap-4">
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-white font-bold text-lg flex-shrink-0">
+                  {q.question_number}
+                </div>
+
+                <div className="flex-1">
+
+                  {/* Question Text */}
+                  <p className="font-semibold text-lg text-foreground leading-tight">
+                    {q.question}
+                  </p>
+
+                  {/* Type */}
+                  <p className="text-xs text-muted-foreground mt-1 uppercase tracking-wide">
+                    {q.question_type.replace("_", " ")}
+                  </p>
+
+                  {/* For MCQ */}
+                  {q.options && (
+                    <div className="mt-4 border-l-2 border-primary pl-4 space-y-1">
+                      {Object.entries(q.options).map(([key, value]) => (
+                        <p key={key} className="text-sm text-muted-foreground">
+                          <span className="font-semibold text-primary">{key}.</span> {value}
+                        </p>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* For Key Points / Variations */}
+                  {/* Correct Answer */}
+                  <div className="mt-5">
+                    <p className="font-semibold text-primary text-sm">
+                      Correct Answer: <span className="text-foreground">{String(q.correct_answer)}</span>
                     </p>
                   </div>
+
+                  {/* Explanation */}
+                  <p className="mt-3 text-sm text-muted-foreground italic">
+                    {q.explanation}
+                  </p>
+
+                  {/* Common Mistakes */}
+                  {q.common_mistakes?.length > 0 && (
+                    <div className="mt-5 bg-red-50 dark:bg-red-950/20 border border-red-300 dark:border-red-900 rounded-lg p-4">
+                      <p className="font-semibold text-red-700 dark:text-red-400 mb-2">
+                        Common Mistakes:
+                      </p>
+                      <ul className="list-disc pl-5 text-sm text-red-800 dark:text-red-300 space-y-1">
+                        {q.common_mistakes.map((m, i) => (
+                          <li key={i}>{m}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {/* Acceptable Variations */}
+                  {q.acceptable_variations?.length > 0 && (
+                    <div className="mt-5 bg-blue-50 dark:bg-blue-950/20 border border-blue-300 dark:border-blue-900 rounded-lg p-4">
+                      <p className="font-semibold text-blue-700 dark:text-blue-400 mb-2">
+                        Acceptable Variations:
+                      </p>
+                      <ul className="list-disc pl-5 text-sm text-blue-800 dark:text-blue-300 space-y-1">
+                        {q.acceptable_variations.map((v, i) => (
+                          <li key={i}>{v}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {/* Key Points */}
+                  {q.key_points?.length > 0 && (
+                    <div className="mt-5 bg-green-50 dark:bg-green-950/20 border border-green-300 dark:border-green-900 rounded-lg p-4">
+                      <p className="font-semibold text-green-700 dark:text-green-400 mb-2">
+                        Key Points:
+                      </p>
+                      <ul className="list-disc pl-5 text-sm text-green-800 dark:text-green-300 space-y-1">
+                        {q.key_points.map((p, i) => (
+                          <li key={i}>{p}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {/* Correction for False (True/False) */}
+                  {q.correction_for_false && (
+                    <div className="mt-5 bg-yellow-50 dark:bg-yellow-950/20 border border-yellow-300 dark:border-yellow-900 rounded-lg p-4">
+                      <p className="font-semibold text-yellow-700 dark:text-yellow-400">
+                        Correction:
+                      </p>
+                      <p className="text-sm text-yellow-800 dark:text-yellow-300 mt-1">
+                        {q.correction_for_false}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Scoring Guidance */}
+                  {q.scoring_guidance && (
+                    <div className="mt-5 bg-purple-50 dark:bg-purple-950/20 border border-purple-300 dark:border-purple-900 rounded-lg p-4">
+                      <p className="font-semibold text-purple-700 dark:text-purple-400">
+                        Scoring Guidance:
+                      </p>
+                      <p className="text-sm text-purple-800 dark:text-purple-300 mt-1">
+                        {q.scoring_guidance}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Learning Point */}
+                  <div className="mt-6 border-t pt-4">
+                    <p className="text-sm text-primary font-semibold">
+                      Learning Point:
+                    </p>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      {q.learning_point}
+                    </p>
+                  </div>
+
                 </div>
               </div>
-              ))}
-
-             <h3 className="text-lg font-semibold mb-4">B. True or False</h3>
-
-              {answerKeyDetails?.trueFalse?.map((e)=>(
-                <div className="p-6 rounded-xl border border-border bg-muted/30">
-                <div className="flex items-start gap-3">
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-white font-semibold text-sm flex-shrink-0">
-                    {e.questionNumber}
-                  </div>
-                  <div className="flex-1">
-                    <p className="font-medium text-foreground mb-2">{e.answer}</p>
-                  </div>
-                </div>
-              </div>
-              ))}
-
-             <h3 className="text-lg font-semibold mb-4">C. Fill in the Blanks</h3>
-
-              {answerKeyDetails?.fillInTheBlanks?.map((e)=>(
-                <div className="p-6 rounded-xl border border-border bg-muted/30">
-                <div className="flex items-start gap-3">
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-white font-semibold text-sm flex-shrink-0">
-                    {e.questionNumber}
-                  </div>
-                  <div className="flex-1">
-                    <p className="font-medium text-foreground mb-2">{e.answer}</p>
-                  </div>
-                </div>
-              </div>
-              ))}    
             </div>
-            </div>
-            </div>
+          ))}
+        </div>
+
+      </div>
+    </div>
   );
 }
+
 
 function NewAnswerKeyForm({ onGenerate }) {
   const form = useForm({
@@ -265,7 +355,8 @@ function NewAnswerKeyForm({ onGenerate }) {
 
 
 export default function AnswerKeyPage() {
-  const [selectedItem, setSelectedItem] = useState(mockHistory[0]);
+
+
   const [isLoading, setIsLoading] = useState(false);
 
   const handleGenerate = (values) => {
@@ -285,23 +376,38 @@ export default function AnswerKeyPage() {
       setIsLoading(false);
     }, 2000);
   }
-  const searchParams = useSearchParams();
-  const [answerData, setAnswerData] = useState(null);
+const searchParams = useSearchParams();
+const [answerData, setAnswerData] = useState(null);
+const [selectedItem, setSelectedItem] = useState(null);
 
-  useEffect(() => {
-    const encoded = searchParams.get("data");
+useEffect(() => {
+  const raw = searchParams.get("answer_key");
+  if (!raw) return;
 
-    if (encoded) {
-      try {
-        const parsed = JSON.parse(decodeURIComponent(encoded));
-        setAnswerData(parsed);
-        console.log("parsed", parsed);
-      } catch (e) {
-        console.error("Failed to parse answer key:", e);
-      }
-    }
-  }, [searchParams]);
+  try {
+    const decodedOnce = decodeURIComponent(raw);
+    const decodedTwice = decodeURIComponent(decodedOnce);
+    const parsed = JSON.parse(decodedTwice);
 
+    console.log("parsed:", parsed);
+    setAnswerData(parsed);
+  } catch (err) {
+    console.error("Failed to parse answer key:", err);
+  }
+}, []);
+
+useEffect(() => {
+  if (answerData) {
+    setSelectedItem({
+      id: "url",
+      title: answerData.title ?? "Answer Key",
+      date: new Date(),
+      chapter: answerData.chapter ?? "",
+      book: answerData.book ?? "",
+      content: answerData,
+    });
+  }
+}, [answerData]);
   return (
     <div className="max-w-7xl mx-auto my-5 space-y-6">
       <div className="relative overflow-hidden rounded-3xl border border-border bg-gradient-to-br from-primary/10 via-accent/10 to-primary/5 p-8 shadow-[var(--shadow-lg)]">
@@ -326,7 +432,8 @@ export default function AnswerKeyPage() {
           historyData={mockHistory}
         />
         {/* Lesson Plan Content */}
-        {false ? (
+        {isLoading ? (
+          // Loader
           <div className="flex items-center justify-center h-full">
             <div className="text-center">
               <Loader2 className="mx-auto h-12 w-12 animate-spin text-primary mb-4" />
@@ -336,9 +443,21 @@ export default function AnswerKeyPage() {
               </p>
             </div>
           </div>
-        ) : false ? (
-          <AnswerKeyDetails item={selectedItem} />
-        ) : answerData? (<AnswerKeyDetails item={answerData} />) :(
+        ) : answerData ? (
+          // When data comes from URL params (worksheet)
+          <AnswerKeyDetails item={answerData} />
+        ) : selectedItem ? (
+          // When user selects from history
+          selectedItem.answer_key ? (
+            <AnswerKeyDetails item={selectedItem} />
+          ) : (
+            <div className="lg:col-span-3 p-6 rounded-xl border">
+              <h2 className="text-2xl font-bold mb-2">{selectedItem.title}</h2>
+              <p>{selectedItem.content}</p>
+            </div>
+          )
+        ) : (
+          // Default → Show the new form
           <NewAnswerKeyForm onGenerate={handleGenerate} />
         )}
       </div>

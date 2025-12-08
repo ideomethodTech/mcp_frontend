@@ -39,14 +39,15 @@ import { getNavItemByUrl } from '@/app/utils';
 import { useQueryClient } from '@tanstack/react-query';
 import { useCreateLessonPlan, useGetBook, useUserLessonPlan } from '@/lib/api/queries';
 import LessonPlanItem from './components/LessonPlanItem';
+import { useAuth } from '@/contexts/auth-context';
 // import { useCreateLessonPlan, useGetBook } from '@/lib/api/queries';
 
-function LessonPlanDetails({ item , isgenrated}) {
+function LessonPlanDetails({ item, isgenrated }) {
   // const lessonPlan = item.data;
   console.log(" lp item", item);
   return (
     <div className="lg:col-span-3">
-      <LessonPlanItem  item={item} isgenrated={isgenrated}></LessonPlanItem>
+      <LessonPlanItem item={item} isgenrated={isgenrated}></LessonPlanItem>
     </div>
   )
 }
@@ -112,8 +113,8 @@ function NewLessonPlanForm({ onGenerate, data }) {
                               ))} */}
                               {data?.map((book) => (
                                 <SelectItem
-                                  key={book.book_id}
-                                  value={JSON.stringify(book)}
+                                  key={book.id}     // ✅ FIXED
+                                  value={JSON.stringify(book)}  // ✅ CORRECT
                                 >
                                   {book.book_name}
                                 </SelectItem>
@@ -193,13 +194,13 @@ function NewLessonPlanForm({ onGenerate, data }) {
 export default function LessonPlanPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [lpdata, setlpdata] = useState(null);
-
+  const { user } = useAuth();   // ✅ dynamically fetched
+  const uid = user?.user?.uid;
   const pathname = usePathname();
   const navItem = getNavItemByUrl(pathname);
-  const uid = "nn170kZPMuWZlbzGbVps3YVyG9J3";
   const queryClient = useQueryClient();
   // All worksheets
-  const { data: userLP, isLoading: LPloading } = useUserLessonPlan("uid_1234");
+  const { data: userLP, isLoading: LPloading } = useUserLessonPlan(uid);
 
   // Selected worksheet
   const [slectedLessonPlan, setSelectedLessonPlan] = useState(null);
@@ -217,10 +218,10 @@ export default function LessonPlanPage() {
     },
   });
 
-  const handleGenerate = (book, chapter, weekCount =2  ) => {
+  const handleGenerate = (book, chapter, weekCount = 2) => {
     if (!book) return;
 
-    console.log("bcuw",book,"d",chapter,"s", weekCount);
+    console.log("bcuw", book, "d", chapter, "s", weekCount);
     generateLessonPlan({
       book_id: book.id,
       chapter: chapter,
@@ -254,7 +255,7 @@ export default function LessonPlanPage() {
           item={navItem.itemtype}
           selectedItem={slectedLessonPlan}
           setSelectedItem={setSelectedLessonPlan}
-          historyData={userLP}
+          historyData={userLP?.content}
         />
         {/* Lesson Plan Content */}
         {isLoading ? (
@@ -268,10 +269,10 @@ export default function LessonPlanPage() {
             </div>
           </div>
         ) : slectedLessonPlan ? (
-          <LessonPlanDetails item={slectedLessonPlan} isgenrated={false}/>
+          <LessonPlanDetails item={slectedLessonPlan} isgenrated={false} />
         ) :
           lpdata ? (
-            <LessonPlanDetails item={lpdata} isgenrated={true}/>
+            <LessonPlanDetails item={lpdata} isgenrated={true} />
           ) :
             (
               <NewLessonPlanForm onGenerate={handleGenerate} data={bookData?.content} />
