@@ -8,25 +8,35 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import React from 'react';
 
+<<<<<<< HEAD
 const WorksheetItem = ({ item , bookId , isNew ,worksheetId}) => {
+=======
+const WorksheetItem = ({ item, bookId, isNew, worksheet_id }) => {
+>>>>>>> 11e148ea34baec35695b7e407f2a5984dcf2e050
     const router = useRouter();
 
     
     const { mutate: generateAnswerKey, isPending } = useGenerateAnswerKey({
         onSuccess: (data) => {
+<<<<<<< HEAD
             // data = answer key returned from backend
             const encoded = encodeURIComponent(
                 encodeURIComponent(JSON.stringify(data.answer_key))
             );
 
             router.push(`/answer-key?answer_key_id=${data.answer_key_id}`);
+=======
+            const answerKeyId = data.answer_key_id; // ✅ from backend response
+>>>>>>> 11e148ea34baec35695b7e407f2a5984dcf2e050
 
+            router.push(`/answer-key?answer_key_id=${answerKeyId}`);
         },
         onError: (err) => {
             console.error("Failed to generate answer key", err);
         },
     });
 
+<<<<<<< HEAD
 const handleAnswerKey = () => {
     console.log("item.uid:", item.uid);
     console.log("item:", item);
@@ -40,11 +50,22 @@ const handleAnswerKey = () => {
         chapter: chapterValue,
     });
 };
+=======
+    const handleAnswerKey = () => {
+        generateAnswerKey({
+            worksheet_id: item.id,
+            book_id: item.book_id,
+            uid: item.uid,
+            chapter: item.chapter,
+            worksheet_id: worksheet_id
+        });
+    };
+>>>>>>> 11e148ea34baec35695b7e407f2a5984dcf2e050
     // const worksheetData = segregateQuestions(item?.worksheet?.questions ? item?.content?.worksheet?.questions : item?.content?.worksheet?.worksheet.questions);
-    const worksheetData = segregateQuestions(isNew? item.questions : item?.content?.worksheet?.questions);
+    const worksheetData = segregateQuestions(isNew ? item.questions : item?.content?.worksheet?.questions);
 
     console.log("worksheetData", item);
-        console.log("worksheetDataaa", isNew);
+    console.log("worksheetDataaa", isNew);
 
     return (
         <div>
