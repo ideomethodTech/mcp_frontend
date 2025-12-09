@@ -77,6 +77,7 @@ export function BookChapterForm({
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
+                            {/* NO CHANGES HERE - Keep original */}
                             {booksData?.content && booksData.content.length > 0 ? (
                               booksData.content.map((book) => (
                                 <SelectItem key={book.id} value={book.id}>
@@ -107,6 +108,7 @@ export function BookChapterForm({
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
+                              {/* NO CHANGES HERE - Keep original */}
                               {selectedBook?.chapters && selectedBook.chapters.length > 0 ? (
                                 selectedBook.chapters.map((chapter, index) => (
                                   <SelectItem key={index} value={chapter}>

@@ -7,19 +7,20 @@ import { useState } from "react";
 export const ApiProvider = ({ children }) => {
   const [queryClient] = useState(() => 
     new QueryClient({
-      defaultOptions: {
-        queries: {
-          staleTime: 1000 * 60 * 5, // 5 minutes
-          gcTime: 1000 * 60 * 10, // 10 minutes (previously cacheTime)
-          retry: 3,
-          retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
-          refetchOnWindowFocus: false,
-        },
-        mutations: {
-          retry: 1,
-        },
-      },
-    })
+  defaultOptions: {
+    queries: {
+      staleTime: 1000 * 60 * 5,
+      gcTime: 1000 * 60 * 10,
+      retry: 1, // Changed from 3 to 1
+      retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+      refetchOnWindowFocus: false,
+      retryOnMount: false, // Add this
+    },
+    mutations: {
+      retry: 0, // Changed from 1 to 0
+    },
+  },
+})
   );
 
   return (
