@@ -19,6 +19,9 @@ import { getNavItemByUrl, parseAnswerKey } from "@/app/utils";
 import { useGetAllAnswerKeys, useGetAnswerKeyById, useGetBook } from "@/lib/api/queries";
 import { useAuth } from "@/contexts/auth-context";
 import { useToast } from "@/hooks/use-toast";
+import React from "react";
+import { useMemo } from "react";
+
 
 const formSchema = z.object({
   book: z.string().nonempty("Please select a book."),
@@ -284,14 +287,45 @@ const { data: answerKeyData, isLoading: isLoadingSingle } = useGetAnswerKeyById(
   }
 );
   // History should use ALL answer keys
-  const historyData = allAnswerKeys?.content || [];
+ // Remove duplicates based on ID
+const historyData = React.useMemo(() => {
+  const allKeys = allAnswerKeys?.content || [];
+  const uniqueKeys = allKeys.reduce((acc, current) => {
+    const exists = acc.find(item => item.id === current.id);
+    if (!exists) {
+      acc.push(current);
+    }
+    return acc;
+  }, []);
+  return uniqueKeys;
+}, [allAnswerKeys]);
 
   // If URL has ID → auto-select that answer key
-  useEffect(() => {
-    if (answerKeyId && answerKeyData) {
-      setSelectedItem(answerKeyData);
+
+
+useEffect(() => {
+  if (answerKeyId && answerKeyData) {
+    // ✅ If backend returns array, find the correct one
+    let itemToSelect;
+    
+    if (Array.isArray(answerKeyData?.content)) {
+      // Backend returned all keys, find the one we want
+      itemToSelect = answerKeyData.content.find(item => item.id === answerKeyId);
+    } else if (answerKeyData?.content) {
+      // Backend returned single key wrapped in content
+      itemToSelect = answerKeyData.content;
+    } else {
+      // Backend returned single key directly
+      itemToSelect = answerKeyData;
     }
-  }, [answerKeyId, answerKeyData]);
+    
+    if (itemToSelect) {
+      setSelectedItem(itemToSelect);
+    } else {
+      console.error("Could not find answer key with ID:", answerKeyId);
+    }
+  }
+}, [answerKeyId, answerKeyData]);
 
   // Handle form submission
   const handleGenerate = (values) => {
