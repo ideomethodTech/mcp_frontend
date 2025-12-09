@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -7,7 +6,6 @@ import { usePathname, useSearchParams } from 'next/navigation';
 import { MessageSquare, Send, Book, PlusCircle, Plus, Loader2, FileText, Input } from 'lucide-react';
 import { format } from 'date-fns';
 
-import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -26,38 +24,9 @@ import { useChatDetails, useCreateChat, useGenerateContent, useGetBook, useUserC
 import { useAuth } from '@/contexts/auth-context';
 import { getNavItemByUrl } from '@/app/utils';
 import { useQueryClient } from '@tanstack/react-query';
-const mockHistory = [
-  {
-    id: 'chat1',
-    book: 'Oliver English Class 05',
-    date: new Date('2025-10-14'),
-    lastMessage: 'Sure, I can explain the main character...',
-    messages: [
-      { role: 'assistant', content: `Hello! How can I help you with "Oliver English Class 05" today?` },
-      { role: 'user', content: 'Can you tell me about the main character?' },
-      { role: 'assistant', content: 'Sure, I can explain the main character...' },
-    ]
-  },
-  {
-    id: 'chat2',
-    book: 'The Great Gatsby',
-    date: new Date('2025-10-12'),
-    lastMessage: 'It symbolizes the American Dream.',
-    messages: [
-      { role: 'assistant', content: `Hello! How can I help you with "The Great Gatsby" today?` },
-      { role: 'user', content: 'What is the green light?' },
-      { role: 'assistant', content: 'It symbolizes the American Dream.' },
-    ]
-  },
-];
+import useApiStore from '@/store/useApiStore';
 
-const ChatMessage = ({
-  role = 'user',
-  content,
-  isLoading = false,
-}) => {
-  // console.log(content);
-  const isUser = role === 'user';
+const ChatMessage = ({ isUser = false, content, isLoading = false }) => {
   return (
     <div
       className={cn(
@@ -71,14 +40,13 @@ const ChatMessage = ({
         </div>
       )}
       <div className="bg-gradient-to-br from-primary to-accent rounded-2xl rounded-tr-sm p-4 max-w-[80%]">
-
         {isLoading ? (
           <div className="space-y-2">
             <Skeleton className="h-3 w-40" />
             <Skeleton className="h-3 w-32" />
           </div>
         ) : (
-          <p>{content}</p>
+          <p>{content ? content : null}</p>
         )}
       </div>
       {isUser && (
@@ -87,33 +55,55 @@ const ChatMessage = ({
         </div>
       )}
     </div>
-  )
+  );
 };
 
 function ChatInterface({ chatSession, setChatSession }) {
-  const [messages, setMessages] = useState(chatSession?.messages);
+  const [messages, setMessages] = useState(chatSession?.messages || []);
   const [input, setInput] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const { mutate: createChatMutation, isPending: creatingChat, data: aiResponse } = useGenerateContent({
-    onSuccess: (data) => {
-      // data.answer or data.message (depending on your API)
-      const aiMessage = {
-        role: 'assistant',
-        content: data || "No response",
-      };
-
-      setMessages((prev) => [...prev, aiMessage]);
-    },
-  });
+  const queryClient = useQueryClient();
+  const { setChatStatus } = useApiStore();
 
   useEffect(() => {
-    if (!chatSession?.messages?.length) {
-      setMessages(mockHistory[0].messages);
-    } else {
+    if (chatSession?.messages?.length) {
       setMessages(chatSession.messages);
     }
-    console.log("chatSession",chatSession)
-  }, [chatSession]);
+  }, [chatSession?.id]);
+
+  const { mutate: createChatMutation, isPending: creatingChat } =
+    useGenerateContent({
+      onMutate: ({ prompt }) => {
+        setChatStatus('loading');
+        // Optimistically show the user prompt and mark response as loading
+        setMessages((prev) => [
+          ...prev,
+          { prompt, response: '__LOADING__' },
+        ]);
+      },
+      onSuccess: (data, variables) => {
+        // Replace the loading response with real response
+        setMessages((prev) =>
+          prev.map((m, idx) =>
+            idx === prev.length - 1
+              ? { ...m, response: data || 'No response' }
+              : m
+          )
+        );
+
+        // Refetch chat details from backend so switching back shows fresh messages
+        queryClient.invalidateQueries({
+          queryKey: ['chatDetails', chatSession.uid, chatSession.id],
+        });
+        setChatStatus('success');
+      },
+      onError: () => {
+        setChatStatus('error');
+      },
+      onSettled: () => {
+        setChatStatus('idle');
+      },
+    });
+
 
   const handleSendMessage = (prompt) => {
     if (!prompt.trim()) return;
@@ -124,7 +114,6 @@ function ChatInterface({ chatSession, setChatSession }) {
       prompt,
     });
 
-    setMessages(prev => [...prev, { role: "user", content: prompt }]);
     setInput("");
   };
 
@@ -147,9 +136,18 @@ function ChatInterface({ chatSession, setChatSession }) {
         {/* Messages */}
         <div className="flex-1 p-6 overflow-y-auto space-y-4">
           {messages.map((msg, index) => (
-            <ChatMessage key={index} role={msg.role} content={msg.content} />
+            msg.prompt && msg.response ? (<div key={index} className="space-y-2">
+              {msg.prompt && (
+                <ChatMessage isUser content={msg.prompt} />
+              )}
+              {msg.response === '__LOADING__' && (
+                <ChatMessage isLoading />
+              )}
+              {msg.response && msg.response !== '__LOADING__' && (
+                <ChatMessage content={msg.response} />
+              )}
+            </div>) : null
           ))}
-          {creatingChat && <ChatMessage role="assistant" isLoading />}
         </div>
         {/* Input Area */}
         <div className="p-6 border-t border-border">
@@ -231,6 +229,8 @@ export default function ChatPage() {
   const navItem = getNavItemByUrl(pathname);
   const { user } = useAuth();   // ✅ dynamically fetched
   const uid = user?.user?.uid;
+  const queryClient = useQueryClient();
+  const { chatStatus, setChatStatus } = useApiStore();
   console.log("user", user);
   // All Chats
   const { data: userChats, isLoading: chatsLoading } = useUserChats(uid);
@@ -239,40 +239,48 @@ export default function ChatPage() {
   const [selectedChat, setSelectedChat] = useState(null);
 
   // Chat Messages
-  const { data: chatMessages, isLoading: messagesLoading } = useChatDetails(
-    uid,
-    selectedChat?.id,
-  );
-  const formattedMessages = chatMessages?.messages?.flatMap((msg) => [
-  { role: "user", content: msg.prompt },
-  { role: "assistant", content: msg.response }
-]) || [];
-
+  const {
+    data: chatMessages,
+    isLoading: messagesLoading,
+    refetch: refetchChatDetails,
+  } = useChatDetails(uid, selectedChat?.id);
 
   // Books
   const { data: bookData, isLoading: bookLoading } = useGetBook();
 
   // Create chat
   const { mutate: createChatMutation, isPending: creatingChat } = useCreateChat({
-    onSuccess: (data) => {
-      // ✅ Backend returns this:
-      // {
-      //   message,
-      //   uid,
-      //   chat_title,
-      //   chat_id
-      // }
-
+    onSuccess: async (data) => {
       const newChat = {
-        id: data.chat_id,         // ✅ IMPORTANT
+        id: data.chat_id,
         chat_id: data.chat_id,
         chat_title: data.chat_title,
         uid: data.uid,
       };
 
-      setSelectedChat(newChat);   // ✅ THIS TRIGGERS CHAT UI
+      // ✅ 1️⃣ Instantly select the new chat
+      setSelectedChat(newChat);
+
+      // ✅ 2️⃣ Force refetch chat history immediately
+      await queryClient.refetchQueries({
+        queryKey: ['userChats', uid],
+      });
+
+      // ✅ 3️⃣ Also refetch chat details so UI is fresh
+      queryClient.refetchQueries({
+        queryKey: ['chatDetails', uid, data.chat_id],
+      });
+
+      setChatStatus('success');
+    },
+
+    onError: () => {
+      setChatStatus('error');
     },
   });
+
+
+
   const handleStartChat = (book) => {
     console.log(uid);
     createChatMutation({
@@ -282,7 +290,7 @@ export default function ChatPage() {
   };
 
   // FIX — Get selected chat object
-const selectedChatObj = userChats?.chats.find(c => c.id === selectedChat?.id);
+  const selectedChatObj = userChats?.chats.find(c => c.id === selectedChat?.id);
   return (
     <div className="max-w-7xl mx-auto my-5 space-y-6">
       <div className="relative overflow-hidden rounded-3xl border border-border bg-gradient-to-br from-primary/10 via-accent/10 to-primary/5 p-8 shadow-[var(--shadow-lg)]">
@@ -324,7 +332,7 @@ const selectedChatObj = userChats?.chats.find(c => c.id === selectedChat?.id);
           <ChatInterface chatSession={{
             id: selectedChat.id,
             book: selectedChat?.chat_title,
-            messages: formattedMessages || [],
+            messages: chatMessages?.messages || [],
             uid: uid,
           }} setChatSession={setSelectedChat} />
         ) : bookLoading ? (

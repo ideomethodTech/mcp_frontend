@@ -40,6 +40,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useCreateLessonPlan, useGetBook, useUserLessonPlan } from '@/lib/api/queries';
 import LessonPlanItem from './components/LessonPlanItem';
 import { useAuth } from '@/contexts/auth-context';
+import useApiStore from '@/store/useApiStore';
 // import { useCreateLessonPlan, useGetBook } from '@/lib/api/queries';
 
 function LessonPlanDetails({ item, isgenrated }) {
@@ -199,8 +200,20 @@ export default function LessonPlanPage() {
   const pathname = usePathname();
   const navItem = getNavItemByUrl(pathname);
   const queryClient = useQueryClient();
+  const { lessonPlanStatus, setLessonPlanStatus } = useApiStore();
   // All worksheets
-  const { data: userLP, isLoading: LPloading } = useUserLessonPlan(uid);
+  const { data: userLP, isLoading: LPloading } = useUserLessonPlan(uid, {
+    enabled: !!uid,
+    onSuccess: () => setLessonPlanStatus('success'),
+    onError: () => setLessonPlanStatus('error'),
+  });
+
+  useEffect(() => {
+    if (!uid) return;
+    if (LPloading) {
+      setLessonPlanStatus('loading');
+    }
+  }, [LPloading, uid, setLessonPlanStatus]);
 
   // Selected worksheet
   const [slectedLessonPlan, setSelectedLessonPlan] = useState(null);
@@ -208,13 +221,23 @@ export default function LessonPlanPage() {
   const { data: bookData, isLoading: bookLoading } = useGetBook();
 
 
-  const { mutate: generateLessonPlan, isPending } = useCreateLessonPlan({
+  const { mutate: generateLessonPlan, isPending: isCreateLPPending } = useCreateLessonPlan({
+    onMutate: () => {
+      setLessonPlanStatus('loading');
+    },
     onSuccess: (data) => {
       console.log("Lesson plan generated:", data);
       setlpdata(data.lesson_plan);
+      setLessonPlanStatus('success');
+      if (uid) {
+        queryClient.invalidateQueries({
+          queryKey: ['lp', uid],
+        });
+      }
     },
     onError: (err) => {
       console.error("Error:", err);
+      setLessonPlanStatus('error');
     },
   });
 
@@ -258,14 +281,18 @@ export default function LessonPlanPage() {
           historyData={userLP?.content}
         />
         {/* Lesson Plan Content */}
-        {isLoading ? (
-          <div className="flex items-center justify-center h-full">
-            <div className="text-center">
-              <Loader2 className="mx-auto h-12 w-12 animate-spin text-primary mb-4" />
-              <h3 className="text-lg font-medium text-foreground">Generating {navItem.itemtype}...</h3>
-              <p className="text-sm text-muted-foreground">
-                Please wait while the AI builds your plan.
-              </p>
+        {isCreateLPPending || LPloading? (
+        <div className="lg:col-span-3">
+            <div className="flex flex-col items-center justify-center min-h-[500px]">
+              <div className="w-full max-w-2xl">
+                  <div className="text-center">
+                    <Loader2 className="mx-auto h-12 w-12 animate-spin text-primary mb-4" />
+                    <h3 className="text-lg font-medium text-foreground">Generating {navItem.itemtype}...</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Please wait while the AI prepares the questions.
+                    </p>
+                  </div>
+              </div>
             </div>
           </div>
         ) : slectedLessonPlan ? (
