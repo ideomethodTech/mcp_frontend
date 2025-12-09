@@ -66,6 +66,7 @@ export const useUserWorksheet = (uid, options = {}) =>
     queryFn: () => getWorksheet(uid),
     enabled: true,
     ...options,
+   staleTime: 0,
   });
 
 export const useGetAnswerKeyById = (answerKeyId, uid, options = {}) =>
@@ -98,6 +99,7 @@ export const useUserLessonPlan = (uid, options = {}) =>
     queryFn: () => getLessonPlan(uid),
     enabled: true,
     ...options,
+   staleTime: 0,
   });
 
 // Chat Management Hooks
@@ -112,7 +114,7 @@ export const useUserChats = (uid, options) =>
     queryKey: ["userChats", uid],
     queryFn: () => getUserChats(uid),
     enabled: !!uid,
-
+   staleTime: 0,
     ...options,
   });
 

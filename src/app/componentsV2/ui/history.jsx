@@ -1,12 +1,11 @@
 import React from 'react';
-import { File, Plus } from 'lucide-react';
+import { File, Loader, Plus } from 'lucide-react';
 import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { ITEM_TYPES, NAV_ITEMS } from '@/lib/constants';
 
-const History = ({ selectedItem, setSelectedItem, historyData, item, isChat = false }) => {
-  // console.log("historydata",selectedItem,historyData);
-  console.log("historydata",selectedItem,historyData);
+const History = ({ selectedItem, setSelectedItem, historyData, item, isChat = false , isLoading = false}) => {
+
   const historyItem = ({ index, item, selectedItem, setSelectedItem }) => {
     return (
       <div key={index}>
@@ -47,18 +46,6 @@ const History = ({ selectedItem, setSelectedItem, historyData, item, isChat = fa
           <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">
             History
           </p>
-          {item===ITEM_TYPES.CHAT? (historyData?.length !== 0 && historyData?.map((item, index) => (
-            historyItem({ index, item: item, selectedItem, setSelectedItem, isChat })
-          ))): item=== ITEM_TYPES.LESSON_PLAN ?
-          (
-             historyData?.map((item, index) => (
-              historyItem({ index, item: item, selectedItem, setSelectedItem })))
-          ): item=== ITEM_TYPES.WORKSHEET ?
-          (
-             historyData?.map((item, index) => (
-              historyItem({ index, item: item, selectedItem, setSelectedItem })))
-          ) : item === ITEM_TYPES.ANSWER_KEY ? (  historyData?.map((item, index) => (
-              historyItem({ index, item: item, selectedItem, setSelectedItem })))): null} 
               {historyData?.length !== 0 && historyData?.map((item, index) => (
             historyItem({ index, item: item, selectedItem, setSelectedItem, isChat })
           ))}

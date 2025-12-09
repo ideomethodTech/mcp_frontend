@@ -17,6 +17,8 @@ import { usePathname } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import { useGenerateWorksheet, useGetBook, useUserWorksheet } from "@/lib/api/queries";
 import { useAuth } from "@/contexts/auth-context";
+import useApiStore from "@/store/useApiStore";
+import { toast } from "react-toastify";
 
 const formSchema = z.object({
   book: z.string().nonempty("Please select a book."),
@@ -39,7 +41,7 @@ const WorksheetDetails = ({ item, bookId, isNew, worksheetId }) => {
   );
 };
 
-function NewWorksheetForm({ onGenerate, data }) {
+function NewWorksheetForm({ onGenerate, data, bookLoading }) {
   const [selectedBook, setSelectedBook] = useState(null);
   const [selectedChapter, setSelectedChapter] = useState(null);
 
@@ -84,8 +86,15 @@ function NewWorksheetForm({ onGenerate, data }) {
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Select Book</FormLabel>
+
                           <Select
+                            disabled={bookLoading}
                             onValueChange={(val) => {
+                              if (bookLoading) {
+                                toast.info("Books are still loading, please wait...");
+                                return;
+                              }
+
                               const parsed = JSON.parse(val);
                               setSelectedBook(parsed);
                               form.setValue("book", parsed.book_name);
@@ -94,13 +103,11 @@ function NewWorksheetForm({ onGenerate, data }) {
                           >
                             <FormControl>
                               <SelectTrigger>
-                                <SelectValue placeholder="Select a book" />
+                                <SelectValue placeholder={bookLoading ? "Fetching books..." : "Select a book"} />
                               </SelectTrigger>
                             </FormControl>
+
                             <SelectContent>
-                              {/* {mockData.books.map((book) => (
-                                <SelectItem key={book.name} value={book.name}>{book.name}</SelectItem>
-                              ))} */}
                               {data?.map((book) => (
                                 <SelectItem key={book.book_id} value={JSON.stringify(book)}>
                                   {book.book_name}
@@ -108,10 +115,12 @@ function NewWorksheetForm({ onGenerate, data }) {
                               ))}
                             </SelectContent>
                           </Select>
+
                           <FormMessage />
                         </FormItem>
                       )}
                     />
+
                     <FormField
                       control={form.control}
                       name="chapter"
@@ -146,8 +155,13 @@ function NewWorksheetForm({ onGenerate, data }) {
                     />
                   </div>
 
-                  <Button type="submit" className="w-full !mt-8" size="lg" disabled={!selectedBook || !selectedChapter}>
-                    Generate Worksheet
+                  <Button
+                    type="submit"
+                    className="w-full !mt-8"
+                    size="lg"
+                    disabled={!selectedBook || !selectedChapter || bookLoading}
+                  >
+                    {bookLoading ? "Loading Books..." : "Generate Worksheet"}
                   </Button>
                 </form>
               </Form>
@@ -171,8 +185,20 @@ export default function WorksheetPage() {
   const pathname = usePathname();
   const navItem = getNavItemByUrl(pathname);
   const queryClient = useQueryClient();
+  const { worksheetStatus, setWorksheetStatus } = useApiStore();
   // All worksheets
-  const { data: userworksheet, isLoading: worksheetsLoading } = useUserWorksheet(uid);
+  const { data: userworksheet, isLoading: worksheetsLoading } = useUserWorksheet(uid, {
+    enabled: !!uid,
+    onSuccess: () => setWorksheetStatus("success"),
+    onError: () => setWorksheetStatus("error"),
+  });
+
+  useEffect(() => {
+    if (!uid) return;
+    if (worksheetsLoading) {
+      setWorksheetStatus("loading");
+    }
+  }, [worksheetsLoading, uid, setWorksheetStatus]);
 
   // Selected worksheet
   const [selectedworksheet, setSelectedworksheet] = useState(null);
@@ -180,15 +206,28 @@ export default function WorksheetPage() {
   const { data: bookData, isLoading: bookLoading } = useGetBook();
 
   // Create chat
+  // Create chat
   const {
     mutate: generateWSMutation,
     isPending: generatingWS,
     data: aiResponse,
   } = useGenerateWorksheet({
+    onMutate: () => {
+      setWorksheetStatus("loading");
+    },
     onSuccess: (data) => {
       // data.answer or data.message (depending on your API)
       setWorksheetData(data.worksheet);
       setCurrentWorksheetId(data.worksheet_id);
+      setWorksheetStatus("success");
+      if (uid) {
+        queryClient.invalidateQueries({
+          queryKey: ["ws", uid],
+        });
+      }
+    },
+    onError: () => {
+      setWorksheetStatus("error");
     },
   });
 
@@ -233,14 +272,20 @@ export default function WorksheetPage() {
             setSelectedworksheet(item);
             setIsNewWorksheet(false); // ✅ NOT NEW
           }}
+          isLoading={worksheetsLoading}
         />
         {/* Woeksheet Content */}
+        {/* Worksheet Content */}
         {isLoading || generatingWS ? (
-          <div className="flex items-center justify-center h-full">
-            <div className="text-center">
-              <Loader2 className="mx-auto h-12 w-12 animate-spin text-primary mb-4" />
-              <h3 className="text-lg font-medium text-foreground">Generating {navItem.itemtype}...</h3>
-              <p className="text-sm text-muted-foreground">Please wait while the AI prepares the questions.</p>
+          <div className="lg:col-span-3">
+            <div className="flex flex-col items-center justify-center min-h-[500px]">
+              <div className="w-full max-w-2xl">
+                <div className="text-center">
+                  <Loader2 className="mx-auto h-12 w-12 animate-spin text-primary mb-4" />
+                  <h3 className="text-lg font-medium text-foreground">Generating {navItem.itemtype}...</h3>
+                  <p className="text-sm text-muted-foreground">Please wait while the AI prepares the questions.</p>
+                </div>
+              </div>
             </div>
           </div>
         ) : selectedworksheet ? (
@@ -248,7 +293,7 @@ export default function WorksheetPage() {
             item={selectedworksheet}
             bookId={selectedworksheet.book_id}
             isNew={false}
-            worksheetId={selectedworksheet.id} // ✅ Add this
+            worksheetId={selectedworksheet.id}
           />
         ) : worksheetData ? (
           <WorksheetDetails
@@ -258,7 +303,7 @@ export default function WorksheetPage() {
             worksheetId={currentWorksheetId}
           />
         ) : (
-          <NewWorksheetForm onGenerate={handleGenerate} data={bookData?.content} />
+          <NewWorksheetForm onGenerate={handleGenerate} data={bookData?.content} bookLoading={bookLoading} />
         )}
       </div>
     </div>
