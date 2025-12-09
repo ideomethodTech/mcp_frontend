@@ -4,15 +4,14 @@ import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { FileText, Loader2, Printer, ExternalLink, BookOpen, Plus, File } from "lucide-react";
-import { PageHeader } from "@/components/page-header";
+import { FileText, Loader2, BookOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import WorksheetItem from "./WorksheetItem";
 import History from "@/app/componentsV2/ui/history";
-import { getNavItemByUrl, parseWorksheet } from "@/app/utils";
+import { getNavItemByUrl } from "@/app/utils";
 import { usePathname } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import { useGenerateWorksheet, useGetBook, useUserWorksheet } from "@/lib/api/queries";
@@ -29,11 +28,7 @@ const WorksheetDetails = ({ item, bookId, isNew, worksheetId }) => {
   if (!item) {
     return;
   }
-  console.log("item", item);
-  // const worksheetData = parseWorksheet(item.content?.worksheet);
-  // console.log(worksheetData);
   const itemWithId = isNew ? { ...item, id: worksheetId } : item;
-  console.log("shitttttt", itemWithId);
   return (
     <div className="lg:col-span-3">
       <WorksheetItem item={itemWithId} bookId={bookId} isNew={isNew} worksheetId={worksheetId}></WorksheetItem>
@@ -180,13 +175,12 @@ export default function WorksheetPage() {
   const [isNewWorksheet, setIsNewWorksheet] = useState(false);
   const [currentWorksheetId, setCurrentWorksheetId] = useState(null);
 
-  const { user } = useAuth(); // ✅ dynamically fetched
+  const { user } = useAuth();
   const uid = user?.user?.uid;
   const pathname = usePathname();
   const navItem = getNavItemByUrl(pathname);
   const queryClient = useQueryClient();
   const { worksheetStatus, setWorksheetStatus } = useApiStore();
-  // All worksheets
   const { data: userworksheet, isLoading: worksheetsLoading } = useUserWorksheet(uid, {
     enabled: !!uid,
     onSuccess: () => setWorksheetStatus("success"),
@@ -200,13 +194,9 @@ export default function WorksheetPage() {
     }
   }, [worksheetsLoading, uid, setWorksheetStatus]);
 
-  // Selected worksheet
   const [selectedworksheet, setSelectedworksheet] = useState(null);
-  // Books
   const { data: bookData, isLoading: bookLoading } = useGetBook();
 
-  // Create chat
-  // Create chat
   const {
     mutate: generateWSMutation,
     isPending: generatingWS,
@@ -216,7 +206,6 @@ export default function WorksheetPage() {
       setWorksheetStatus("loading");
     },
     onSuccess: (data) => {
-      // data.answer or data.message (depending on your API)
       setWorksheetData(data.worksheet);
       setCurrentWorksheetId(data.worksheet_id);
       setWorksheetStatus("success");
@@ -233,13 +222,9 @@ export default function WorksheetPage() {
 
   const handleGenerate = (book, chapter) => {
     if (!book) return;
-    setSelectedBookId(book.id); // ✅ STORE BOOK ID
-    setIsNewWorksheet(true); // ✅ THIS IS NEW
-    setSelectedworksheet(null); // ✅ Clear old history selection
-
-    //  "book_id": "54b67574-dd07-4e87-a828-be3592e48d1b",
-    //     "chapter" : "Chapter 1: Introduction to Science",
-    //     "uid": "nn170kZPMuWZlbzGbVps3YVyG9J3"
+    setSelectedBookId(book.id);
+    setIsNewWorksheet(true);
+    setSelectedworksheet(null);
     generateWSMutation({
       book_id: book.id,
       chapter: chapter,
@@ -270,11 +255,11 @@ export default function WorksheetPage() {
           selectedItem={selectedworksheet}
           setSelectedItem={(item) => {
             setSelectedworksheet(item);
-            setIsNewWorksheet(false); // ✅ NOT NEW
+            setIsNewWorksheet(false);
           }}
           isLoading={worksheetsLoading}
         />
-        {/* Woeksheet Content */}
+
         {/* Worksheet Content */}
         {isLoading || generatingWS ? (
           <div className="lg:col-span-3">

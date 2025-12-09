@@ -3,24 +3,23 @@
 import { Button } from "@/components/ui/button";
 import { useGenerateAnswerKey } from "@/lib/api/queries";
 import { segregateQuestions } from "@/lib/constants";
-import { ExternalLink, Printer, Sheet } from "lucide-react";
-import Link from "next/link";
+import { Printer, Sheet } from "lucide-react";
 import { useRouter } from "next/navigation";
 import React from "react";
+import { useGetAllAnswerKeys } from "@/lib/api/queries";
+import { useAuth } from "@/contexts/auth-context";
 
 const WorksheetItem = ({ item, bookId, isNew, worksheetId }) => {
   const router = useRouter();
+  const currentWorksheetId = worksheetId || item.id;
+  const { user } = useAuth();
+
+  // ✅ Get all answer keys and find existing one for this worksheet
+  const { data: allAnswerKeys } = useGetAllAnswerKeys(item.uid);
 
   const { mutate: generateAnswerKey, isPending } = useGenerateAnswerKey({
     onSuccess: (data) => {
-          console.log("✅ GENERATED ANSWER KEY RESPONSE:", data); 
       const answerKeyId = data.answer_key_id || data.id;
-
-      if (!answerKeyId) {
-        console.error("No answer_key_id in response:", data);
-        return;
-      }
-
       router.push(`/answer-key?answer_key_id=${answerKeyId}`);
     },
     onError: (err) => {
@@ -29,28 +28,24 @@ const WorksheetItem = ({ item, bookId, isNew, worksheetId }) => {
   });
 
   const handleAnswerKey = () => {
-    console.log("item.uid:", item.uid);
-    console.log("item:", item);
-
     const chapterValue = isNew ? item.chapter : item.content?.worksheet?.chapter;
 
-    // Check if answer key already exists for this worksheet
-    // You need to check your history or backend first
-    // For now, let's navigate directly if we have an answer_key_id
+    // ✅ Check if answer key exists for this worksheet
+    const existingAnswerKey = allAnswerKeys?.content?.find((key) => key.worksheet_id === currentWorksheetId);
 
-    if (item.answer_key_id) {
-      // ✅ Answer key already exists, just navigate to it
-      router.push(`/answer-key?answer_key_id=${item.answer_key_id}`);
+    if (existingAnswerKey) {
+      router.push(`/answer-key?answer_key_id=${existingAnswerKey.id}`);
     } else {
-      // ✅ Generate new answer key only if it doesn't exist
       generateAnswerKey({
-        worksheet_id: worksheetId || item.id,
+        worksheet_id: currentWorksheetId,
         book_id: bookId || item.book_id,
-        uid: item.uid,
+        uid: user.user.uid,
         chapter: chapterValue,
       });
     }
   };
+
+  // ... rest of component
   // const worksheetData = segregateQuestions(item?.worksheet?.questions ? item?.content?.worksheet?.questions : item?.content?.worksheet?.worksheet.questions);
   const worksheetData = segregateQuestions(isNew ? item.questions : item?.content?.worksheet?.questions);
 
@@ -77,11 +72,9 @@ const WorksheetItem = ({ item, bookId, isNew, worksheetId }) => {
             <Button
               className="gap-2 bg-gradient-to-r from-primary to-accent hover:opacity-90 "
               onClick={handleAnswerKey}
+               disabled={isPending}
             >
-              {/* <Link href="/answer-key">
-                                <ExternalLink className="ml-2 h-4 w-10" /> Answer Key
-                            </Link> */}
-              Answer Key
+              {isPending ? "Generating..." : "Answer Key"}
             </Button>
           </div>
         </div>

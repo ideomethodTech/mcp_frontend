@@ -4,24 +4,26 @@ import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { KeyRound, Loader2, BookOpen, Plus, File, FileText, Key, Loader } from "lucide-react";
-import { format } from "date-fns";
-
+import { KeyRound, Loader2, BookOpen, FileText, Key } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { cn } from "@/lib/utils";
 import History from "@/app/componentsV2/ui/history";
 import { usePathname, useSearchParams } from "next/navigation";
-import { getNavItemByUrl, parseAnswerKey } from "@/app/utils";
-import { useGetAllAnswerKeys, useGetAnswerKeyById, useGetBook } from "@/lib/api/queries";
+import { getNavItemByUrl } from "@/app/utils";
+import {
+  useGetAllAnswerKeys,
+  useGetAnswerKeyById,
+  useGetBook,
+  useGenerateAnswerKey,
+  useUserWorksheet,
+} from "@/lib/api/queries";
 import { useAuth } from "@/contexts/auth-context";
 import { useToast } from "@/hooks/use-toast";
 import React from "react";
-import { useMemo } from "react";
-
+import { useQueryClient } from "@tanstack/react-query";
 
 const formSchema = z.object({
   book: z.string().nonempty("Please select a book."),
@@ -29,12 +31,8 @@ const formSchema = z.object({
 });
 
 function AnswerKeyDetails({ item }) {
-   console.log("AnswerKeyDetails item:", item);
-  console.log("item.content:", item.content);
-  console.log("item.content.answers:", item.content?.answers);
-  const data = item.content || item.content.answers;
+  const data = item.content || item.content?.answers;
   if (!data) return null;
-  console.log(data)
 
   return (
     <div className="lg:col-span-3">
@@ -166,7 +164,7 @@ function AnswerKeyDetails({ item }) {
   );
 }
 
-function NewAnswerKeyForm({ onGenerate }) {
+function NewAnswerKeyForm({ onGenerate, allWorksheets }) {
   const form = useForm({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -175,27 +173,41 @@ function NewAnswerKeyForm({ onGenerate }) {
     },
   });
 
-  // Get real books from API
   const { data: booksData } = useGetBook();
 
+  // ✅ Filter books to only show those with worksheets
+  const booksWithWorksheets = React.useMemo(() => {
+    if (!booksData?.content || !allWorksheets?.content) return [];
+
+    const worksheetBookIds = [...new Set(allWorksheets.content.map((ws) => ws.book_id))];
+    return booksData.content.filter((book) => worksheetBookIds.includes(book.id));
+  }, [booksData, allWorksheets]);
+
   const selectedBookId = form.watch("book");
-  const selectedBook = booksData?.content?.find((b) => b.id === selectedBookId);
+  const selectedBook = booksWithWorksheets?.find((b) => b.id === selectedBookId);
+
+  // ✅ Get available chapters for selected book
+  const availableChapters = React.useMemo(() => {
+    if (!selectedBookId || !allWorksheets?.content) return [];
+
+    return [...new Set(allWorksheets.content.filter((ws) => ws.book_id === selectedBookId).map((ws) => ws.chapter))];
+  }, [selectedBookId, allWorksheets]);
 
   return (
     <div className="flex flex-col items-center justify-center min-h-[500px]">
       <div className="w-full max-w-2xl">
         <PageHeader
           title="Answer Key Generator"
-          description="Automatically generate answer keys for your worksheets."
+          description="Generate answer keys for your existing worksheets."
           icon={KeyRound}
         />
         <Card>
           <CardHeader>
             <div className="flex items-center gap-3 mb-2">
               <BookOpen className="w-6 h-6 text-muted-foreground" />
-              <CardTitle className="font-headline text-xl">Book & Chapter Selection</CardTitle>
+              <CardTitle className="font-headline text-xl">Select Worksheet</CardTitle>
             </div>
-            <CardDescription>Choose the book and chapter for your Answer Key.</CardDescription>
+            <CardDescription>Choose from your existing worksheets to generate an answer key.</CardDescription>
           </CardHeader>
           <CardContent>
             <Form {...form}>
@@ -214,7 +226,7 @@ function NewAnswerKeyForm({ onGenerate }) {
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            {booksData?.content?.map((book) => (
+                            {booksWithWorksheets?.map((book) => (
                               <SelectItem key={book.id} value={book.id}>
                                 {book.book_name}
                               </SelectItem>
@@ -238,7 +250,7 @@ function NewAnswerKeyForm({ onGenerate }) {
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            {selectedBook?.chapters?.map((chapter, index) => (
+                            {availableChapters?.map((chapter, index) => (
                               <SelectItem key={index} value={chapter}>
                                 {chapter}
                               </SelectItem>
@@ -250,7 +262,7 @@ function NewAnswerKeyForm({ onGenerate }) {
                     )}
                   />
                 </div>
-                <Button type="submit" className="w-full !mt-8" size="lg" disabled={!form.formState.isValid}>
+                <Button type="submit" className="w-full !mt-8" size="lg">
                   Generate Answer Key
                 </Button>
               </form>
@@ -263,71 +275,69 @@ function NewAnswerKeyForm({ onGenerate }) {
 }
 
 export default function AnswerKeyPage() {
+  const queryClient = useQueryClient();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const answerKeyId = searchParams.get("answer_key_id");
   const [selectedItem, setSelectedItem] = useState(null);
   const navItem = getNavItemByUrl(pathname);
-
   const { user } = useAuth();
   const uid = user?.user?.uid;
   const { toast } = useToast();
-
-  // Fetch ALL answer keys for history
   const { data: allAnswerKeys, isLoading: isLoadingHistory } = useGetAllAnswerKeys(uid);
+  const { data: allWorksheets } = useUserWorksheet(uid, {
+    enabled: !!uid,
+  });
+  const { data: answerKeyData, isLoading: isLoadingSingle } = useGetAnswerKeyById(answerKeyId, uid, {
+    enabled: !!answerKeyId && !!uid,
+  });
+  const { mutate: generateAnswerKey, isPending: isGenerating } = useGenerateAnswerKey({
+    onSuccess: (data) => {
+      setSelectedItem(data);
+      queryClient.invalidateQueries(["answer-keys", uid]);
+      queryClient.invalidateQueries({ queryKey: ["ws", uid] });
+      queryClient.invalidateQueries({ queryKey: ["all-answer-keys", uid] });
+    },
+    onError: (err) => {
+      console.error("Failed to generate answer key", err);
+      toast({
+        title: "Error",
+        description: "Failed to generate answer key. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
 
-  // Fetch single answer key if ID exists
-  // Fetch single answer key if ID exists
- // Fetch single answer key if ID exists
-const { data: answerKeyData, isLoading: isLoadingSingle } = useGetAnswerKeyById(
-  answerKeyId, 
-  uid,
-  {
-    enabled: !!answerKeyId && !!uid, // Only fetch if both exist
-  }
-);
-  // History should use ALL answer keys
- // Remove duplicates based on ID
-const historyData = React.useMemo(() => {
-  const allKeys = allAnswerKeys?.content || [];
-  const uniqueKeys = allKeys.reduce((acc, current) => {
-    const exists = acc.find(item => item.id === current.id);
-    if (!exists) {
-      acc.push(current);
+  const historyData = React.useMemo(() => {
+    const allKeys = allAnswerKeys?.content || [];
+    const uniqueByWorksheet = allKeys.reduce((acc, current) => {
+      const exists = acc.find((item) => item.worksheet_id === current.worksheet_id);
+      if (!exists) {
+        acc.push(current);
+      }
+      return acc;
+    }, []);
+    return uniqueByWorksheet;
+  }, [allAnswerKeys]);
+
+  console.log(historyData);
+
+  useEffect(() => {
+    if (answerKeyId && answerKeyData) {
+      let itemToSelect;
+
+      if (Array.isArray(answerKeyData?.content)) {
+        itemToSelect = answerKeyData.content.find((item) => item.id === answerKeyId);
+      } else {
+        itemToSelect = answerKeyData;
+      }
+
+      if (itemToSelect) {
+        setSelectedItem(itemToSelect);
+      }
     }
-    return acc;
-  }, []);
-  return uniqueKeys;
-}, [allAnswerKeys]);
+  }, [answerKeyId, answerKeyData]);
 
-  // If URL has ID → auto-select that answer key
-
-
-useEffect(() => {
-  if (answerKeyId && answerKeyData) {
-    // ✅ If backend returns array, find the correct one
-    let itemToSelect;
-    
-    if (Array.isArray(answerKeyData?.content)) {
-      // Backend returned all keys, find the one we want
-      itemToSelect = answerKeyData.content.find(item => item.id === answerKeyId);
-    } else if (answerKeyData?.content) {
-      // Backend returned single key wrapped in content
-      itemToSelect = answerKeyData.content;
-    } else {
-      // Backend returned single key directly
-      itemToSelect = answerKeyData;
-    }
-    
-    if (itemToSelect) {
-      setSelectedItem(itemToSelect);
-    } else {
-      console.error("Could not find answer key with ID:", answerKeyId);
-    }
-  }
-}, [answerKeyId, answerKeyData]);
-
-  // Handle form submission
   const handleGenerate = (values) => {
     if (!uid) {
       toast({
@@ -347,20 +357,43 @@ useEffect(() => {
       return;
     }
 
-    // TODO: Call API to generate answer key
-    console.log("Generate answer key:", {
-      book_id: values.book,
-      chapter: values.chapter,
-      uid: uid,
+    // ✅ CHECK if worksheet exists for this book + chapter
+    const worksheetExists = allWorksheets?.content?.find((ws) => {
+      console.log("Checking worksheet:", {
+        ws_book_id: ws.book_id,
+        values_book: values.book,
+        ws_chapter: ws.chapter,
+        values_chapter: values.chapter,
+        match: ws.book_id === values.book && ws.chapter === values.chapter,
+      });
+      return ws.book_id === values.book && ws.chapter === values.chapter;
     });
 
-    toast({
-      title: "Coming Soon",
-      description: "Answer key generation API integration in progress.",
-      variant: "default",
-    });
+    if (!worksheetExists) {
+      toast({
+        title: "No Worksheet Available",
+        description: "Please generate a worksheet for this chapter first before creating an answer key.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // ✅ Check if answer key already exists for this worksheet
+    const existingAnswerKey = allAnswerKeys?.content?.find((key) => key.worksheet_id === worksheetExists.id);
+
+    console.log("existingAnswerKey:", existingAnswerKey);
+
+    if (existingAnswerKey) {
+      setSelectedItem(existingAnswerKey);
+    } else {
+      generateAnswerKey({
+        worksheet_id: worksheetExists.id,
+        book_id: values.book,
+        uid: uid,
+        chapter: values.chapter,
+      });
+    }
   };
-
   const isLoading = isLoadingHistory || isLoadingSingle;
 
   return (
@@ -397,7 +430,11 @@ useEffect(() => {
             item={navItem.itemtype}
           />
 
-          {selectedItem ? <AnswerKeyDetails item={selectedItem} /> : <NewAnswerKeyForm onGenerate={handleGenerate} />}
+          {selectedItem ? (
+            <AnswerKeyDetails item={selectedItem} />
+          ) : (
+            <NewAnswerKeyForm onGenerate={handleGenerate} allWorksheets={allWorksheets} /> // ✅ Pass it here
+          )}
         </div>
       )}
     </div>
