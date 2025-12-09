@@ -31,7 +31,7 @@ const History = ({ selectedItem, setSelectedItem, historyData, item, isChat = fa
           </div>
           <p className="font-medium text-foreground text-sm mb-1">{item.title ? item.title : item.chapter}</p>
           <p className="text-xs text-muted-foreground truncate">
-            {item.book ? item.book : (item?.content?.worksheet ? item?.content?.worksheet.title : item?.content?.lesson_plan.title)}
+            {item.book ? item.book : (item?.content?.worksheet ? item?.content?.worksheet.title : item?.content?.lesson_plan?.title)}
           </p>
         </button>
       </div>
@@ -55,9 +55,13 @@ const History = ({ selectedItem, setSelectedItem, historyData, item, isChat = fa
               historyItem({ index, item: item, selectedItem, setSelectedItem })))
           ): item=== ITEM_TYPES.WORKSHEET ?
           (
-             historyData.map((item, index) => (
+             historyData?.map((item, index) => (
               historyItem({ index, item: item, selectedItem, setSelectedItem })))
-          ) : null}
+          ) : item === ITEM_TYPES.ANSWER_KEY ? (  historyData?.map((item, index) => (
+              historyItem({ index, item: item, selectedItem, setSelectedItem })))): null} */}
+              {historyData?.length !== 0 && historyData?.map((item, index) => (
+            historyItem({ index, item: item, selectedItem, setSelectedItem, isChat })
+          ))}
         </div>
       </div>
     </div>

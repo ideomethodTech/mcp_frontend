@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { KeyRound, Loader2, BookOpen, Plus, File, FileText, Key } from 'lucide-react';
+import { KeyRound, Loader2, BookOpen, Plus, File, FileText, Key, Loader } from 'lucide-react';
 import { format } from 'date-fns';
 
 import { PageHeader } from '@/components/page-header';
@@ -33,8 +33,10 @@ import {
 } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import History from '@/app/componentsV2/ui/history';
-import { useSearchParams } from 'next/navigation';
-import { parseAnswerKey } from '@/app/utils';
+import { usePathname, useSearchParams } from 'next/navigation';
+import { getNavItemByUrl, parseAnswerKey } from '@/app/utils';
+import { useGetAllAnswerKeys, useGetAnswerKeyById } from '@/lib/api/queries';
+import { useAuth } from '@/contexts/auth-context';
 
 
 const formSchema = z.object({
@@ -355,61 +357,42 @@ function NewAnswerKeyForm({ onGenerate }) {
 
 
 export default function AnswerKeyPage() {
+    const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const answerKeyId = searchParams.get("answer_key_id");
+  const [selectedItem, setSelectedItem] = useState(null);
+    const navItem = getNavItemByUrl(pathname);
+  
+  const { user } = useAuth();
+  const uid = user?.user?.uid;
+
+  // ✅ Fetch single answer key (only if ID exists)
+  // const { data: answerData ,isLoading } = useGetAnswerKeyById(answerKeyId);
+
+  // ✅ Fetch ALL answer keys for history (always)
+  const { data: allAnswerKeys } = useGetAllAnswerKeys(uid);
+
+  // ✅ History should use ALL answer keys
+  const historyData = allAnswerKeys?.content || [];
+
+  // ✅ If URL has ID → auto-select that answer key
+  useEffect(() => {
+    if (!answerKeyId || !historyData?.length) return;
+
+    const matchedItem = historyData.find(
+      (item) => item.id === answerKeyId
+    );
+
+    if (matchedItem) {
+      setSelectedItem(matchedItem);
+    }
+  }, [answerKeyId, historyData]);
 
 
-  const [isLoading, setIsLoading] = useState(false);
 
-  const handleGenerate = (values) => {
-    setIsLoading(true);
-    setSelectedItem(null);
-    setTimeout(() => {
-      const newItem = {
-        id: (mockHistory.length + 1).toString(),
-        title: `${values.chapter} Key`,
-        date: new Date(),
-        chapter: values.chapter,
-        book: values.book,
-        content: `This is a newly generated answer key for ${values.chapter}.`
-      };
-      mockHistory.unshift(newItem);
-      setSelectedItem(newItem);
-      setIsLoading(false);
-    }, 2000);
-  }
-const searchParams = useSearchParams();
-const [answerData, setAnswerData] = useState(null);
-const [selectedItem, setSelectedItem] = useState(null);
-
-useEffect(() => {
-  const raw = searchParams.get("answer_key");
-  if (!raw) return;
-
-  try {
-    const decodedOnce = decodeURIComponent(raw);
-    const decodedTwice = decodeURIComponent(decodedOnce);
-    const parsed = JSON.parse(decodedTwice);
-
-    console.log("parsed:", parsed);
-    setAnswerData(parsed);
-  } catch (err) {
-    console.error("Failed to parse answer key:", err);
-  }
-}, []);
-
-useEffect(() => {
-  if (answerData) {
-    setSelectedItem({
-      id: "url",
-      title: answerData.title ?? "Answer Key",
-      date: new Date(),
-      chapter: answerData.chapter ?? "",
-      book: answerData.book ?? "",
-      content: answerData,
-    });
-  }
-}, [answerData]);
   return (
     <div className="max-w-7xl mx-auto my-5 space-y-6">
+      {/* ✅ HEADER */}
       <div className="relative overflow-hidden rounded-3xl border border-border bg-gradient-to-br from-primary/10 via-accent/10 to-primary/5 p-8 shadow-[var(--shadow-lg)]">
         <div className="relative flex items-center gap-4">
           <div className="p-3 rounded-xl bg-gradient-to-br from-primary to-accent shadow-[var(--shadow-glow)]">
@@ -420,47 +403,28 @@ useEffect(() => {
               Answer Key Generator
             </h1>
             <p className="text-muted-foreground mt-1 text-lg">
-              Automatically generate answer keys for your worksheets.            </p>
+              Automatically generate answer keys for your worksheets.
+            </p>
           </div>
         </div>
       </div>
+
+      {/* ✅ MAIN GRID */}
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        {/* {History} */}
+        {/* ✅ HISTORY */}
         <History
           selectedItem={selectedItem}
           setSelectedItem={setSelectedItem}
-          historyData={mockHistory}
+          historyData={historyData}
+          item={navItem.itemtype}
         />
-        {/* Lesson Plan Content */}
-        {isLoading ? (
-          // Loader
-          <div className="flex items-center justify-center h-full">
-            <div className="text-center">
-              <Loader2 className="mx-auto h-12 w-12 animate-spin text-primary mb-4" />
-              <h3 className="text-lg font-medium text-foreground">Generating Answer Key...</h3>
-              <p className="text-sm text-muted-foreground">
-                Please wait while the AI checks the answers.
-              </p>
-            </div>
-          </div>
-        ) : answerData ? (
-          // When data comes from URL params (worksheet)
-          <AnswerKeyDetails item={answerData} />
-        ) : selectedItem ? (
-          // When user selects from history
-          selectedItem.answer_key ? (
-            <AnswerKeyDetails item={selectedItem} />
-          ) : (
-            <div className="lg:col-span-3 p-6 rounded-xl border">
-              <h2 className="text-2xl font-bold mb-2">{selectedItem.title}</h2>
-              <p>{selectedItem.content}</p>
-            </div>
-          )
+
+        {selectedItem ? (
+          <AnswerKeyDetails item={selectedItem} />
         ) : (
-          // Default → Show the new form
-          <NewAnswerKeyForm onGenerate={handleGenerate} />
+          <>hi</>   // or <NewAnswerKeyForm />
         )}
       </div>
     </div>
-  )
+  );
 }
