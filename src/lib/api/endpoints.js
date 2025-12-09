@@ -20,6 +20,9 @@ const ENDPOINTS = {
   // Lesson Plan
   GET_USER_LESSON_PLAN: "lesson_plan/get_lesson_plan",
 
+  // Answer key
+  GET_USER_ANSWER_KEY: "/generate/answer_key/get",
+
   // Authentication
   LOGIN: "/auth/login",
   SIGNUP: "/auth/signup",

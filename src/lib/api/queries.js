@@ -14,6 +14,8 @@ import {
   getLessonPlan,
   getWorksheet,
   registerUser,
+  getAnswerKey,
+  getAllAnswerKeys,
 } from "./queryFunctions";
 
 // AI Generation Hooks
@@ -65,6 +67,23 @@ export const useUserWorksheet = (uid, options = {}) =>
     enabled: true,
     ...options,
   });
+
+export const useGetAnswerKeyById = (answerKeyId, options = {}) =>
+  useQuery({
+    queryKey: ["answer-key", answerKeyId],
+    queryFn: () => getAnswerKey(answerKeyId),
+    enabled: !!answerKeyId, // ✅ only run when ID exists
+    ...options,
+  });
+
+export const useGetAllAnswerKeys = (uid, options = {}) =>
+  useQuery({
+    queryKey: ["all-answer-keys", uid],
+    queryFn: () => getAllAnswerKeys(uid),
+    enabled: !!uid, // ✅ only when user is logged in
+    ...options,
+  });
+
 
 // Lesson Plan
 export const useCreateLessonPlan = (options) =>

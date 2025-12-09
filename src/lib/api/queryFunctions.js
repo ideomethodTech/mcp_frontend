@@ -79,6 +79,30 @@ export const getWorksheet = async (uid) => {
   return response.data;
 };
 
+export const getAnswerKey = async (answerKeyId , uid) => {
+  if (!answerKeyId) return null; // ✅ SAFE
+
+  const response = await api({
+    url: ENDPOINTS.GET_USER_ANSWER_KEY,
+    method: "GET",
+    params: { answerKeyId },
+  });
+
+  return response.data;
+};
+
+export const getAllAnswerKeys = async (uid) => {
+  if (!uid) return null;
+
+  const response = await api({
+    url: ENDPOINTS.GET_USER_ANSWER_KEY,
+    method: "GET",
+    params: { uid },
+  });
+
+  return response.data;
+};
+
 // lesson plan
 export const createLessonPlan = async (data) => {
   const response = await api({
