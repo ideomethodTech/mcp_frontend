@@ -1,61 +1,43 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
-import { FileText, Loader2, Printer, ExternalLink, BookOpen, Plus, File } from 'lucide-react';
-import { PageHeader } from '@/components/page-header';
-import { Button } from '@/components/ui/button';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@/components/ui/form';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import WorksheetItem from './WorksheetItem';
-import History from '@/app/componentsV2/ui/history';
-import { getNavItemByUrl, parseWorksheet } from '@/app/utils';
-import { usePathname } from 'next/navigation';
-import { useQueryClient } from '@tanstack/react-query';
-import { useGenerateWorksheet, useGetBook, useUserWorksheet } from '@/lib/api/queries';
-import { useAuth } from '@/contexts/auth-context';
+import { useEffect, useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+import { FileText, Loader2, Printer, ExternalLink, BookOpen, Plus, File } from "lucide-react";
+import { PageHeader } from "@/components/page-header";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import WorksheetItem from "./WorksheetItem";
+import History from "@/app/componentsV2/ui/history";
+import { getNavItemByUrl, parseWorksheet } from "@/app/utils";
+import { usePathname } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
+import { useGenerateWorksheet, useGetBook, useUserWorksheet } from "@/lib/api/queries";
+import { useAuth } from "@/contexts/auth-context";
 
 const formSchema = z.object({
-  book: z.string().nonempty('Please select a book.'),
-  chapter: z.string().nonempty('Please select a chapter.'),
+  book: z.string().nonempty("Please select a book."),
+  chapter: z.string().nonempty("Please select a chapter."),
 });
 
-const WorksheetDetails = ({ item, bookId, isNew }) => {
+const WorksheetDetails = ({ item, bookId, isNew, worksheetId }) => {
   if (!item) {
-    return
+    return;
   }
   console.log("item", item);
   // const worksheetData = parseWorksheet(item.content?.worksheet);
   // console.log(worksheetData);
-
+  const itemWithId = isNew ? { ...item, id: worksheetId } : item;
+  console.log("shitttttt", itemWithId);
   return (
     <div className="lg:col-span-3">
-      <WorksheetItem item={item} bookId={bookId} isNew={isNew}></WorksheetItem>
+      <WorksheetItem item={itemWithId} bookId={bookId} isNew={isNew} worksheetId={worksheetId}></WorksheetItem>
     </div>
-  )
-}
+  );
+};
 
 function NewWorksheetForm({ onGenerate, data }) {
   const [selectedBook, setSelectedBook] = useState(null);
@@ -73,29 +55,28 @@ function NewWorksheetForm({ onGenerate, data }) {
     if (selectedBook && selectedChapter) {
       onGenerate(selectedBook, selectedChapter);
     }
-  }
+  };
 
   return (
     <div className="lg:col-span-3">
       <div className="flex flex-col items-center justify-center min-h-[500px]">
         <div className="w-full max-w-2xl">
-
-
           <Card>
             <CardHeader>
               <div className="flex items-center gap-3 mb-2">
                 <BookOpen className="w-6 h-6 text-muted-foreground" />
                 <CardTitle className="font-headline text-xl">Book & Chapter Selection</CardTitle>
               </div>
-              <CardDescription>
-                Choose the book and chapter to generate a worksheet.
-              </CardDescription>
+              <CardDescription>Choose the book and chapter to generate a worksheet.</CardDescription>
             </CardHeader>
             <CardContent>
               <Form {...form}>
-                <form onSubmit={form.handleSubmit(() => {
-                  onGenerate(selectedBook, selectedChapter);
-                })} className="space-y-6">
+                <form
+                  onSubmit={form.handleSubmit(() => {
+                    onGenerate(selectedBook, selectedChapter);
+                  })}
+                  className="space-y-6"
+                >
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <FormField
                       control={form.control}
@@ -103,11 +84,14 @@ function NewWorksheetForm({ onGenerate, data }) {
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Select Book</FormLabel>
-                          <Select onValueChange={(val) => {
-                            const parsed = JSON.parse(val);
-                            setSelectedBook(parsed);
-                            form.setValue("book", parsed.book_name);
-                          }} defaultValue={field.value}>
+                          <Select
+                            onValueChange={(val) => {
+                              const parsed = JSON.parse(val);
+                              setSelectedBook(parsed);
+                              form.setValue("book", parsed.book_name);
+                            }}
+                            defaultValue={field.value}
+                          >
                             <FormControl>
                               <SelectTrigger>
                                 <SelectValue placeholder="Select a book" />
@@ -118,10 +102,7 @@ function NewWorksheetForm({ onGenerate, data }) {
                                 <SelectItem key={book.name} value={book.name}>{book.name}</SelectItem>
                               ))} */}
                               {data?.map((book) => (
-                                <SelectItem
-                                  key={book.book_id}
-                                  value={JSON.stringify(book)}
-                                >
+                                <SelectItem key={book.book_id} value={JSON.stringify(book)}>
                                   {book.book_name}
                                 </SelectItem>
                               ))}
@@ -137,11 +118,15 @@ function NewWorksheetForm({ onGenerate, data }) {
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Select Chapter</FormLabel>
-                          <Select onValueChange={(val) => {
-                            const parsed = JSON.parse(val);
-                            setSelectedChapter(parsed);
-                            form.setValue("chapter", parsed);
-                          }} defaultValue={field.value} disabled={!selectedBook}>
+                          <Select
+                            onValueChange={(val) => {
+                              const parsed = JSON.parse(val);
+                              setSelectedChapter(parsed);
+                              form.setValue("chapter", parsed);
+                            }}
+                            defaultValue={field.value}
+                            disabled={!selectedBook}
+                          >
                             <FormControl>
                               <SelectTrigger>
                                 <SelectValue placeholder="Select a chapter" />
@@ -149,10 +134,7 @@ function NewWorksheetForm({ onGenerate, data }) {
                             </FormControl>
                             <SelectContent>
                               {selectedBook?.chapters?.map((chapter) => (
-                                <SelectItem
-                                  key={chapter}
-                                  value={JSON.stringify(chapter)}
-                                >
+                                <SelectItem key={chapter} value={JSON.stringify(chapter)}>
                                   {chapter}
                                 </SelectItem>
                               ))}
@@ -182,8 +164,9 @@ export default function WorksheetPage() {
   const [worksheetData, setWorksheetData] = useState(null);
   const [selectedBookId, setSelectedBookId] = useState(null);
   const [isNewWorksheet, setIsNewWorksheet] = useState(false);
+  const [currentWorksheetId, setCurrentWorksheetId] = useState(null);
 
-  const { user } = useAuth();   // ✅ dynamically fetched
+  const { user } = useAuth(); // ✅ dynamically fetched
   const uid = user?.user?.uid;
   const pathname = usePathname();
   const navItem = getNavItemByUrl(pathname);
@@ -197,18 +180,22 @@ export default function WorksheetPage() {
   const { data: bookData, isLoading: bookLoading } = useGetBook();
 
   // Create chat
-  const { mutate: generateWSMutation, isPending: generatingWS, data: aiResponse } = useGenerateWorksheet({
+  const {
+    mutate: generateWSMutation,
+    isPending: generatingWS,
+    data: aiResponse,
+  } = useGenerateWorksheet({
     onSuccess: (data) => {
       // data.answer or data.message (depending on your API)
       setWorksheetData(data.worksheet);
-    }
+      setCurrentWorksheetId(data.worksheet_id);
+    },
   });
 
   const handleGenerate = (book, chapter) => {
-
     if (!book) return;
     setSelectedBookId(book.id); // ✅ STORE BOOK ID
-    setIsNewWorksheet(true);   // ✅ THIS IS NEW
+    setIsNewWorksheet(true); // ✅ THIS IS NEW
     setSelectedworksheet(null); // ✅ Clear old history selection
 
     //  "book_id": "54b67574-dd07-4e87-a828-be3592e48d1b",
@@ -232,8 +219,7 @@ export default function WorksheetPage() {
             <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
               {navItem.title}
             </h1>
-            <p className="text-muted-foreground mt-1 text-lg">
-              {navItem.description}           </p>
+            <p className="text-muted-foreground mt-1 text-lg">{navItem.description} </p>
           </div>
         </div>
       </div>
@@ -245,7 +231,7 @@ export default function WorksheetPage() {
           selectedItem={selectedworksheet}
           setSelectedItem={(item) => {
             setSelectedworksheet(item);
-            setIsNewWorksheet(false);   // ✅ NOT NEW
+            setIsNewWorksheet(false); // ✅ NOT NEW
           }}
         />
         {/* Woeksheet Content */}
@@ -254,18 +240,26 @@ export default function WorksheetPage() {
             <div className="text-center">
               <Loader2 className="mx-auto h-12 w-12 animate-spin text-primary mb-4" />
               <h3 className="text-lg font-medium text-foreground">Generating {navItem.itemtype}...</h3>
-              <p className="text-sm text-muted-foreground">
-                Please wait while the AI prepares the questions.
-              </p>
+              <p className="text-sm text-muted-foreground">Please wait while the AI prepares the questions.</p>
             </div>
           </div>
         ) : selectedworksheet ? (
-          <WorksheetDetails item={selectedworksheet} isNew={false}/>
+          <WorksheetDetails
+            item={selectedworksheet}
+            bookId={selectedworksheet.book_id}
+            isNew={false}
+            worksheetId={selectedworksheet.id} // ✅ Add this
+          />
         ) : worksheetData ? (
-          <WorksheetDetails item={worksheetData} bookId={selectedBookId} isNew={isNewWorksheet} />
-        ) :
-          (<NewWorksheetForm onGenerate={handleGenerate} data={bookData?.content} />
-          )}
+          <WorksheetDetails
+            item={worksheetData}
+            bookId={selectedBookId}
+            isNew={isNewWorksheet}
+            worksheetId={currentWorksheetId}
+          />
+        ) : (
+          <NewWorksheetForm onGenerate={handleGenerate} data={bookData?.content} />
+        )}
       </div>
     </div>
   );

@@ -68,11 +68,11 @@ export const useUserWorksheet = (uid, options = {}) =>
     ...options,
   });
 
-export const useGetAnswerKeyById = (answerKeyId, options = {}) =>
+export const useGetAnswerKeyById = (answerKeyId, uid, options = {}) =>
   useQuery({
-    queryKey: ["answer-key", answerKeyId],
-    queryFn: () => getAnswerKey(answerKeyId),
-    enabled: !!answerKeyId, // ✅ only run when ID exists
+    queryKey: ["answer-key", answerKeyId, uid],
+    queryFn: () => getAnswerKey(answerKeyId, uid), // ✅ Pass uid here!
+    enabled: !!answerKeyId && !!uid,
     ...options,
   });
 

@@ -8,7 +8,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import React from 'react';
 
-const WorksheetItem = ({ item , bookId , isNew}) => {
+const WorksheetItem = ({ item , bookId , isNew ,worksheetId}) => {
     const router = useRouter();
 
     
@@ -19,7 +19,7 @@ const WorksheetItem = ({ item , bookId , isNew}) => {
                 encodeURIComponent(JSON.stringify(data.answer_key))
             );
 
-            router.push(`/answer-key?answer_key=${encoded}`);
+            router.push(`/answer-key?answer_key_id=${data.answer_key_id}`);
 
         },
         onError: (err) => {
@@ -27,15 +27,19 @@ const WorksheetItem = ({ item , bookId , isNew}) => {
         },
     });
 
-    const handleAnswerKey = () => {
-        generateAnswerKey({
-            worksheet_id: item.id,
-            book_id: bookId,
-            uid: item.uid,
-            chapter: item.chapter,
-            worksheet_id: item.worksheet.worksheet_id
-        });
-    };
+const handleAnswerKey = () => {
+    console.log("item.uid:", item.uid);
+    console.log("item:", item);
+    
+    const chapterValue = isNew ? item.chapter : item.content?.worksheet?.chapter;
+    
+    generateAnswerKey({
+        worksheet_id: worksheetId || item.id,  // ✅ Use worksheetId prop first
+        book_id: bookId || item.book_id,
+        uid: item.uid,
+        chapter: chapterValue,
+    });
+};
     // const worksheetData = segregateQuestions(item?.worksheet?.questions ? item?.content?.worksheet?.questions : item?.content?.worksheet?.worksheet.questions);
     const worksheetData = segregateQuestions(isNew? item.questions : item?.content?.worksheet?.questions);
 

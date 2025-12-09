@@ -29,7 +29,6 @@ export const generateAnswerKey = async ({ worksheet_id, book_id, uid, chapter })
   return response.data;
 };
 
-
 // Book Management Functions
 export const uploadBook = async (data) => {
   const response = await api({
@@ -79,13 +78,16 @@ export const getWorksheet = async (uid) => {
   return response.data;
 };
 
-export const getAnswerKey = async (answerKeyId , uid) => {
+export const getAnswerKey = async (answerKeyId, uid) => {
   if (!answerKeyId) return null; // ✅ SAFE
 
   const response = await api({
     url: ENDPOINTS.GET_USER_ANSWER_KEY,
     method: "GET",
-    params: { answerKeyId },
+    params: {
+      answerKeyId,
+      uid,
+    },
   });
 
   return response.data;

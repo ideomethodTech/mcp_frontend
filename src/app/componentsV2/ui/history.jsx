@@ -58,7 +58,7 @@ const History = ({ selectedItem, setSelectedItem, historyData, item, isChat = fa
              historyData?.map((item, index) => (
               historyItem({ index, item: item, selectedItem, setSelectedItem })))
           ) : item === ITEM_TYPES.ANSWER_KEY ? (  historyData?.map((item, index) => (
-              historyItem({ index, item: item, selectedItem, setSelectedItem })))): null} */}
+              historyItem({ index, item: item, selectedItem, setSelectedItem })))): null} 
               {historyData?.length !== 0 && historyData?.map((item, index) => (
             historyItem({ index, item: item, selectedItem, setSelectedItem, isChat })
           ))}
