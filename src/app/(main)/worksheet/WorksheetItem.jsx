@@ -8,19 +8,15 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import React from 'react';
 
-const WorksheetItem = ({ item , bookId , isNew}) => {
+const WorksheetItem = ({ item, bookId, isNew, worksheet_id }) => {
     const router = useRouter();
 
     
     const { mutate: generateAnswerKey, isPending } = useGenerateAnswerKey({
         onSuccess: (data) => {
-            // data = answer key returned from backend
-            const encoded = encodeURIComponent(
-                encodeURIComponent(JSON.stringify(data.answer_key))
-            );
+            const answerKeyId = data.answer_key_id; // ✅ from backend response
 
-            router.push(`/answer-key?answer_key=${encoded}`);
-
+            router.push(`/answer-key?answer_key_id=${answerKeyId}`);
         },
         onError: (err) => {
             console.error("Failed to generate answer key", err);
@@ -30,17 +26,17 @@ const WorksheetItem = ({ item , bookId , isNew}) => {
     const handleAnswerKey = () => {
         generateAnswerKey({
             worksheet_id: item.id,
-            book_id: bookId,
+            book_id: item.book_id,
             uid: item.uid,
             chapter: item.chapter,
-            worksheet_id: item.worksheet.worksheet_id
+            worksheet_id: worksheet_id
         });
     };
     // const worksheetData = segregateQuestions(item?.worksheet?.questions ? item?.content?.worksheet?.questions : item?.content?.worksheet?.worksheet.questions);
-    const worksheetData = segregateQuestions(isNew? item.questions : item?.content?.worksheet?.questions);
+    const worksheetData = segregateQuestions(isNew ? item.questions : item?.content?.worksheet?.questions);
 
     console.log("worksheetData", item);
-        console.log("worksheetDataaa", isNew);
+    console.log("worksheetDataaa", isNew);
 
     return (
         <div>

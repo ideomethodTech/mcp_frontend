@@ -42,7 +42,7 @@ const formSchema = z.object({
   chapter: z.string().nonempty('Please select a chapter.'),
 });
 
-const WorksheetDetails = ({ item, bookId, isNew }) => {
+const WorksheetDetails = ({ item, bookId, isNew, worksheet_id }) => {
   if (!item) {
     return
   }
@@ -52,7 +52,7 @@ const WorksheetDetails = ({ item, bookId, isNew }) => {
 
   return (
     <div className="lg:col-span-3">
-      <WorksheetItem item={item} bookId={bookId} isNew={isNew}></WorksheetItem>
+      <WorksheetItem item={item} bookId={bookId} isNew={isNew} worksheet_id={worksheet_id}></WorksheetItem>
     </div>
   )
 }
@@ -260,9 +260,9 @@ export default function WorksheetPage() {
             </div>
           </div>
         ) : selectedworksheet ? (
-          <WorksheetDetails item={selectedworksheet} isNew={false}/>
-        ) : worksheetData ? (
-          <WorksheetDetails item={worksheetData} bookId={selectedBookId} isNew={isNewWorksheet} />
+          <WorksheetDetails item={selectedworksheet} isNew={false} worksheet_id={selectedworksheet.id}/>
+        ) : worksheetData?.worksheet ? (
+          <WorksheetDetails item={worksheetData.worksheet} bookId={selectedBookId} isNew={isNewWorksheet} worksheet_id={worksheetData.worksheet_id} />
         ) :
           (<NewWorksheetForm onGenerate={handleGenerate} data={bookData?.content} />
           )}
