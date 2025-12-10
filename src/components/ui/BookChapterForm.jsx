@@ -11,11 +11,6 @@ import { BookOpen } from "lucide-react";
 import { BookChapterFormHeader } from "./BookChapterFormHeader";
 import { useGetBook } from "@/lib/api/queries";
 
-const formSchema = z.object({
-  book: z.string().nonempty("Please select a book."),
-  chapter: z.string().optional(),
-});
-
 export function BookChapterForm({
   onGenerate,
   pageHeaderTitle,
@@ -25,23 +20,30 @@ export function BookChapterForm({
   cardDescription = "Choose the book and chapter",
   buttonText = "Generate",
   includeChapters = true,
+  extraFields, // ✅ NEW: For additional form fields (class, subject, etc)
+  isLoading = false, // ✅ NEW: For showing loading state
+  formSchema,
+  defaultValues,
 }) {
   const form = useForm({
     resolver: zodResolver(formSchema),
-    defaultValues: {
+    defaultValues: defaultValues || {
       book: "",
       chapter: "",
     },
   });
 
-  const { data: booksData } = useGetBook();
+  const { data: booksData, isLoading: bookLoading } = useGetBook();
   const selectedBookId = form.watch("book");
-
-  // Get the selected book from booksData.content array
   const selectedBook = booksData?.content?.find((b) => b.id === selectedBookId);
 
+  const handleSubmit = (values) => {
+    // ✅ Return full book object + form values
+    onGenerate(selectedBook, values);
+  };
+
   return (
-    <div className="flex flex-col w-full min-h-[500px] col-span-7">
+    <div className="flex flex-col w-full min-h-[500px] lg:col-span-3">
       <div className="w-full max-w-2xl">
         <BookChapterFormHeader title={pageHeaderTitle} description={pageHeaderDescription} icon={PageHeaderIcon} />
 
@@ -56,8 +58,9 @@ export function BookChapterForm({
 
           <CardContent>
             <Form {...form}>
-              <form onSubmit={form.handleSubmit(onGenerate)} className="space-y-6">
+              <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
                 <div className={`grid grid-cols-1 ${includeChapters ? "md:grid-cols-2" : ""} gap-6`}>
+                  {/* Book Selection */}
                   <FormField
                     control={form.control}
                     name="book"
@@ -65,27 +68,24 @@ export function BookChapterForm({
                       <FormItem>
                         <FormLabel>Select Book</FormLabel>
                         <Select
+                          disabled={bookLoading}
                           onValueChange={(value) => {
                             field.onChange(value);
-                            form.setValue("chapter", "");
+                            form.setValue("chapter", ""); // ✅ Reset chapter
                           }}
                           defaultValue={field.value}
                         >
                           <FormControl>
                             <SelectTrigger>
-                              <SelectValue placeholder="Select a book" />
+                              <SelectValue placeholder={bookLoading ? "Loading books..." : "Select a book"} />
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            {booksData?.content && booksData.content.length > 0 ? (
-                              booksData.content.map((book) => (
-                                <SelectItem key={book.id} value={book.id}>
-                                  {book.book_name}
-                                </SelectItem>
-                              ))
-                            ) : (
-                              <p className="text-gray-500">No books available</p>
-                            )}
+                            {booksData?.content?.map((book) => (
+                              <SelectItem key={book.id} value={book.id}>
+                                {book.book_name}
+                              </SelectItem>
+                            ))}
                           </SelectContent>
                         </Select>
                         <FormMessage />
@@ -93,6 +93,7 @@ export function BookChapterForm({
                     )}
                   />
 
+                  {/* Chapter Selection */}
                   {includeChapters && (
                     <FormField
                       control={form.control}
@@ -107,17 +108,11 @@ export function BookChapterForm({
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                              {selectedBook?.chapters && selectedBook.chapters.length > 0 ? (
-                                selectedBook.chapters.map((chapter, index) => (
-                                  <SelectItem key={index} value={chapter}>
-                                    {chapter}
-                                  </SelectItem>
-                                ))
-                              ) : (
-                                <SelectItem value="no-chapter" disabled>
-                                  No chapters available - Full book will be used
+                              {selectedBook?.chapters?.map((chapter, index) => (
+                                <SelectItem key={index} value={chapter}>
+                                  {chapter}
                                 </SelectItem>
-                              )}
+                              ))}
                             </SelectContent>
                           </Select>
                           <FormMessage />
@@ -127,8 +122,17 @@ export function BookChapterForm({
                   )}
                 </div>
 
-                <Button type="submit" className="w-full !mt-8" size="lg" disabled={!form.formState.isValid}>
-                  {buttonText}
+                {/* ✅ Extra fields for Test Paper, etc */}
+                {/* ✅ Pass control to extraFields */}
+                {typeof extraFields === "function" ? extraFields(form.control) : extraFields}
+
+                <Button
+                  type="submit"
+                  className="w-full !mt-8"
+                  size="lg"
+                  disabled={bookLoading || isLoading || !selectedBook}
+                >
+                  {isLoading ? "Generating..." : buttonText}
                 </Button>
               </form>
             </Form>
