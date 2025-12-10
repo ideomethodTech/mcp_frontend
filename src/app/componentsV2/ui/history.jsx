@@ -1,14 +1,22 @@
 import React from 'react';
-import { File, Loader, Plus } from 'lucide-react';
+import { File, Loader, Plus, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { ITEM_TYPES, NAV_ITEMS } from '@/lib/constants';
 
-const History = ({ selectedItem, setSelectedItem, historyData, item, isChat = false , isLoading = false}) => {
+const History = ({
+  selectedItem,
+  setSelectedItem,
+  historyData,
+  item,
+  isChat = false,
+  onDelete,
+  deletingId,
+}) => {
 
   const historyItem = ({ index, item, selectedItem, setSelectedItem }) => {
     return (
-      <div key={index}>
+      <div key={index} className="flex items-start gap-2">
         <button
           onClick={() => {
             isChat ? setSelectedItem({
@@ -28,11 +36,25 @@ const History = ({ selectedItem, setSelectedItem, historyData, item, isChat = fa
             <span>  {item.created_at}
             </span>
           </div>
-          <p className="font-medium text-foreground text-sm mb-1">{item.title ? item.title : item.chapter}</p>
+          <p className="font-medium text-foreground text-sm mb-1 truncate">{item.title ? item.title : item.chapter}</p>
           <p className="text-xs text-muted-foreground truncate">
             {item.book ? item.book : (item?.content?.worksheet ? item?.content?.worksheet.title : item?.content?.lesson_plan?.title)}
           </p>
         </button>
+        {onDelete && (
+          <button
+            aria-label="Delete"
+            className="p-2 text-muted-foreground hover:text-destructive"
+            onClick={() => onDelete(item)}
+            disabled={deletingId === item.id}
+          >
+            {deletingId === item.id ? (
+              <Loader className="h-4 w-4 animate-spin" />
+            ) : (
+              <Trash2 className="h-4 w-4" />
+            )}
+          </button>
+        )}
       </div>
     )
   }

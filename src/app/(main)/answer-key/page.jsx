@@ -19,6 +19,7 @@ import {
   useGetBook,
   useGenerateAnswerKey,
   useUserWorksheet,
+  useDeleteAnswerKey,
 } from "@/lib/api/queries";
 import { useAuth } from "@/contexts/auth-context";
 import { useToast } from "@/hooks/use-toast";
@@ -291,6 +292,14 @@ export default function AnswerKeyPage() {
   const { data: answerKeyData, isLoading: isLoadingSingle } = useGetAnswerKeyById(answerKeyId, uid, {
     enabled: !!answerKeyId && !!uid,
   });
+  const { mutate: deleteAnswerKey } = useDeleteAnswerKey({
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["all-answer-keys", uid] });
+      if (selectedItem && selectedItem.id === variables.answer_key_id) {
+        setSelectedItem(null);
+      }
+    },
+  });
   const { mutate: generateAnswerKey, isPending: isGenerating } = useGenerateAnswerKey({
     onSuccess: (data) => {
       setSelectedItem(data);
@@ -396,6 +405,25 @@ export default function AnswerKeyPage() {
   };
   const isLoading = isLoadingHistory || isLoadingSingle;
 
+  const handleHistorySelect = (item) => {
+    setSelectedItem(item);
+    if (item?.id) {
+      const params = new URLSearchParams(searchParams.toString());
+      params.set("answer_key_id", item.id);
+      window.history.replaceState(null, "", `?${params.toString()}`);
+    }
+  };
+
+  const handleDeleteAnswerKey = (item) => {
+    if (!item?.id || !uid) return;
+    deleteAnswerKey({ uid, answer_key_id: item.id });
+    if (item.id === answerKeyId) {
+      const params = new URLSearchParams(searchParams.toString());
+      params.delete("answer_key_id");
+      window.history.replaceState(null, "", `?${params.toString()}`);
+    }
+  };
+
   return (
     <div className="max-w-7xl mx-auto my-5 space-y-6">
       {/* HEADER */}
@@ -425,9 +453,10 @@ export default function AnswerKeyPage() {
           {/* HISTORY */}
           <History
             selectedItem={selectedItem}
-            setSelectedItem={setSelectedItem}
+            setSelectedItem={handleHistorySelect}
             historyData={historyData}
             item={navItem.itemtype}
+            onDelete={handleDeleteAnswerKey}
           />
 
           {selectedItem ? (

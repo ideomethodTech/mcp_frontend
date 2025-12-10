@@ -37,7 +37,7 @@ import History from '@/app/componentsV2/ui/history';
 import { usePathname } from 'next/navigation';
 import { getNavItemByUrl } from '@/app/utils';
 import { useQueryClient } from '@tanstack/react-query';
-import { useCreateLessonPlan, useGetBook, useUserLessonPlan } from '@/lib/api/queries';
+import { useCreateLessonPlan, useDeleteLessonPlan, useGetBook, useUserLessonPlan } from '@/lib/api/queries';
 import LessonPlanItem from './components/LessonPlanItem';
 import { useAuth } from '@/contexts/auth-context';
 import useApiStore from '@/store/useApiStore';
@@ -197,6 +197,7 @@ export default function LessonPlanPage() {
   const [lpdata, setlpdata] = useState(null);
   const { user } = useAuth();   // ✅ dynamically fetched
   const uid = user?.user?.uid;
+  const [deletingId, setDeletingId] = useState(null);
   const pathname = usePathname();
   const navItem = getNavItemByUrl(pathname);
   const queryClient = useQueryClient();
@@ -241,6 +242,27 @@ export default function LessonPlanPage() {
     },
   });
 
+  const { mutate: deleteLessonPlanMutation } = useDeleteLessonPlan({
+    onSuccess: (_, variables) => {
+      setDeletingId(null);
+      setLessonPlanStatus('success');
+      queryClient.invalidateQueries({ queryKey: ['lp', uid] });
+      if (slectedLessonPlan && slectedLessonPlan.id === variables.lesson_plan_id) {
+        setSelectedLessonPlan(null);
+      }
+    },
+    onError: () => {
+      setDeletingId(null);
+      setLessonPlanStatus('error');
+    },
+  });
+
+  const handleDeleteLessonPlan = (item) => {
+    if (!item?.id) return;
+    setDeletingId(item.id);
+    deleteLessonPlanMutation({ lesson_plan_id: item.id });
+  };
+
   const handleGenerate = (book, chapter, weekCount = 2) => {
     if (!book) return;
 
@@ -279,6 +301,8 @@ export default function LessonPlanPage() {
           selectedItem={slectedLessonPlan}
           setSelectedItem={setSelectedLessonPlan}
           historyData={userLP?.content}
+          onDelete={handleDeleteLessonPlan}
+          deletingId={deletingId}
         />
         {/* Lesson Plan Content */}
         {isCreateLPPending || LPloading? (

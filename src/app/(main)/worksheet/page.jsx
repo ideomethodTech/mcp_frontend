@@ -14,7 +14,7 @@ import History from "@/app/componentsV2/ui/history";
 import { getNavItemByUrl } from "@/app/utils";
 import { usePathname } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
-import { useGenerateWorksheet, useGetBook, useUserWorksheet } from "@/lib/api/queries";
+import { useDeleteWorksheet, useGenerateWorksheet, useGetBook, useUserWorksheet } from "@/lib/api/queries";
 import { useAuth } from "@/contexts/auth-context";
 import useApiStore from "@/store/useApiStore";
 import { toast } from "react-toastify";
@@ -174,6 +174,7 @@ export default function WorksheetPage() {
   const [selectedBookId, setSelectedBookId] = useState(null);
   const [isNewWorksheet, setIsNewWorksheet] = useState(false);
   const [currentWorksheetId, setCurrentWorksheetId] = useState(null);
+  const [deletingId, setDeletingId] = useState(null);
 
   const { user } = useAuth();
   const uid = user?.user?.uid;
@@ -220,6 +221,27 @@ export default function WorksheetPage() {
     },
   });
 
+  const { mutate: deleteWorksheetMutation } = useDeleteWorksheet({
+    onSuccess: (_, variables) => {
+      setDeletingId(null);
+      setWorksheetStatus("success");
+      queryClient.invalidateQueries({ queryKey: ["ws", uid] });
+      if (selectedworksheet && selectedworksheet.id === variables.worksheet_id) {
+        setSelectedworksheet(null);
+      }
+    },
+    onError: () => {
+      setDeletingId(null);
+      setWorksheetStatus("error");
+    },
+  });
+
+  const handleDeleteWorksheet = (item) => {
+    if (!item?.id || !uid) return;
+    setDeletingId(item.id);
+    deleteWorksheetMutation({ uid, worksheet_id: item.id });
+  };
+
   const handleGenerate = (book, chapter) => {
     if (!book) return;
     setSelectedBookId(book.id);
@@ -258,6 +280,8 @@ export default function WorksheetPage() {
             setIsNewWorksheet(false);
           }}
           isLoading={worksheetsLoading}
+        onDelete={handleDeleteWorksheet}
+        deletingId={deletingId}
         />
 
         {/* Worksheet Content */}
