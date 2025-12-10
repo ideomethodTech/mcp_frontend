@@ -194,7 +194,7 @@ function NewAnswerKeyForm({ onGenerate, allWorksheets }) {
   }, [selectedBookId, allWorksheets]);
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-[500px]">
+    <div className="flex flex-col items-center justify-center min-h-[500px] lg:col-span-3">
       <div className="w-full max-w-2xl">
         <PageHeader
           title="Answer Key Generator"
@@ -433,7 +433,7 @@ export default function AnswerKeyPage() {
           {selectedItem ? (
             <AnswerKeyDetails item={selectedItem} />
           ) : (
-            <NewAnswerKeyForm onGenerate={handleGenerate} allWorksheets={allWorksheets} /> // ✅ Pass it here
+            <NewAnswerKeyForm onGenerate={handleGenerate} allWorksheets={allWorksheets} /> 
           )}
         </div>
       )}
