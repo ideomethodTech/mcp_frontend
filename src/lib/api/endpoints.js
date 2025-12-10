@@ -1,9 +1,10 @@
 const ENDPOINTS = {
   // AI Generation
   GENERATE: "/generate",
-  GEBERATE_WORKSHEET: "/generate/worksheet",
-  GEBERATE_LESSONPLAN: "/generate/lesson_plan",
+  GENERATE_WORKSHEET: "/generate/worksheet",
+  GENERATE_LESSONPLAN: "/generate/lesson_plan",
   GENERATE_ANSWER_KEY: "/generate/answer_key",
+  GENERATE_TEST_PAPER: "/api/test_paper/generate",
 
   // Book Management
   UPLOAD_BOOK: "/book/upload_book",
@@ -22,6 +23,12 @@ const ENDPOINTS = {
 
   // Answer key
   GET_USER_ANSWER_KEY: "/generate/answer_key/get",
+
+  // Test Paper Management
+  GET_ALL_TEST_PAPERS: "/api/test_paper/list",
+  GET_TEST_PAPER: "/api/test_paper/get",
+  GET_TEST_PAPER_ANSWERS: "/api/test_paper/answers",
+  TEST_PAPER_TEST: "/api/test_paper/test",
 
   // Authentication
   LOGIN: "/auth/login",

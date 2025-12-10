@@ -16,6 +16,11 @@ import {
   registerUser,
   getAnswerKey,
   getAllAnswerKeys,
+  generateTestPaper,
+  getTestPaper,
+  getAllTestPapers,
+  getTestPaperAnswers,
+  testTestPaperAPI,
 } from "./queryFunctions";
 
 // AI Generation Hooks
@@ -66,7 +71,7 @@ export const useUserWorksheet = (uid, options = {}) =>
     queryFn: () => getWorksheet(uid),
     enabled: true,
     ...options,
-   staleTime: 0,
+    staleTime: 0,
   });
 
 export const useGetAnswerKeyById = (answerKeyId, uid, options = {}) =>
@@ -85,7 +90,6 @@ export const useGetAllAnswerKeys = (uid, options = {}) =>
     ...options,
   });
 
-
 // Lesson Plan
 export const useCreateLessonPlan = (options) =>
   useMutation({
@@ -99,7 +103,7 @@ export const useUserLessonPlan = (uid, options = {}) =>
     queryFn: () => getLessonPlan(uid),
     enabled: true,
     ...options,
-   staleTime: 0,
+    staleTime: 0,
   });
 
 // Chat Management Hooks
@@ -114,7 +118,7 @@ export const useUserChats = (uid, options) =>
     queryKey: ["userChats", uid],
     queryFn: () => getUserChats(uid),
     enabled: !!uid,
-   staleTime: 0,
+    staleTime: 0,
     ...options,
   });
 
@@ -145,5 +149,44 @@ export const useGetLessonPlans = (uid, options = {}) =>
     queryKey: ["lessonPlans", uid],
     queryFn: () => getLessonPlan(uid),
     enabled: !!uid,
+    ...options,
+  });
+
+export const useGenerateTestPaper = (options) =>
+  useMutation({
+    mutationFn: ({ uid, book_id, chapter, class: className, subject, total_marks, duration }) =>
+      generateTestPaper({ uid, book_id, chapter, class: className, subject, total_marks, duration }),
+    ...options,
+  });
+
+export const useUserTestPapers = (uid, options = {}) =>
+  useQuery({
+    queryKey: ["test-papers", uid],
+    queryFn: () => getAllTestPapers(uid),
+    enabled: !!uid,
+    staleTime: 0,
+    ...options,
+  });
+
+export const useGetTestPaperById = (testPaperId, uid, options = {}) =>
+  useQuery({
+    queryKey: ["test-paper", testPaperId, uid],
+    queryFn: () => getTestPaper(testPaperId, uid),
+    enabled: !!testPaperId && !!uid,
+    ...options,
+  });
+
+export const useGetTestPaperAnswers = (testPaperId, uid, options = {}) =>
+  useQuery({
+    queryKey: ["test-paper-answers", testPaperId, uid],
+    queryFn: () => getTestPaperAnswers(testPaperId, uid),
+    enabled: !!testPaperId && !!uid,
+    ...options,
+  });
+
+export const useTestPaperAPITest = (options = {}) =>
+  useQuery({
+    queryKey: ["test-paper-api-test"],
+    queryFn: testTestPaperAPI,
     ...options,
   });

@@ -13,7 +13,7 @@ export const generateContent = async ({ chat_id, uid, prompt }) => {
 
 export const generateWorksheet = async ({ book_id, uid, chapter }) => {
   const response = await api({
-    url: ENDPOINTS.GEBERATE_WORKSHEET,
+    url: ENDPOINTS.GENERATE_WORKSHEET,
     method: "POST",
     data: { book_id, uid, chapter },
   });
@@ -55,7 +55,7 @@ export const getBooks = async (uid = null) => {
 //Worksheet
 export const createWorksheet = async (data) => {
   const response = await api({
-    url: ENDPOINTS.GEBERATE_WORKSHEET,
+    url: ENDPOINTS.GENERATE_WORKSHEET,
     method: "POST",
     data: {
       book_id: data.book_id,
@@ -108,7 +108,7 @@ export const getAllAnswerKeys = async (uid) => {
 // lesson plan
 export const createLessonPlan = async (data) => {
   const response = await api({
-    url: ENDPOINTS.GEBERATE_LESSONPLAN,
+    url: ENDPOINTS.GENERATE_LESSONPLAN,
     method: "POST",
     data: {
       book_id: data.book_id,
@@ -126,7 +126,7 @@ export const getLessonPlan = async (uid) => {
   const response = await api({
     url: ENDPOINTS.GET_USER_LESSON_PLAN,
     method: "GET",
-    params: { uid }, // ✅ Correct way to pass query params
+    params: { uid },
   });
 
   return response.data;
@@ -187,6 +187,71 @@ export const registerUser = async (data) => {
       role: "user",
       profile_details: {},
     },
+  });
+  return response.data;
+};
+
+export const generateTestPaper = async (data) => {
+  const response = await api({
+    url: ENDPOINTS.GENERATE_TEST_PAPER,
+    method: "POST",
+    data: {
+      uid: data.uid,
+      book_id: data.book_id,
+      chapter: data.chapter,
+      class: data.class,
+      subject: data.subject,
+      total_marks: data.total_marks,
+      duration: data.duration,
+    },
+  });
+  return response.data;
+};
+
+export const getAllTestPapers = async (uid) => {
+  if (!uid) throw new Error("User ID is required");
+
+  const response = await api({
+    url: ENDPOINTS.GET_ALL_TEST_PAPERS,
+    method: "GET",
+    params: { uid },
+  });
+  return response.data;
+};
+
+export const getTestPaper = async (testPaperId, uid) => {
+  if (!testPaperId || !uid) throw new Error("Test Paper ID and User ID are required");
+
+  const response = await api({
+    url: ENDPOINTS.GET_TEST_PAPER,
+    method: "GET",
+    params: {
+      test_paper_id: testPaperId,
+      uid,
+    },
+  });
+  return response.data;
+};
+
+export const getTestPaperAnswers = async (testPaperId, uid) => {
+  if (!testPaperId || !uid) throw new Error("Test Paper ID and User ID are required");
+
+  const response = await api({
+    url: ENDPOINTS.GET_TEST_PAPER_ANSWERS,
+    method: "GET",
+    params: {
+      test_paper_id: testPaperId,
+      uid,
+    },
+  });
+  return response.data;
+};
+
+// Test endpoint to verify test paper routes are working
+export const testTestPaperAPI = async () => {
+  const response = await api({
+    url: ENDPOINTS.TEST_PAPER_TEST,
+    method: "GET",
   });
   return response.data;
 };
