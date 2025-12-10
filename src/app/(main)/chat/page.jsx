@@ -84,12 +84,13 @@ function ChatInterface({ chatSession, setChatSession }) {
       },
       onSuccess: (data, variables) => {
         // Replace the loading response with real response
+        console.log(data)
         setMessages((prev) =>
           prev.map((m, idx) =>
             idx === prev.length - 1
               ? {
                 ...m,
-                response: data.response || 'No response',
+                response:data|| data.response || 'No response',
                 id: data.id, // ✅ THIS IS REQUIRED
               }
               : m
