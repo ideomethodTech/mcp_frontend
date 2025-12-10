@@ -20,11 +20,12 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import History from '@/app/componentsV2/ui/history';
-import { useChatDetails, useCreateChat, useGenerateContent, useGetBook, useUserChats } from '@/lib/api/queries';
+import { useChatDetails, useCreateChat, useDeleteChat, useDeleteChatMessage, useGenerateContent, useGetBook, useUserChats } from '@/lib/api/queries';
 import { useAuth } from '@/contexts/auth-context';
 import { getNavItemByUrl } from '@/app/utils';
 import { useQueryClient } from '@tanstack/react-query';
 import useApiStore from '@/store/useApiStore';
+import { Trash2 } from 'lucide-react';
 
 const ChatMessage = ({ isUser = false, content, isLoading = false }) => {
   return (
@@ -61,6 +62,7 @@ const ChatMessage = ({ isUser = false, content, isLoading = false }) => {
 function ChatInterface({ chatSession, setChatSession }) {
   const [messages, setMessages] = useState(chatSession?.messages || []);
   const [input, setInput] = useState('');
+  const [deletingMessageId, setDeletingMessageId] = useState(null);
   const queryClient = useQueryClient();
   const { setChatStatus } = useApiStore();
 
@@ -85,7 +87,11 @@ function ChatInterface({ chatSession, setChatSession }) {
         setMessages((prev) =>
           prev.map((m, idx) =>
             idx === prev.length - 1
-              ? { ...m, response: data || 'No response' }
+              ? {
+                ...m,
+                response: data.response || 'No response',
+                id: data.id, // ✅ THIS IS REQUIRED
+              }
               : m
           )
         );
@@ -104,6 +110,18 @@ function ChatInterface({ chatSession, setChatSession }) {
       },
     });
 
+  const { mutate: deleteChatMessageMutation } = useDeleteChatMessage({
+    onSuccess: (_, variables) => {
+      setDeletingMessageId(null);
+      queryClient.invalidateQueries({
+        queryKey: ['chatDetails', chatSession.uid, chatSession.id],
+      });
+    },
+    onError: () => {
+      setDeletingMessageId(null);
+    },
+  });
+
 
   const handleSendMessage = (prompt) => {
     if (!prompt.trim()) return;
@@ -115,6 +133,12 @@ function ChatInterface({ chatSession, setChatSession }) {
     });
 
     setInput("");
+  };
+
+  const handleDeleteMessage = (messageId) => {
+    if (!chatSession?.id || !messageId) return;
+    setDeletingMessageId(messageId);
+    deleteChatMessageMutation({ uid: chatSession.uid, message_id: messageId });
   };
 
   return (
@@ -136,17 +160,33 @@ function ChatInterface({ chatSession, setChatSession }) {
         {/* Messages */}
         <div className="flex-1 p-6 overflow-y-auto space-y-4">
           {messages.map((msg, index) => (
-            msg.prompt && msg.response ? (<div key={index} className="space-y-2">
-              {msg.prompt && (
-                <ChatMessage isUser content={msg.prompt} />
-              )}
-              {msg.response === '__LOADING__' && (
-                <ChatMessage isLoading />
-              )}
-              {msg.response && msg.response !== '__LOADING__' && (
-                <ChatMessage content={msg.response} />
-              )}
-            </div>) : null
+            msg.prompt && msg.response ? (
+              <div key={index} className="space-y-2">
+                {msg.prompt && <ChatMessage isUser content={msg.prompt} />}
+                {msg.response === '__LOADING__' && <ChatMessage isLoading />}
+                {msg.response && msg.response !== '__LOADING__' && (
+                  <div className="flex items-start gap-2">
+                    <div className="flex-1">
+                      <ChatMessage content={msg.response} />
+                    </div>
+                    {msg.id && (
+                      <button
+                        aria-label="Delete message"
+                        className="p-2 text-muted-foreground hover:text-destructive"
+                        onClick={() => handleDeleteMessage(msg.id)}
+                        disabled={deletingMessageId === msg.id}
+                      >
+                        {deletingMessageId === msg.id ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Trash2 className="h-4 w-4" />
+                        )}
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+            ) : null
           ))}
         </div>
         {/* Input Area */}
@@ -178,12 +218,6 @@ function ChatInterface({ chatSession, setChatSession }) {
 
 function NewChatForm({ onStartChat, data }) {
   const [selectedBook, setSelectedBook] = useState(null);
-
-  const handleStart = () => {
-    if (selectedBook) {
-      onStartChat(selectedBook);
-    }
-  }
 
   return (
     <div className="flex flex-col items-center justify-center min-h-[500px]">
@@ -237,6 +271,7 @@ export default function ChatPage() {
 
   // Selected chat
   const [selectedChat, setSelectedChat] = useState(null);
+  const [deletingId, setDeletingId] = useState(null);
 
   // Chat Messages
   const {
@@ -279,6 +314,22 @@ export default function ChatPage() {
     },
   });
 
+  const { mutate: deleteChatMutation } = useDeleteChat({
+    onSuccess: async (_, variables) => {
+      if (selectedChat?.id === variables.chatId) {
+        setSelectedChat(null);
+      }
+      await queryClient.refetchQueries({ queryKey: ['userChats', uid] });
+      queryClient.refetchQueries({ queryKey: ['chatDetails', uid, variables.chatId] });
+      setDeletingId(null);
+      setChatStatus('success');
+    },
+    onError: () => {
+      setDeletingId(null);
+      setChatStatus('error');
+    }
+  });
+
 
 
   const handleStartChat = (book) => {
@@ -287,6 +338,12 @@ export default function ChatPage() {
       uid,
       chat_title: book.book_name
     });
+  };
+
+  const handleDeleteChat = (item) => {
+    if (!uid || !item?.id) return;
+    setDeletingId(item.id);
+    deleteChatMutation({ uid, chatId: item.id });
   };
 
   // FIX — Get selected chat object
@@ -316,6 +373,8 @@ export default function ChatPage() {
           setSelectedItem={setSelectedChat}
           historyData={userChats?.chats || []}
           isChat={true}
+          onDelete={handleDeleteChat}
+          deletingId={deletingId}
         />
         {/* Lesson Plan Content */}
         {creatingChat || messagesLoading ? (

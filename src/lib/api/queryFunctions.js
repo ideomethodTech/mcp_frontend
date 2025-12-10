@@ -78,6 +78,15 @@ export const getWorksheet = async (uid) => {
   return response.data;
 };
 
+export const deleteWorksheet = async ({ uid, worksheet_id }) => {
+  if (!uid || !worksheet_id) throw new Error("uid and worksheet_id are required");
+  const response = await api({
+    url: `${ENDPOINTS.DELETE_WORKSHEET}/${uid}/${worksheet_id}`,
+    method: "DELETE",
+  });
+  return response.data;
+};
+
 export const getAnswerKey = async (answerKeyId, uid) => {
   if (!answerKeyId) return null; // ✅ SAFE
 
@@ -132,6 +141,15 @@ export const getLessonPlan = async (uid) => {
   return response.data;
 };
 
+export const deleteLessonPlan = async ({ lesson_plan_id }) => {
+  if (!lesson_plan_id) throw new Error("lesson_plan_id is required");
+  const response = await api({
+    url: `${ENDPOINTS.DELETE_LESSON_PLAN}/${lesson_plan_id}`,
+    method: "DELETE",
+  });
+  return response.data;
+};
+
 // Chat Management Functions
 export const createChat = async (data) => {
   const response = await api({
@@ -159,6 +177,33 @@ export const getChatDetails = async (uid, chatId) => {
   const response = await api({
     url: `${ENDPOINTS.GET_CHAT_DETAILS}/${uid}/${chatId}`,
     method: "GET",
+  });
+  return response.data;
+};
+
+export const deleteChat = async ({ uid, chatId }) => {
+  if (!uid || !chatId) throw new Error("User ID and Chat ID are required");
+  const response = await api({
+    url: `${ENDPOINTS.DELETE_CHAT}/${uid}/${chatId}`,
+    method: "DELETE",
+  });
+  return response.data;
+};
+
+export const deleteChatMessage = async ({ uid, message_id }) => {
+  if (!uid || !message_id) throw new Error("uid and message_id are required");
+  const response = await api({
+    url: `${ENDPOINTS.DELETE_CHAT_MESSAGE}/${uid}/${message_id}`,
+    method: "DELETE",
+  });
+  return response.data;
+};
+
+export const deleteAnswerKey = async ({ uid, answer_key_id }) => {
+  if (!uid || !answer_key_id) throw new Error("uid and answer_key_id are required");
+  const response = await api({
+    url: `${ENDPOINTS.DELETE_ANSWER_KEY}/${uid}/${answer_key_id}`,
+    method: "DELETE",
   });
   return response.data;
 };

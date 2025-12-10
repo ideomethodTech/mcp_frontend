@@ -21,6 +21,11 @@ import {
   getAllTestPapers,
   getTestPaperAnswers,
   testTestPaperAPI,
+  deleteWorksheet,
+  deleteLessonPlan,
+  deleteChat,
+  deleteChatMessage,
+  deleteAnswerKey,
 } from "./queryFunctions";
 
 // AI Generation Hooks
@@ -65,6 +70,12 @@ export const useCreateWorksheet = (options) =>
     ...options,
   });
 
+export const useDeleteWorksheet = (options) =>
+  useMutation({
+    mutationFn: deleteWorksheet,
+    ...options,
+  });
+
 export const useUserWorksheet = (uid, options = {}) =>
   useQuery({
     queryKey: ["ws", uid],
@@ -97,6 +108,12 @@ export const useCreateLessonPlan = (options) =>
     ...options,
   });
 
+export const useDeleteLessonPlan = (options) =>
+  useMutation({
+    mutationFn: deleteLessonPlan,
+    ...options,
+  });
+
 export const useUserLessonPlan = (uid, options = {}) =>
   useQuery({
     queryKey: ["lp", uid],
@@ -110,6 +127,24 @@ export const useUserLessonPlan = (uid, options = {}) =>
 export const useCreateChat = (options) =>
   useMutation({
     mutationFn: createChat,
+    ...options,
+  });
+
+export const useDeleteChat = (options) =>
+  useMutation({
+    mutationFn: deleteChat,
+    ...options,
+  });
+
+export const useDeleteChatMessage = (options) =>
+  useMutation({
+    mutationFn: deleteChatMessage,
+    ...options,
+  });
+
+export const useDeleteAnswerKey = (options) =>
+  useMutation({
+    mutationFn: deleteAnswerKey,
     ...options,
   });
 
@@ -128,6 +163,7 @@ export const useChatDetails = (uid, chatId, options) =>
     queryFn: () => getChatDetails(uid, chatId),
     enabled: Boolean(uid && chatId),
     ...options,
+    staleTime: 0,
   });
 
 // Authentication Hooks
