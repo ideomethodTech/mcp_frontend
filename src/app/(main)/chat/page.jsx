@@ -206,7 +206,10 @@ function ChatInterface({ chatSession, setChatSession }) {
                 }
               }}
             />
-            <Button className="bg-gradient-to-r from-primary to-accent hover:opacity-90 transition-opacity px-6">
+            <Button 
+            className="bg-gradient-to-r from-primary to-accent hover:opacity-90 transition-opacity px-6" 
+            onClick={() => handleSendMessage(input)}
+            >
               <Send className="h-4 w-4" onClick={() => handleSendMessage(input)} />
             </Button>
           </div>
