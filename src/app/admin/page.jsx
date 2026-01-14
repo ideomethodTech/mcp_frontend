@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -21,8 +21,6 @@ import { useToast } from "@/hooks/use-toast";
 import { useUploadBook, useGetBook } from "@/lib/api/queries";
 import { useAuth } from "@/contexts/auth-context";
 import { useQueryClient } from "@tanstack/react-query";
-import { storage } from "@/lib/firebase"; // Import your Firebase storage instance
-import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
 
 export default function AdminDashboardPage() {
   const queryClient = useQueryClient();
@@ -32,6 +30,8 @@ export default function AdminDashboardPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
+  const [firebaseLoaded, setFirebaseLoaded] = useState(false);
+  const [firebaseStorage, setFirebaseStorage] = useState(null);
 
   const uploadMutation = useUploadBook({
     onSuccess: () => {
@@ -56,6 +56,30 @@ export default function AdminDashboardPage() {
 
   const booksQuery = useGetBook();
   const { user } = useAuth();
+
+  // Dynamically import Firebase only on client side
+  useEffect(() => {
+    const loadFirebase = async () => {
+      try {
+        const { storage } = await import("@/lib/firebase");
+        const { ref, uploadBytesResumable, getDownloadURL } = await import("firebase/storage");
+        
+        if (storage) {
+          setFirebaseStorage({ storage, ref, uploadBytesResumable, getDownloadURL });
+          setFirebaseLoaded(true);
+        }
+      } catch (error) {
+        console.error("Failed to load Firebase:", error);
+        toast({
+          title: "Firebase initialization failed",
+          description: "File upload functionality may not work",
+          variant: "destructive",
+        });
+      }
+    };
+    
+    loadFirebase();
+  }, [toast]);
 
   const handleFileChange = (e) => {
     const file = e.target.files?.[0];
@@ -93,9 +117,20 @@ export default function AdminDashboardPage() {
       return;
     }
 
+    if (!firebaseLoaded || !firebaseStorage) {
+      toast({
+        title: "Firebase not ready",
+        description: "Please wait for Firebase to initialize",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsUploading(true);
 
     try {
+      const { storage, ref, uploadBytesResumable, getDownloadURL } = firebaseStorage;
+      
       // Create a unique filename
       const timestamp = Date.now();
       const fileName = `books/${uid}/${timestamp}_${bookFile.name}`;
@@ -124,7 +159,8 @@ export default function AdminDashboardPage() {
         async () => {
           // Upload completed successfully, get download URL
           try {
-            const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+            const { getDownloadURL: getURL } = firebaseStorage;
+            const downloadURL = await getURL(uploadTask.snapshot.ref);
             
             // Now call the backend API with the Firebase URL
             uploadMutation.mutate({
