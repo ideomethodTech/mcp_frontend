@@ -21,7 +21,6 @@ import { Logo } from "./icons";
 export function Header() {
   const { user, signOut } = useAuth();
   const pathname = usePathname();
-  console.log(user)
 
   const handleLogout = async () => {
     try {
@@ -30,17 +29,13 @@ export function Header() {
       console.error("Error logging out:", error);
     }
   };
-
-  const userInitials = user
-    ? user?.user.username
-        .split(" ")
-        .map((n) => n[0])
-        .join("")
-        .toUpperCase()
-    : user?.user.email[0]?.toUpperCase() || "U";
-
-  console.log(user.user.username);
-  console.log(user.user.email);
+  const userInitials = user?.user?.username
+    ? user.user.username
+      .split(" ")
+      .map((n) => n[0])
+      .join("")
+      .toUpperCase()
+    : user?.user?.email?.[0]?.toUpperCase() || "U";
   return (
     <header className="flex h-16 items-center justify-between  border-b bg-white px-6">
       {/* Logo and Branding */}
@@ -65,9 +60,8 @@ export function Header() {
                     <Link
                       key={item.href}
                       href={item.href}
-                      className={`flex items-center gap-2 p-2 rounded-md transition-colors ${
-                        isActive ? "bg-blue-50 text-blue-600" : "text-gray-900 hover:bg-gray-50"
-                      }`}
+                      className={`flex items-center gap-2 p-2 rounded-md transition-colors ${isActive ? "bg-blue-50 text-blue-600" : "text-gray-900 hover:bg-gray-50"
+                        }`}
                     >
                       <item.icon className="w-4 h-4" />
                     </Link>

@@ -10,8 +10,8 @@ import { ArrowRight, Sparkles } from 'lucide-react';
 import { TOOLS } from '@/lib/constants';
 
 export default function DashboardPage() {
-  // Filter to show only the first 3 tools in the Explore Tools section
-  const featuredTools = TOOLS.slice(0, 3);
+
+
 
   return (
     <div className="p-8 space-y-12 bg-white min-h-screen">
