@@ -14,9 +14,11 @@ const History = ({
   deletingId,
 }) => {
 
-  const historyItem = ({ index, item, selectedItem, setSelectedItem }) => {
+  const historyItem = ({ item, selectedItem, setSelectedItem }) => {
+    const isSelected = selectedItem?.id === item.id;
+
     return (
-      <div key={index} className="flex items-start gap-2">
+      <div className="flex items-start gap-2 w-full">
         <button
           onClick={() => {
             isChat ? setSelectedItem({
@@ -26,25 +28,28 @@ const History = ({
             }) :
               setSelectedItem(item)
           }}
-          className={`w-full text-left p-2 rounded-lg border ${selectedItem === item.id
-            ? 'bg-primary/10 border-primary'
-            : 'hover:bg-muted/50'
+          className={`w-full text-left p-2 rounded-lg border transition-all ${isSelected
+              ? 'bg-primary/10 border-primary shadow-sm'
+              : 'hover:bg-muted/50 border-transparent'
             }`}
         >
           <div className="flex justify-between items-center text-xs text-muted-foreground mb-1">
-            <File className="text-xs text-muted-foreground mt-1" />
-            <span>  {item.created_at}
-            </span>
+            <div className="flex items-center gap-1">
+              <File className="h-3 w-3" />
+              <span>{item.created_at}</span>
+            </div>
           </div>
-          <p className="font-medium text-foreground text-sm mb-1 truncate">{item.title ? item.title : item.chapter}</p>
+          <p className="font-medium text-foreground text-sm mb-1 truncate">
+            {item.title || item.chapter || 'Untitled'}
+          </p>
           <p className="text-xs text-muted-foreground truncate">
-            {item.book ? item.book : (item?.content?.worksheet ? item?.content?.worksheet.title : item?.content?.lesson_plan?.title)}
+            {item.book || (item?.content?.worksheet?.title || item?.content?.lesson_plan?.title || 'No book specified')}
           </p>
         </button>
         {onDelete && (
           <button
             aria-label="Delete"
-            className="p-2 text-muted-foreground hover:text-destructive"
+            className="p-2 text-muted-foreground hover:text-destructive transition-colors"
             onClick={() => onDelete(item)}
             disabled={deletingId === item.id}
           >
@@ -58,19 +63,35 @@ const History = ({
       </div>
     )
   }
+
   return (
     <div className="lg:col-span-1">
-      <div className="rounded-2xl border border-border bg-card p-6 shadow-[var(--shadow-md)]">
-        <Button className="w-full mb-4 bg-gradient-to-r from-primary to-accent hover:opacity-90 transition-opacity" variant="outline" onClick={() => setSelectedItem(null)}>
-          <Plus className="h-4 w-4 mr-2" /> <p>{item ? `New ${item}` : 'New worksheet'}</p>
+      <div className="rounded-2xl border border-border bg-card p-6 shadow-lg h-full max-h-[700px] flex flex-col">
+        <Button
+          className="w-full mb-6 bg-gradient-to-r from-primary to-accent hover:opacity-90 transition-all shadow-md"
+          variant="default"
+          onClick={() => setSelectedItem(null)}
+        >
+          <Plus className="h-4 w-4 mr-2" />
+          <span>{item ? `New ${item}` : 'New Worksheet'}</span>
         </Button>
-        <div className="space-y-2 max-h-[500px] overflow-y-auto pr-1">
-          <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">
-            History
-          </p>
-              {historyData?.length !== 0 && historyData?.map((item, index) => (
-            historyItem({ index, item: item, selectedItem, setSelectedItem, isChat })
-          ))}
+
+        <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-4">
+          History
+        </p>
+
+        <div className="space-y-3 overflow-y-auto pr-2 custom-scrollbar flex-1">
+          {historyData && historyData.length > 0 ? (
+            historyData.map((item, index) => (
+              <React.Fragment key={item.id || `history-${index}`}>
+                {historyItem({ item, selectedItem, setSelectedItem, isChat })}
+              </React.Fragment>
+            ))
+          ) : (
+            <div className="text-center py-10">
+              <p className="text-sm text-muted-foreground italic">No history yet</p>
+            </div>
+          )}
         </div>
       </div>
     </div>

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { MessageSquare, Send, Loader2, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -73,7 +73,7 @@ export const ChatInterface = ({ chatSession }) => {
         },
     });
 
-    const handleSendMessage = () => {
+    const handleSendMessage = useCallback(() => {
         const prompt = input.trim();
         if (!prompt) return;
 
@@ -84,13 +84,13 @@ export const ChatInterface = ({ chatSession }) => {
         });
 
         setInput("");
-    };
+    }, [input, chatSession.id, chatSession.uid, generateContentMutation]);
 
-    const handleDeleteMessage = (messageId) => {
+    const handleDeleteMessage = useCallback((messageId) => {
         if (!chatSession?.id || !messageId) return;
         setDeletingMessageId(messageId);
         deleteChatMessageMutation({ uid: chatSession.uid, message_id: messageId });
-    };
+    }, [chatSession.id, chatSession.uid, deleteChatMessageMutation]);
 
     return (
         <div className="lg:col-span-3">

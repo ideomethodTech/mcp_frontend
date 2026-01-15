@@ -1,4 +1,6 @@
-import { useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
 import { BookOpen, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -15,16 +17,36 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import {
+    Form,
+    FormControl,
+    FormField,
+    FormItem,
+    FormLabel,
+    FormMessage,
+} from '@/components/ui/form';
+
+const formSchema = z.object({
+    bookId: z.string().min(1, "Please select a book"),
+    chapter: z.string().min(1, "Please select a chapter"),
+});
 
 export const LessonPlanForm = ({ onGenerate, data }) => {
-    const [selectedBookId, setSelectedBookId] = useState("");
-    const [selectedChapter, setSelectedChapter] = useState("");
+    const form = useForm({
+        resolver: zodResolver(formSchema),
+        defaultValues: {
+            bookId: "",
+            chapter: "",
+        },
+    });
 
+    const selectedBookId = form.watch("bookId");
     const selectedBook = data?.find(book => book.id === selectedBookId);
 
-    const handleGenerate = () => {
-        if (selectedBook && selectedChapter) {
-            onGenerate(selectedBook, selectedChapter);
+    const onSubmit = (values) => {
+        const book = data?.find(book => book.id === values.bookId);
+        if (book) {
+            onGenerate(book, values.chapter);
         }
     };
 
@@ -43,52 +65,79 @@ export const LessonPlanForm = ({ onGenerate, data }) => {
                             Choose a book and chapter to generate a structured AI lesson plan.
                         </CardDescription>
                     </CardHeader>
-                    <CardContent className="space-y-6">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div className="space-y-2">
-                                <label className="text-sm font-medium">Select Book</label>
-                                <Select onValueChange={setSelectedBookId} value={selectedBookId}>
-                                    <SelectTrigger className="h-12">
-                                        <SelectValue placeholder="Choose a book" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {data?.map((book) => (
-                                            <SelectItem key={book.id} value={book.id}>
-                                                {book.book_name}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            </div>
+                    <CardContent>
+                        <Form {...form}>
+                            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <FormField
+                                        control={form.control}
+                                        name="bookId"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>Select Book</FormLabel>
+                                                <Select
+                                                    onValueChange={(val) => {
+                                                        field.onChange(val);
+                                                        form.setValue("chapter", ""); // Reset chapter when book changes
+                                                    }}
+                                                    value={field.value}
+                                                >
+                                                    <FormControl>
+                                                        <SelectTrigger className="h-12 text-foreground">
+                                                            <SelectValue placeholder="Choose a book" />
+                                                        </SelectTrigger>
+                                                    </FormControl>
+                                                    <SelectContent>
+                                                        {data?.map((book) => (
+                                                            <SelectItem key={book.id} value={book.id}>
+                                                                {book.book_name}
+                                                            </SelectItem>
+                                                        ))}
+                                                    </SelectContent>
+                                                </Select>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
 
-                            <div className="space-y-2">
-                                <label className="text-sm font-medium">Select Chapter</label>
-                                <Select
-                                    onValueChange={setSelectedChapter}
-                                    value={selectedChapter}
-                                    disabled={!selectedBookId}
+                                    <FormField
+                                        control={form.control}
+                                        name="chapter"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>Select Chapter</FormLabel>
+                                                <Select
+                                                    onValueChange={field.onChange}
+                                                    value={field.value}
+                                                    disabled={!selectedBookId}
+                                                >
+                                                    <FormControl>
+                                                        <SelectTrigger className="h-12 text-foreground">
+                                                            <SelectValue placeholder="Choose a chapter" />
+                                                        </SelectTrigger>
+                                                    </FormControl>
+                                                    <SelectContent>
+                                                        {selectedBook?.chapters?.map((chapter) => (
+                                                            <SelectItem key={chapter} value={chapter}>
+                                                                {chapter}
+                                                            </SelectItem>
+                                                        ))}
+                                                    </SelectContent>
+                                                </Select>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                </div>
+
+                                <Button
+                                    type="submit"
+                                    className="w-full h-12 text-lg font-semibold bg-gradient-to-r from-primary to-accent hover:opacity-90 transition-all shadow-md active:scale-[0.98]"
                                 >
-                                    <SelectTrigger className="h-12">
-                                        <SelectValue placeholder="Choose a chapter" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {selectedBook?.chapters?.map((chapter) => (
-                                            <SelectItem key={chapter} value={chapter}>
-                                                {chapter}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                        </div>
-
-                        <Button
-                            onClick={handleGenerate}
-                            className="w-full h-12 text-lg font-semibold bg-gradient-to-r from-primary to-accent hover:opacity-90 transition-all"
-                            disabled={!selectedBookId || !selectedChapter}
-                        >
-                            <Sparkles className="mr-2 h-5 w-5" /> Generate Lesson Plan
-                        </Button>
+                                    <Sparkles className="mr-2 h-5 w-5" /> Generate Lesson Plan
+                                </Button>
+                            </form>
+                        </Form>
                     </CardContent>
                 </Card>
             </div>

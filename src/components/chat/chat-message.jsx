@@ -1,7 +1,8 @@
+import { memo } from 'react';
 import { cn } from '@/lib/utils';
 import { Skeleton } from '@/components/ui/skeleton';
 
-export const ChatMessage = ({ isUser = false, content, isLoading = false }) => {
+export const ChatMessage = memo(({ isUser = false, content, isLoading = false }) => {
     return (
         <div
             className={cn(
@@ -36,4 +37,6 @@ export const ChatMessage = ({ isUser = false, content, isLoading = false }) => {
             )}
         </div>
     );
-};
+});
+
+ChatMessage.displayName = 'ChatMessage';
