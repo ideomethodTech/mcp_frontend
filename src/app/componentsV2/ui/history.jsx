@@ -29,8 +29,8 @@ const History = ({
               setSelectedItem(item)
           }}
           className={`w-full text-left p-2 rounded-lg border transition-all ${isSelected
-              ? 'bg-primary/10 border-primary shadow-sm'
-              : 'hover:bg-muted/50 border-transparent'
+            ? 'bg-primary/10 border-primary shadow-sm'
+            : 'hover:bg-muted/50 border-transparent'
             }`}
         >
           <div className="flex justify-between items-center text-xs text-muted-foreground mb-1">
@@ -43,7 +43,7 @@ const History = ({
             {item.title || item.chapter || 'Untitled'}
           </p>
           <p className="text-xs text-muted-foreground truncate">
-            {item.book || (item?.content?.worksheet?.title || item?.content?.lesson_plan?.title || 'No book specified')}
+            {item.book || item.chat_title || (item?.content?.worksheet?.title || item?.content?.lesson_plan?.title || 'Learning Material')}
           </p>
         </button>
         {onDelete && (

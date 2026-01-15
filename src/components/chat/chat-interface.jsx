@@ -77,13 +77,13 @@ export const ChatInterface = ({ chatSession }) => {
         const prompt = input.trim();
         if (!prompt) return;
 
+        setInput(""); // Clear input immediately for better UX
+
         generateContentMutation({
             chat_id: chatSession.id,
             uid: chatSession.uid,
             prompt,
         });
-
-        setInput("");
     }, [input, chatSession.id, chatSession.uid, generateContentMutation]);
 
     const handleDeleteMessage = useCallback((messageId) => {

@@ -184,7 +184,7 @@ export const getChatDetails = async (uid, chatId) => {
 export const deleteChat = async ({ uid, chatId }) => {
   if (!uid || !chatId) throw new Error("User ID and Chat ID are required");
   const response = await api({
-    url: `${ENDPOINTS.DELETE_CHAT}/${uid}/${chatId}`,
+    url: `${ENDPOINTS.DELETE_CHAT}/${chatId}`,
     method: "DELETE",
   });
   return response.data;
