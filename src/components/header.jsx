@@ -29,13 +29,16 @@ export function Header() {
       console.error("Error logging out:", error);
     }
   };
-  const userInitials = user?.user?.username
-    ? user.user.username
+  const userName = user?.displayName || user?.username || user?.user?.username;
+  const userEmail = user?.email || user?.user?.email;
+
+  const userInitials = userName
+    ? userName
       .split(" ")
       .map((n) => n[0])
       .join("")
       .toUpperCase()
-    : user?.user?.email?.[0]?.toUpperCase() || "U";
+    : userEmail?.[0]?.toUpperCase() || "U";
   return (
     <header className="flex h-16 items-center justify-between  border-b bg-white px-6">
       {/* Logo and Branding */}
@@ -77,8 +80,8 @@ export function Header() {
         {/* User Info */}
         <div className="flex items-center gap-3">
           <div className="flex flex-col items-end">
-            <span className="text-sm font-medium text-gray-900">{user?.user.username || "Demo User"}</span>
-            <span className="text-xs text-gray-500">{user?.user.email || "demo@aihub.com"}</span>
+            <span className="text-sm font-medium text-gray-900">{userName || "Demo User"}</span>
+            <span className="text-xs text-gray-500">{userEmail || "demo@aihub.com"}</span>
           </div>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -90,8 +93,8 @@ export function Header() {
             <DropdownMenuContent align="end">
               <DropdownMenuLabel>
                 <div className="flex flex-col space-y-1">
-                  <p className="text-sm font-medium leading-none">{user?.displayName || "User"}</p>
-                  <p className="text-xs leading-none text-muted-foreground">{user?.email}</p>
+                  <p className="text-sm font-medium leading-none">{userName || "User"}</p>
+                  <p className="text-xs leading-none text-muted-foreground">{userEmail}</p>
                 </div>
               </DropdownMenuLabel>
               <DropdownMenuSeparator />

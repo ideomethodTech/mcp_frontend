@@ -15,6 +15,7 @@ import useApiStore from "@/store/useApiStore";
 import { toast } from "react-toastify";
 import * as z from "zod";
 import { BookChapterForm } from "@/components/ui/BookChapterForm";
+import { ToolPageLayout } from "@/components/layout/tool-page-layout";
 
 const testPaperFormSchema = z.object({
   book: z.string().nonempty("Please select a book."),
@@ -164,194 +165,162 @@ export default function TestPaperPage() {
   }, [testPaperId, userTestPapers]);
 
   return (
-    <div className="max-w-7xl mx-auto my-5 space-y-6">
-      {/* Header */}
-      <div className="relative overflow-hidden rounded-3xl border border-border bg-gradient-to-br from-primary/10 via-accent/10 to-primary/5 p-8 shadow-[var(--shadow-lg)]">
-        <div className="relative flex items-center gap-4">
-          <div className="p-3 rounded-xl bg-gradient-to-br from-primary to-accent shadow-[var(--shadow-glow)]">
-            <FileText className="h-8 w-8 text-white" />
-          </div>
-          <div>
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-              {navItem.title}
-            </h1>
-            <p className="text-muted-foreground mt-1 text-lg">{navItem.description}</p>
-          </div>
-        </div>
-      </div>
-
-      {/* Main Content Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        {/* History Sidebar */}
-        <History
-          item={navItem.itemtype || "Test Paper"}
-          historyData={userTestPapers?.content || []}
-          selectedItem={selectedTestPaper}
-          setSelectedItem={(item) => {
-            setSelectedTestPaper(item);
-            setIsNewTestPaper(false);
-          }}
-          isLoading={testPapersLoading}
+    <ToolPageLayout
+      title={navItem.title}
+      description={navItem.description}
+      icon={FileText}
+      isLoading={generatingTestPaper}
+      loadingTitle="Generating Test Paper..."
+      loadingDescription="Creating questions, setting marks, and formatting your test paper."
+      historyProps={{
+        item: navItem.itemtype || "Test Paper",
+        historyData: userTestPapers?.content || [],
+        selectedItem: selectedTestPaper,
+        setSelectedItem: (item) => {
+          setSelectedTestPaper(item);
+          setIsNewTestPaper(false);
+        },
+        isLoading: testPapersLoading,
+      }}
+    >
+      {selectedTestPaper ? (
+        <TestPaperItem
+          item={selectedTestPaper}
+          bookId={selectedTestPaper.book_id}
+          isNew={false}
+          testPaperId={selectedTestPaper.id}
         />
-
-        {/* Test Paper Content Area */}
-        {generatingTestPaper ? (
-          <div className="lg:col-span-3">
-            <div className="flex flex-col items-center justify-center min-h-[500px]">
-              <div className="w-full max-w-2xl">
-                <div className="text-center">
-                  <Loader2 className="mx-auto h-12 w-12 animate-spin text-primary mb-4" />
-                  <h3 className="text-lg font-medium text-foreground">Generating Test Paper...</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Creating questions, setting marks, and formatting your test paper.
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-        ) : selectedTestPaper ? (
-          <div className="lg:col-span-3">
-            <TestPaperItem
-              item={selectedTestPaper}
-              bookId={selectedTestPaper.book_id}
-              isNew={false}
-              testPaperId={selectedTestPaper.id}
-            />
-          </div>
-        ) : testPaperData ? (
-          <div className="lg:col-span-3">
-            <TestPaperItem
-              item={testPaperData}
-              bookId={selectedBookId}
-              isNew={isNewTestPaper}
-              testPaperId={currentTestPaperId}
-            />
-          </div>
-        ) : (
-          <BookChapterForm
-            onGenerate={(book, values) => handleGenerate(book, values)}
-            pageHeaderTitle="Test Papers"
-            pageHeaderDescription="Create formal assessments"
-            pageHeaderIcon={FileText}
-            buttonText="Generate Test Paper"
-            isLoading={generatingTestPaper}
-            formSchema={testPaperFormSchema}
-            defaultValues={{
-              book: "",
-              chapter: "",
-              class: "",
-              subject: "",
-              total_marks: "",
-              duration: "",
-            }}
-            extraFields={(control) => (
-              <>
-                {/* Class/Grade */}
-                <FormField
-                  control={control}
-                  name="class"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Class/Grade</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select class" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {["5", "6", "7", "8", "9", "10", "11", "12"].map((grade) => (
-                            <SelectItem key={grade} value={grade}>
-                              Grade {grade}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                {/* Subject */}
-                <FormField
-                  control={control}
-                  name="subject"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Subject</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select subject" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {[
-                            "Science",
-                            "Mathematics",
-                            "Physics",
-                            "Chemistry",
-                            "Biology",
-                            "English",
-                            "History",
-                            "Geography",
-                          ].map((subject) => (
-                            <SelectItem key={subject} value={subject}>
-                              {subject}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                {/* Total Marks */}
-                <FormField
-                  control={control}
-                  name="total_marks"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Total Marks</FormLabel>
+      ) : testPaperData ? (
+        <TestPaperItem
+          item={testPaperData}
+          bookId={selectedBookId}
+          isNew={isNewTestPaper}
+          testPaperId={currentTestPaperId}
+        />
+      ) : (
+        <BookChapterForm
+          onGenerate={(book, values) => handleGenerate(book, values)}
+          pageHeaderTitle="Test Papers"
+          pageHeaderDescription="Create formal assessments"
+          pageHeaderIcon={FileText}
+          buttonText="Generate Test Paper"
+          isLoading={generatingTestPaper}
+          formSchema={testPaperFormSchema}
+          defaultValues={{
+            book: "",
+            chapter: "",
+            class: "",
+            subject: "",
+            total_marks: "",
+            duration: "",
+          }}
+          extraFields={(control) => (
+            <>
+              {/* Class/Grade */}
+              <FormField
+                control={control}
+                name="class"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Class/Grade</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
                       <FormControl>
-                        <Input {...field} placeholder="e.g., 100" />
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select class" />
+                        </SelectTrigger>
                       </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                      <SelectContent>
+                        {["5", "6", "7", "8", "9", "10", "11", "12"].map((grade) => (
+                          <SelectItem key={grade} value={grade}>
+                            Grade {grade}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-                {/* Duration */}
-                <FormField
-                  control={control}
-                  name="duration"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Duration</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select duration" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {["30 minutes", "1 hour", "1.5 hours", "2 hours", "2.5 hours", "3 hours"].map((duration) => (
-                            <SelectItem key={duration} value={duration}>
-                              {duration}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </>
-            )}
-          />
-        )}
-      </div>
-    </div>
+              {/* Subject */}
+              <FormField
+                control={control}
+                name="subject"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Subject</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select subject" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {[
+                          "Science",
+                          "Mathematics",
+                          "Physics",
+                          "Chemistry",
+                          "Biology",
+                          "English",
+                          "History",
+                          "Geography",
+                        ].map((subject) => (
+                          <SelectItem key={subject} value={subject}>
+                            {subject}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {/* Total Marks */}
+              <FormField
+                control={control}
+                name="total_marks"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Total Marks</FormLabel>
+                    <FormControl>
+                      <Input {...field} placeholder="e.g., 100" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {/* Duration */}
+              <FormField
+                control={control}
+                name="duration"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Duration</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select duration" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {["30 minutes", "1 hour", "1.5 hours", "2 hours", "2.5 hours", "3 hours"].map((duration) => (
+                          <SelectItem key={duration} value={duration}>
+                            {duration}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </>
+          )}
+        />
+      )}
+    </ToolPageLayout>
   );
 }

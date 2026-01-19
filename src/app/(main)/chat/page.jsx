@@ -14,7 +14,8 @@ import {
   useUserChats
 } from '@/lib/api/queries';
 import { useAuth } from '@/contexts/auth-context';
-import { getNavItemByUrl } from '@/app/utils';
+import { getNavItemByUrl } from "@/app/utils";
+import { ToolPageLayout } from "@/components/layout/tool-page-layout";
 import useApiStore from '@/store/useApiStore';
 
 // New Components
@@ -92,65 +93,35 @@ export default function ChatPage() {
   };
 
   return (
-    <div className="max-w-7xl mx-auto my-5 space-y-6 px-4">
-      {/* Header Section */}
-      <div className="relative overflow-hidden rounded-3xl border border-border bg-gradient-to-br from-primary/10 via-accent/10 to-primary/5 p-8 shadow-lg">
-        <div className="relative flex items-center gap-4">
-          <div className="p-3 rounded-xl bg-gradient-to-br from-primary to-accent shadow-glow">
-            <FileText className="h-8 w-8 text-white" />
-          </div>
-          <div>
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-              {navItem?.title || 'Chat with Book'}
-            </h1>
-            <p className="text-muted-foreground mt-1 text-lg">
-              {navItem?.description || 'Engage in real-time conversations with your learning materials.'}
-            </p>
-          </div>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        {/* Sidebar History */}
-        <History
-          item={navItem?.itemtype || 'Chat'}
-          selectedItem={selectedChat}
-          setSelectedItem={setSelectedChat}
-          historyData={userChats?.chats || []}
-          isChat={true}
-          onDelete={handleDeleteChat}
-          deletingId={deletingId}
+    <ToolPageLayout
+      title={navItem?.title || 'Chat with Book'}
+      description={navItem?.description || 'Engage in real-time conversations with your learning materials.'}
+      icon={FileText}
+      isLoading={creatingChat || messagesLoading}
+      loadingTitle="Loading conversation..."
+      loadingDescription="Please wait a moment."
+      historyProps={{
+        item: navItem?.itemtype || 'Chat',
+        selectedItem: selectedChat,
+        setSelectedItem: setSelectedChat,
+        historyData: userChats?.chats || [],
+        isChat: true,
+        onDelete: handleDeleteChat,
+        deletingId: deletingId,
+      }}
+    >
+      {selectedChat ? (
+        <ChatInterface
+          chatSession={{
+            id: selectedChat.id,
+            book: selectedChat?.chat_title,
+            messages: chatMessages?.messages || [],
+            uid: uid,
+          }}
         />
-
-        {/* Main Content Area */}
-        <div className="lg:col-span-3">
-          {creatingChat || messagesLoading ? (
-            <div className="flex flex-col items-center justify-center h-[600px] bg-card rounded-2xl border border-border">
-              <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
-              <h3 className="text-lg font-medium">Loading conversation...</h3>
-              <p className="text-sm text-muted-foreground">Please wait a moment.</p>
-            </div>
-          ) : selectedChat ? (
-            <ChatInterface
-              chatSession={{
-                id: selectedChat.id,
-                book: selectedChat?.chat_title,
-                messages: chatMessages?.messages || [],
-                uid: uid,
-              }}
-            />
-          ) : bookLoading ? (
-            <div className="flex items-center justify-center h-[600px]">
-              <Loader2 className="h-10 w-10 animate-spin text-primary" />
-            </div>
-          ) : (
-            <NewChatForm
-              onStartChat={handleStartChat}
-              data={bookData?.content}
-            />
-          )}
-        </div>
-      </div>
-    </div>
+      ) : (
+        <NewChatForm onStartChat={handleStartChat} data={bookData?.content} />
+      )}
+    </ToolPageLayout>
   );
 }

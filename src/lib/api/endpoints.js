@@ -22,7 +22,7 @@ const ENDPOINTS = {
   DELETE_WORKSHEET: "/worksheet", // DELETE /worksheet/{uid}/{worksheet_id}
 
   // Lesson Plan
-  GET_USER_LESSON_PLAN: "lesson_plan/get_lesson_plan",
+  GET_USER_LESSON_PLAN: "/lesson_plan/get_lesson_plan",
   DELETE_LESSON_PLAN: "/lesson_plan", // DELETE /lesson_plan/{lesson_plan_id}
 
   // Answer key

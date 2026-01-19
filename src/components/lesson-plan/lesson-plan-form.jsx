@@ -88,8 +88,8 @@ export const LessonPlanForm = ({ onGenerate, data }) => {
                                                         </SelectTrigger>
                                                     </FormControl>
                                                     <SelectContent>
-                                                        {data?.map((book) => (
-                                                            <SelectItem key={book.id} value={book.id}>
+                                                        {data?.map((book, index) => (
+                                                            <SelectItem key={book.id || book.book_id || index} value={book.id || book.book_id}>
                                                                 {book.book_name}
                                                             </SelectItem>
                                                         ))}
@@ -117,8 +117,8 @@ export const LessonPlanForm = ({ onGenerate, data }) => {
                                                         </SelectTrigger>
                                                     </FormControl>
                                                     <SelectContent>
-                                                        {selectedBook?.chapters?.map((chapter) => (
-                                                            <SelectItem key={chapter} value={chapter}>
+                                                        {selectedBook?.chapters?.map((chapter, index) => (
+                                                            <SelectItem key={index} value={chapter}>
                                                                 {chapter}
                                                             </SelectItem>
                                                         ))}

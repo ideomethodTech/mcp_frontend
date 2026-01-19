@@ -3,16 +3,15 @@
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
-import { KeyRound, Loader2, BookOpen, FileText, Key } from "lucide-react";
+import { getNavItemByUrl } from "@/app/utils";
+import { ToolPageLayout } from "@/components/layout/tool-page-layout";
+import { KeyRound, CheckCircle2, ChevronDown, Download, Printer } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import History from "@/app/componentsV2/ui/history";
 import { usePathname, useSearchParams } from "next/navigation";
-import { getNavItemByUrl } from "@/app/utils";
 import {
   useGetAllAnswerKeys,
   useGetAnswerKeyById,
@@ -25,6 +24,7 @@ import { useAuth } from "@/contexts/auth-context";
 import { useToast } from "@/hooks/use-toast";
 import React from "react";
 import { useQueryClient } from "@tanstack/react-query";
+import * as z from "zod";
 
 const formSchema = z.object({
   book: z.string().nonempty("Please select a book."),
@@ -425,47 +425,42 @@ export default function AnswerKeyPage() {
   };
 
   return (
-    <div className="max-w-7xl mx-auto my-5 space-y-6">
-      {/* HEADER */}
-      <div className="relative overflow-hidden rounded-3xl border border-border bg-gradient-to-br from-primary/10 via-accent/10 to-primary/5 p-8 shadow-[var(--shadow-lg)]">
-        <div className="relative flex items-center gap-4">
-          <div className="p-3 rounded-xl bg-gradient-to-br from-primary to-accent shadow-[var(--shadow-glow)]">
-            <FileText className="h-8 w-8 text-white" />
-          </div>
-          <div>
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-              Answer Key Generator
-            </h1>
-            <p className="text-muted-foreground mt-1 text-lg">
-              Automatically generate answer keys for your worksheets.
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* MAIN GRID */}
-      {isLoading ? (
-        <div className="flex items-center justify-center h-64">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </div>
+    <ToolPageLayout
+      title={navItem.title}
+      description={navItem.description}
+      icon={KeyRound}
+      isLoading={isGenerating}
+      loadingTitle="Generating Answer Key..."
+      loadingDescription="Please wait while the AI prepares the answers."
+      historyProps={{
+        item: navItem.itemtype || "Answer Key",
+        historyData: allAnswerKeys?.content || [],
+        selectedItem: selectedItem,
+        setSelectedItem: (item) => {
+          setSelectedItem(item);
+          setIsNew(false);
+        },
+        isLoading: isLoadingHistory,
+        onDelete: (item) => deleteAnswerKey({ uid, answer_key_id: item.id }),
+      }}
+    >
+      {selectedItem ? (
+        <AnswerKeyView
+          answerKey={selectedItem}
+          isNew={false}
+          bookId={selectedItem.book_id}
+          worksheetId={selectedItem.worksheet_id}
+        />
+      ) : generatedData ? (
+        <AnswerKeyView
+          answerKey={generatedData.answer_key}
+          isNew={isNew}
+          bookId={selectedBookId}
+          worksheetId={currentAnswerKeyId}
+        />
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-          {/* HISTORY */}
-          <History
-            selectedItem={selectedItem}
-            setSelectedItem={handleHistorySelect}
-            historyData={historyData}
-            item={navItem.itemtype}
-            onDelete={handleDeleteAnswerKey}
-          />
-
-          {selectedItem ? (
-            <AnswerKeyDetails item={selectedItem} />
-          ) : (
-            <NewAnswerKeyForm onGenerate={handleGenerate} allWorksheets={allWorksheets} /> 
-          )}
-        </div>
+        <NewAnswerKeyForm onGenerate={handleGenerate} />
       )}
-    </div>
+    </ToolPageLayout>
   );
 }

@@ -81,8 +81,8 @@ export function BookChapterForm({
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            {booksData?.content?.map((book) => (
-                              <SelectItem key={book.id} value={book.id}>
+                            {booksData?.content?.map((book, index) => (
+                              <SelectItem key={book.id || book.book_id || index} value={book.id || book.book_id}>
                                 {book.book_name}
                               </SelectItem>
                             ))}
