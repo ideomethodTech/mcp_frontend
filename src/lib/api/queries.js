@@ -31,7 +31,7 @@ import {
 // AI Generation Hooks
 export const useGenerateContent = (options) =>
   useMutation({
-    mutationFn: ({ chat_id, uid, prompt }) => generateContent({ chat_id, uid, prompt }),
+    mutationFn: ({ chat_id, uid, prompt, book_id }) => generateContent({ chat_id, uid, prompt, book_id }),
     ...options,
   });
 
