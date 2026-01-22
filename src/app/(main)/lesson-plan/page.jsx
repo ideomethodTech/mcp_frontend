@@ -34,6 +34,7 @@ import {
 } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import History from '@/app/componentsV2/ui/history';
+import { ToolPageLayout } from '@/app/componentsV2/ui/tool-page-layout';
 import { usePathname } from 'next/navigation';
 import { getNavItemByUrl } from '@/app/utils';
 import { useQueryClient } from '@tanstack/react-query';
@@ -273,57 +274,23 @@ export default function LessonPlanPage() {
   // const 
   console.log("selectedworksheet", slectedLessonPlan)
   return (
-    <div className="max-w-7xl mx-auto my-5 space-y-6">
-      <div className="relative overflow-hidden rounded-3xl border border-border bg-gradient-to-br from-primary/10 via-accent/10 to-primary/5 p-8 shadow-[var(--shadow-lg)]">
-        <div className="relative flex items-center gap-4">
-          <div className="p-3 rounded-xl bg-gradient-to-br from-primary to-accent shadow-[var(--shadow-glow)]">
-            <FileText className="h-8 w-8 text-white" />
-          </div>
-          <div>
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-              {navItem.title}
-            </h1>
-            <p className="text-muted-foreground mt-1 text-lg">
-              {navItem.description}
-            </p>
-          </div>
-        </div>
-      </div>
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        {/* {History} */}
-        <History
-          item={navItem.itemtype}
-          selectedItem={slectedLessonPlan}
-          setSelectedItem={setSelectedLessonPlan}
-          historyData={userLP?.content}
-          onDelete={handleDeleteLP}
-          deletingId={deletingId}
-        />
-        {/* Lesson Plan Content */}
-        {isCreateLPPending || LPloading ? (
-          <div className="lg:col-span-3">
-            <div className="flex flex-col items-center justify-center min-h-[500px]">
-              <div className="w-full max-w-2xl">
-                <div className="text-center">
-                  <Loader2 className="mx-auto h-12 w-12 animate-spin text-primary mb-4" />
-                  <h3 className="text-lg font-medium text-foreground">Generating {navItem.itemtype}...</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Please wait while the AI prepares the questions.
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-        ) : slectedLessonPlan ? (
-          <LessonPlanDetails item={slectedLessonPlan} isgenrated={false} />
-        ) :
-          lpdata ? (
-            <LessonPlanDetails item={lpdata} isgenrated={true} />
-          ) :
-            (
-              <NewLessonPlanForm onGenerate={handleGenerate} data={bookData?.content} />
-            )}
-      </div>
-    </div>
+    <ToolPageLayout
+      historyData={userLP?.content || []}
+      selectedItem={slectedLessonPlan}
+      setSelectedItem={setSelectedLessonPlan}
+      onDelete={handleDeleteLP}
+      isHistoryLoading={LPloading}
+      deletingId={deletingId}
+      isProcessing={isCreateLPPending || LPloading}
+      processingText={`Generating ${navItem?.title}...`}
+    >
+      {slectedLessonPlan ? (
+        <LessonPlanDetails item={slectedLessonPlan} isgenrated={false} />
+      ) : lpdata ? (
+        <LessonPlanDetails item={lpdata} isgenrated={true} />
+      ) : (
+        <NewLessonPlanForm onGenerate={handleGenerate} data={bookData?.content} />
+      )}
+    </ToolPageLayout>
   );
 }

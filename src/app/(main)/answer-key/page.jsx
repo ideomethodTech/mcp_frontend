@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -11,6 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import History from "@/app/componentsV2/ui/history";
+import { ToolPageLayout } from "@/app/componentsV2/ui/tool-page-layout";
 import { usePathname, useSearchParams } from "next/navigation";
 import { getNavItemByUrl } from "@/app/utils";
 import {
@@ -25,6 +26,8 @@ import { useAuth } from "@/contexts/auth-context";
 import { useToast } from "@/hooks/use-toast";
 import React from "react";
 import { useQueryClient } from "@tanstack/react-query";
+import { useHistoryDelete } from "@/hooks/use-history-delete";
+import useApiStore from "@/store/useApiStore";
 
 const formSchema = z.object({
   book: z.string().nonempty("Please select a book."),
@@ -32,8 +35,12 @@ const formSchema = z.object({
 });
 
 function AnswerKeyDetails({ item }) {
-  const data = item.content || item.content?.answers;
-  if (!data) return null;
+  const data = item.content?.answers ? item.content : (item.answers ? item : item.content);
+  if (!data || (!data.answers && !data.worksheet_title)) return (
+    <div className="lg:col-span-3 card p-8 text-center text-muted-foreground">
+      No data available for this answer key.
+    </div>
+  );
 
   return (
     <div className="lg:col-span-3">
@@ -59,8 +66,8 @@ function AnswerKeyDetails({ item }) {
 
         {/* All Questions */}
         <div className="space-y-10">
-          {data?.answers?.map((q) => (
-            <div key={q.question_number} className="rounded-xl border bg-muted/20 p-6 shadow-sm border-border">
+          {data?.answers?.map((q, idx) => (
+            <div key={q.question_number || idx} className="rounded-xl border bg-muted/20 p-6 shadow-sm border-border">
               {/* Question Number */}
               <div className="flex items-start gap-4">
                 <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-white font-bold text-lg flex-shrink-0">
@@ -180,8 +187,8 @@ function NewAnswerKeyForm({ onGenerate, allWorksheets }) {
   const booksWithWorksheets = React.useMemo(() => {
     if (!booksData?.content || !allWorksheets?.content) return [];
 
-    const worksheetBookIds = [...new Set(allWorksheets.content.map((ws) => ws.book_id))];
-    return booksData.content.filter((book) => worksheetBookIds.includes(book.id));
+    const worksheetBookIds = [...new Set(allWorksheets.content.map((ws) => String(ws.book_id)))];
+    return booksData.content.filter((book) => worksheetBookIds.includes(String(book.id)));
   }, [booksData, allWorksheets]);
 
   const selectedBookId = form.watch("book");
@@ -191,7 +198,9 @@ function NewAnswerKeyForm({ onGenerate, allWorksheets }) {
   const availableChapters = React.useMemo(() => {
     if (!selectedBookId || !allWorksheets?.content) return [];
 
-    return [...new Set(allWorksheets.content.filter((ws) => ws.book_id === selectedBookId).map((ws) => ws.chapter))];
+    return [...new Set(allWorksheets.content
+      .filter((ws) => String(ws.book_id) === String(selectedBookId))
+      .map((ws) => ws.chapter))];
   }, [selectedBookId, allWorksheets]);
 
   return (
@@ -281,31 +290,48 @@ export default function AnswerKeyPage() {
   const searchParams = useSearchParams();
   const answerKeyId = searchParams.get("answer_key_id");
   const [selectedItem, setSelectedItem] = useState(null);
-  const navItem = getNavItemByUrl(pathname);
+  const navItem = useMemo(() => getNavItemByUrl(pathname), [pathname]);
+  const { setAnswerKeyStatus } = useApiStore(); // We might not have this specifically, but let's check
   const { user } = useAuth();
   const uid = user?.user?.uid;
   const { toast } = useToast();
+
   const { data: allAnswerKeys, isLoading: isLoadingHistory } = useGetAllAnswerKeys(uid);
   const { data: allWorksheets } = useUserWorksheet(uid, {
     enabled: !!uid,
   });
+
   const { data: answerKeyData, isLoading: isLoadingSingle } = useGetAnswerKeyById(answerKeyId, uid, {
     enabled: !!answerKeyId && !!uid,
   });
-  const { mutate: deleteAnswerKey } = useDeleteAnswerKey({
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ["all-answer-keys", uid] });
+
+  const { handleDelete: handleHistoryDelete, deletingId } = useHistoryDelete({
+    useMutation: useDeleteAnswerKey,
+    queryKeyToInvalidate: ["all-answer-keys", uid],
+    idPropertyName: "answer_key_id",
+    onDeleteSuccess: (variables) => {
       if (selectedItem && selectedItem.id === variables.answer_key_id) {
         setSelectedItem(null);
       }
     },
   });
+
+  const handleDeleteAnswerKey = useCallback((item) => {
+    handleHistoryDelete(item, { uid });
+  }, [uid, handleHistoryDelete]);
+
   const { mutate: generateAnswerKey, isPending: isGenerating } = useGenerateAnswerKey({
     onSuccess: (data) => {
-      setSelectedItem(data);
-      queryClient.invalidateQueries(["answer-keys", uid]);
-      queryClient.invalidateQueries({ queryKey: ["ws", uid] });
+      console.log("Answer key generated:", data);
+      // If the API returns the full object, use it; otherwise, we might need to refetch
+      setSelectedItem(data.answer_key || data);
       queryClient.invalidateQueries({ queryKey: ["all-answer-keys", uid] });
+      queryClient.invalidateQueries({ queryKey: ["ws", uid] });
+
+      toast({
+        title: "Success",
+        description: "Answer key generated successfully.",
+      });
     },
     onError: (err) => {
       console.error("Failed to generate answer key", err);
@@ -367,21 +393,23 @@ export default function AnswerKeyPage() {
     }
 
     // ✅ CHECK if worksheet exists for this book + chapter
+    console.log("All Worksheets:", allWorksheets?.content);
+    console.log("Looking for:", { book_id: values.book, chapter: values.chapter });
+
     const worksheetExists = allWorksheets?.content?.find((ws) => {
-      console.log("Checking worksheet:", {
-        ws_book_id: ws.book_id,
-        values_book: values.book,
-        ws_chapter: ws.chapter,
-        values_chapter: values.chapter,
-        match: ws.book_id === values.book && ws.chapter === values.chapter,
-      });
-      return ws.book_id === values.book && ws.chapter === values.chapter;
+      // Use loose equality (==) or convert both to same type to be safe
+      const bookMatch = String(ws.book_id) === String(values.book);
+      const chapterMatch = String(ws.chapter).trim().toLowerCase() === String(values.chapter).trim().toLowerCase();
+
+      console.log(`Checking ws ${ws.id}:`, { bookMatch, chapterMatch, ws_book: ws.book_id, ws_chapter: ws.chapter });
+      return bookMatch && chapterMatch;
     });
 
     if (!worksheetExists) {
+      console.warn("No matching worksheet found in:", allWorksheets?.content);
       toast({
         title: "No Worksheet Available",
-        description: "Please generate a worksheet for this chapter first before creating an answer key.",
+        description: `Please generate a worksheet for "${values.chapter}" first before creating an answer key.`,
         variant: "destructive",
       });
       return;
@@ -393,8 +421,10 @@ export default function AnswerKeyPage() {
     console.log("existingAnswerKey:", existingAnswerKey);
 
     if (existingAnswerKey) {
+      console.log("Using existing answer key:", existingAnswerKey);
       setSelectedItem(existingAnswerKey);
     } else {
+      console.log("Generating new answer key for worksheet:", worksheetExists.id);
       generateAnswerKey({
         worksheet_id: worksheetExists.id,
         book_id: values.book,
@@ -405,67 +435,32 @@ export default function AnswerKeyPage() {
   };
   const isLoading = isLoadingHistory || isLoadingSingle;
 
-  const handleHistorySelect = (item) => {
+  const handleHistorySelect = useCallback((item) => {
     setSelectedItem(item);
     if (item?.id) {
       const params = new URLSearchParams(searchParams.toString());
       params.set("answer_key_id", item.id);
       window.history.replaceState(null, "", `?${params.toString()}`);
     }
-  };
+  }, [searchParams]);
 
-  const handleDeleteAnswerKey = (item) => {
-    if (!item?.id || !uid) return;
-    deleteAnswerKey({ uid, answer_key_id: item.id });
-    if (item.id === answerKeyId) {
-      const params = new URLSearchParams(searchParams.toString());
-      params.delete("answer_key_id");
-      window.history.replaceState(null, "", `?${params.toString()}`);
-    }
-  };
 
   return (
-    <div className="max-w-7xl mx-auto my-5 space-y-6">
-      {/* HEADER */}
-      <div className="relative overflow-hidden rounded-3xl border border-border bg-gradient-to-br from-primary/10 via-accent/10 to-primary/5 p-8 shadow-[var(--shadow-lg)]">
-        <div className="relative flex items-center gap-4">
-          <div className="p-3 rounded-xl bg-gradient-to-br from-primary to-accent shadow-[var(--shadow-glow)]">
-            <FileText className="h-8 w-8 text-white" />
-          </div>
-          <div>
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-              Answer Key Generator
-            </h1>
-            <p className="text-muted-foreground mt-1 text-lg">
-              Automatically generate answer keys for your worksheets.
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* MAIN GRID */}
-      {isLoading ? (
-        <div className="flex items-center justify-center h-64">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </div>
+    <ToolPageLayout
+      historyData={historyData}
+      selectedItem={selectedItem}
+      setSelectedItem={handleHistorySelect}
+      onDelete={handleDeleteAnswerKey}
+      isHistoryLoading={isLoadingHistory}
+      deletingId={deletingId}
+      isProcessing={isGenerating}
+      processingText={`Generating ${navItem?.title}...`}
+    >
+      {selectedItem ? (
+        <AnswerKeyDetails item={selectedItem} />
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-          {/* HISTORY */}
-          <History
-            selectedItem={selectedItem}
-            setSelectedItem={handleHistorySelect}
-            historyData={historyData}
-            item={navItem.itemtype}
-            onDelete={handleDeleteAnswerKey}
-          />
-
-          {selectedItem ? (
-            <AnswerKeyDetails item={selectedItem} />
-          ) : (
-            <NewAnswerKeyForm onGenerate={handleGenerate} allWorksheets={allWorksheets} /> 
-          )}
-        </div>
+        <NewAnswerKeyForm onGenerate={handleGenerate} allWorksheets={allWorksheets} />
       )}
-    </div>
+    </ToolPageLayout>
   );
 }

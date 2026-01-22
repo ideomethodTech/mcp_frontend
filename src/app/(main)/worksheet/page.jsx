@@ -11,6 +11,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import WorksheetItem from "./WorksheetItem";
 import History from "@/app/componentsV2/ui/history";
+import { ToolPageLayout } from "@/app/componentsV2/ui/tool-page-layout";
 import { getNavItemByUrl } from "@/app/utils";
 import { usePathname } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
@@ -250,66 +251,36 @@ export default function WorksheetPage() {
   }, [uid, generateWSMutation]);
 
   return (
-    <div className="max-w-7xl mx-auto my-5 space-y-6">
-      <div className="relative overflow-hidden rounded-3xl border border-border bg-gradient-to-br from-primary/10 via-accent/10 to-primary/5 p-8 shadow-[var(--shadow-lg)]">
-        <div className="relative flex items-center gap-4">
-          <div className="p-3 rounded-xl bg-gradient-to-br from-primary to-accent shadow-[var(--shadow-glow)]">
-            <FileText className="h-8 w-8 text-white" />
-          </div>
-          <div>
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-              {navItem.title}
-            </h1>
-            <p className="text-muted-foreground mt-1 text-lg">{navItem.description} </p>
-          </div>
-        </div>
-      </div>
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        {/* {History} */}
-        <History
-          item={navItem.itemtype}
-          historyData={userworksheet?.content || []}
-          selectedItem={selectedworksheet}
-          setSelectedItem={(item) => {
-            setSelectedworksheet(item);
-            setIsNewWorksheet(false);
-          }}
-          isLoading={worksheetsLoading}
-          onDelete={handleDeleteWorksheet}
-          deletingId={deletingId}
+    <ToolPageLayout
+      historyData={userworksheet?.content || []}
+      selectedItem={selectedworksheet}
+      setSelectedItem={(item) => {
+        setSelectedworksheet(item);
+        setIsNewWorksheet(false);
+      }}
+      onDelete={handleDeleteWorksheet}
+      isHistoryLoading={worksheetsLoading}
+      deletingId={deletingId}
+      isProcessing={isLoading || generatingWS}
+      processingText={`Generating ${navItem?.title}...`}
+    >
+      {selectedworksheet ? (
+        <WorksheetDetails
+          item={selectedworksheet}
+          bookId={selectedworksheet.book_id}
+          isNew={false}
+          worksheetId={selectedworksheet.id}
         />
-
-        {/* Worksheet Content */}
-        {isLoading || generatingWS ? (
-          <div className="lg:col-span-3">
-            <div className="flex flex-col items-center justify-center min-h-[500px]">
-              <div className="w-full max-w-2xl">
-                <div className="text-center">
-                  <Loader2 className="mx-auto h-12 w-12 animate-spin text-primary mb-4" />
-                  <h3 className="text-lg font-medium text-foreground">Generating {navItem.itemtype}...</h3>
-                  <p className="text-sm text-muted-foreground">Please wait while the AI prepares the questions.</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        ) : selectedworksheet ? (
-          <WorksheetDetails
-            item={selectedworksheet}
-            bookId={selectedworksheet.book_id}
-            isNew={false}
-            worksheetId={selectedworksheet.id}
-          />
-        ) : worksheetData ? (
-          <WorksheetDetails
-            item={worksheetData}
-            bookId={selectedBookId}
-            isNew={isNewWorksheet}
-            worksheetId={currentWorksheetId}
-          />
-        ) : (
-          <NewWorksheetForm onGenerate={handleGenerate} data={bookData?.content} bookLoading={bookLoading} />
-        )}
-      </div>
-    </div>
+      ) : worksheetData ? (
+        <WorksheetDetails
+          item={worksheetData}
+          bookId={selectedBookId}
+          isNew={isNewWorksheet}
+          worksheetId={currentWorksheetId}
+        />
+      ) : (
+        <NewWorksheetForm onGenerate={handleGenerate} data={bookData?.content} bookLoading={bookLoading} />
+      )}
+    </ToolPageLayout>
   );
 }

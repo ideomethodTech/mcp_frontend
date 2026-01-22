@@ -1,7 +1,10 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo, useCallback } from 'react';
+import { ToolPageLayout } from '@/app/componentsV2/ui/tool-page-layout';
+import { getNavItemByUrl } from '@/app/utils';
+import { usePathname } from 'next/navigation';
 import {
   Presentation,
   Loader2,
@@ -249,8 +252,10 @@ function NewPptForm({ onGenerate }) {
 export default function PptGeneratorPage() {
   const [selectedPpt, setSelectedPpt] = useState(mockHistory[0]);
   const [isLoading, setIsLoading] = useState(false);
+  const pathname = usePathname();
+  const navItem = useMemo(() => getNavItemByUrl(pathname), [pathname]);
 
-  const handleGenerate = () => {
+  const handleGenerate = useCallback(() => {
     setIsLoading(true);
     setSelectedPpt(null);
     setTimeout(() => {
@@ -270,44 +275,21 @@ export default function PptGeneratorPage() {
       setSelectedPpt(newPpt);
       setIsLoading(false);
     }, 2000);
-  }
+  }, []);
 
   return (
-    <div className="max-w-7xl mx-auto my-5 space-y-6">
-      <div className="relative overflow-hidden rounded-3xl border border-border bg-gradient-to-br from-primary/10 via-accent/10 to-primary/5 p-8 shadow-[var(--shadow-lg)]">
-        <div className="relative flex items-center gap-4">
-          <div className="p-3 rounded-xl bg-gradient-to-br from-primary to-accent shadow-[var(--shadow-glow)]">
-            <FileText className="h-8 w-8 text-white" />
-          </div>
-          <div>
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-              PPT Generator
-            </h1>
-            <p className="text-muted-foreground mt-1 text-lg">
-              Transform book chapters into engaging presentations.            </p>
-          </div>
-        </div>
-      </div>
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        {/* {History} */}
-        <History selectedItem={selectedPpt} setSelectedItem={setSelectedPpt} historyData={mockHistory} />
-
-        {/* PPT generator Content */}
-        {isLoading ? (
-          <div className="flex items-center justify-center h-full">
-            <div className="text-center">
-              <Loader2 className="mx-auto h-12 w-12 animate-spin text-primary mb-4" />
-              <h3 className="text-lg font-medium text-foreground">Generating Presentation...</h3>
-              <p className="text-sm text-muted-foreground">
-                Please wait while the AI crafts your slides.
-              </p>
-            </div>
-          </div>
-        ) : selectedPpt ? (
-          <PptDetails item={selectedPpt} />
-        ) : (
-          <NewPptForm onGenerate={handleGenerate} />
-        )}
-      </div>
-    </div>)
+    <ToolPageLayout
+      historyData={mockHistory}
+      selectedItem={selectedPpt}
+      setSelectedItem={setSelectedPpt}
+      isProcessing={isLoading}
+      processingText={`Crafting ${navItem?.title}...`}
+    >
+      {selectedPpt ? (
+        <PptDetails item={selectedPpt} />
+      ) : (
+        <NewPptForm onGenerate={handleGenerate} />
+      )}
+    </ToolPageLayout>
+  );
 }
