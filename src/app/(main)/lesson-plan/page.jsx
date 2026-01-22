@@ -2,7 +2,7 @@
 
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -41,6 +41,7 @@ import { useCreateLessonPlan, useDeleteLessonPlan, useGetBook, useUserLessonPlan
 import LessonPlanItem from './components/LessonPlanItem';
 import { useAuth } from '@/contexts/auth-context';
 import useApiStore from '@/store/useApiStore';
+import { useHistoryDelete } from '@/hooks/use-history-delete';
 // import { useCreateLessonPlan, useGetBook } from '@/lib/api/queries';
 
 function LessonPlanDetails({ item, isgenrated }) {
@@ -112,10 +113,10 @@ function NewLessonPlanForm({ onGenerate, data }) {
                               {/* {mockData.books.map((book) => (
                                 <SelectItem key={book.name} value={book.name}>{book.name}</SelectItem>
                               ))} */}
-                              {data?.map((book) => (
+                              {data?.map((book, index) => (
                                 <SelectItem
-                                  key={book.id}     // ✅ FIXED
-                                  value={JSON.stringify(book)}  // ✅ CORRECT
+                                  key={book.id || index}
+                                  value={JSON.stringify(book)}
                                 >
                                   {book.book_name}
                                 </SelectItem>
@@ -197,9 +198,8 @@ export default function LessonPlanPage() {
   const [lpdata, setlpdata] = useState(null);
   const { user } = useAuth();   // ✅ dynamically fetched
   const uid = user?.user?.uid;
-  const [deletingId, setDeletingId] = useState(null);
   const pathname = usePathname();
-  const navItem = getNavItemByUrl(pathname);
+  const navItem = useMemo(() => getNavItemByUrl(pathname), [pathname]);
   const queryClient = useQueryClient();
   const { lessonPlanStatus, setLessonPlanStatus } = useApiStore();
   // All worksheets
@@ -242,28 +242,23 @@ export default function LessonPlanPage() {
     },
   });
 
-  const { mutate: deleteLessonPlanMutation } = useDeleteLessonPlan({
-    onSuccess: (_, variables) => {
-      setDeletingId(null);
+  const { handleDelete: handleHistoryDelete, deletingId } = useHistoryDelete({
+    useMutation: useDeleteLessonPlan,
+    queryKeyToInvalidate: ['lp', uid],
+    idPropertyName: 'lesson_plan_id',
+    onDeleteSuccess: (variables) => {
       setLessonPlanStatus('success');
-      queryClient.invalidateQueries({ queryKey: ['lp', uid] });
       if (slectedLessonPlan && slectedLessonPlan.id === variables.lesson_plan_id) {
         setSelectedLessonPlan(null);
       }
-    },
-    onError: () => {
-      setDeletingId(null);
-      setLessonPlanStatus('error');
-    },
+    }
   });
 
-  const handleDeleteLessonPlan = (item) => {
-    if (!item?.id) return;
-    setDeletingId(item.id);
-    deleteLessonPlanMutation({ lesson_plan_id: item.id });
-  };
+  const handleDeleteLP = useCallback((item) => {
+    handleHistoryDelete(item, { uid });
+  }, [uid, handleHistoryDelete]);
 
-  const handleGenerate = (book, chapter, weekCount = 2) => {
+  const handleGenerate = useCallback((book, chapter, weekCount = 2) => {
     if (!book) return;
 
     console.log("bcuw", book, "d", chapter, "s", weekCount);
@@ -273,7 +268,7 @@ export default function LessonPlanPage() {
       uid: uid,
       weeks: weekCount,
     });
-  };
+  }, [uid, generateLessonPlan]);
 
   // const 
   console.log("selectedworksheet", slectedLessonPlan)
@@ -301,21 +296,21 @@ export default function LessonPlanPage() {
           selectedItem={slectedLessonPlan}
           setSelectedItem={setSelectedLessonPlan}
           historyData={userLP?.content}
-          onDelete={handleDeleteLessonPlan}
+          onDelete={handleDeleteLP}
           deletingId={deletingId}
         />
         {/* Lesson Plan Content */}
-        {isCreateLPPending || LPloading? (
-        <div className="lg:col-span-3">
+        {isCreateLPPending || LPloading ? (
+          <div className="lg:col-span-3">
             <div className="flex flex-col items-center justify-center min-h-[500px]">
               <div className="w-full max-w-2xl">
-                  <div className="text-center">
-                    <Loader2 className="mx-auto h-12 w-12 animate-spin text-primary mb-4" />
-                    <h3 className="text-lg font-medium text-foreground">Generating {navItem.itemtype}...</h3>
-                    <p className="text-sm text-muted-foreground">
-                      Please wait while the AI prepares the questions.
-                    </p>
-                  </div>
+                <div className="text-center">
+                  <Loader2 className="mx-auto h-12 w-12 animate-spin text-primary mb-4" />
+                  <h3 className="text-lg font-medium text-foreground">Generating {navItem.itemtype}...</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Please wait while the AI prepares the questions.
+                  </p>
+                </div>
               </div>
             </div>
           </div>

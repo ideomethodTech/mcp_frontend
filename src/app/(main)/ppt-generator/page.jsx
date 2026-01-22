@@ -216,8 +216,8 @@ function NewPptForm({ onGenerate }) {
                   <SelectValue placeholder="Select a book" />
                 </SelectTrigger>
                 <SelectContent>
-                  {mockData.books.map((book) => (
-                    <SelectItem key={book.name} value={book.name}>{book.name}</SelectItem>
+                  {mockData.books.map((book, index) => (
+                    <SelectItem key={book.name || index} value={book.name}>{book.name}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -229,8 +229,8 @@ function NewPptForm({ onGenerate }) {
                   <SelectValue placeholder="Select a chapter" />
                 </SelectTrigger>
                 <SelectContent>
-                  {mockData.books.find(b => b.name === selectedBook)?.chapters.map((chapter) => (
-                    <SelectItem key={chapter.name} value={chapter.name}>{chapter.name}</SelectItem>
+                  {mockData.books.find(b => b.name === selectedBook)?.chapters.map((chapter, index) => (
+                    <SelectItem key={chapter.name || index} value={chapter.name}>{chapter.name}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>

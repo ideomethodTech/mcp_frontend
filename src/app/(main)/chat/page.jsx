@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { MessageSquare, Send, Book, PlusCircle, Plus, Loader2, FileText, Input } from 'lucide-react';
@@ -25,6 +25,7 @@ import { useAuth } from '@/contexts/auth-context';
 import { getNavItemByUrl } from '@/app/utils';
 import { useQueryClient } from '@tanstack/react-query';
 import useApiStore from '@/store/useApiStore';
+import { useHistoryDelete } from '@/hooks/use-history-delete';
 import { Trash2 } from 'lucide-react';
 
 const ChatMessage = ({ isUser = false, content, isLoading = false }) => {
@@ -90,7 +91,7 @@ function ChatInterface({ chatSession, setChatSession }) {
             idx === prev.length - 1
               ? {
                 ...m,
-                response:data|| data.response || 'No response',
+                response: data || data.response || 'No response',
                 id: data.id, // ✅ THIS IS REQUIRED
               }
               : m
@@ -124,7 +125,7 @@ function ChatInterface({ chatSession, setChatSession }) {
   });
 
 
-  const handleSendMessage = (prompt) => {
+  const handleSendMessage = useCallback((prompt) => {
     if (!prompt.trim()) return;
 
     createChatMutation({
@@ -134,13 +135,13 @@ function ChatInterface({ chatSession, setChatSession }) {
     });
 
     setInput("");
-  };
+  }, [chatSession.id, chatSession.uid, createChatMutation]);
 
-  const handleDeleteMessage = (messageId) => {
+  const handleDeleteMessage = useCallback((messageId) => {
     if (!chatSession?.id || !messageId) return;
     setDeletingMessageId(messageId);
     deleteChatMessageMutation({ uid: chatSession.uid, message_id: messageId });
-  };
+  }, [chatSession.id, chatSession.uid, deleteChatMessageMutation]);
 
   return (
     <div className="lg:col-span-3">
@@ -207,9 +208,9 @@ function ChatInterface({ chatSession, setChatSession }) {
                 }
               }}
             />
-            <Button 
-            className="bg-gradient-to-r from-primary to-accent hover:opacity-90 transition-opacity px-6" 
-            onClick={() => handleSendMessage(input)}
+            <Button
+              className="bg-gradient-to-r from-primary to-accent hover:opacity-90 transition-opacity px-6"
+              onClick={() => handleSendMessage(input)}
             >
               <Send className="h-4 w-4" onClick={() => handleSendMessage(input)} />
             </Button>
@@ -240,9 +241,9 @@ function NewChatForm({ onStartChat, data }) {
                 <SelectValue placeholder="Choose a book" />
               </SelectTrigger>
               <SelectContent>
-                {data?.map((book) => (
+                {data?.map((book, index) => (
                   <SelectItem
-                    key={book.book_id}
+                    key={book.id || book.book_id || index}
                     value={JSON.stringify(book)}
                   >
                     {book.book_name}
@@ -264,7 +265,7 @@ function NewChatForm({ onStartChat, data }) {
 
 export default function ChatPage() {
   const pathname = usePathname();
-  const navItem = getNavItemByUrl(pathname);
+  const navItem = useMemo(() => getNavItemByUrl(pathname), [pathname]);
   const { user } = useAuth();   // ✅ dynamically fetched
   const uid = user?.user?.uid;
   const queryClient = useQueryClient();
@@ -275,7 +276,6 @@ export default function ChatPage() {
 
   // Selected chat
   const [selectedChat, setSelectedChat] = useState(null);
-  const [deletingId, setDeletingId] = useState(null);
 
   // Chat Messages
   const {
@@ -318,40 +318,36 @@ export default function ChatPage() {
     },
   });
 
-  const { mutate: deleteChatMutation } = useDeleteChat({
-    onSuccess: async (_, variables) => {
+  const { handleDelete: handleHistoryDelete, deletingId } = useHistoryDelete({
+    useMutation: useDeleteChat,
+    queryKeyToInvalidate: ['userChats', uid],
+    idPropertyName: 'chatId',
+    onDeleteSuccess: (variables) => {
+      setChatStatus('success');
       if (selectedChat?.id === variables.chatId) {
         setSelectedChat(null);
       }
-      await queryClient.refetchQueries({ queryKey: ['userChats', uid] });
       queryClient.refetchQueries({ queryKey: ['chatDetails', uid, variables.chatId] });
-      setDeletingId(null);
-      setChatStatus('success');
-    },
-    onError: () => {
-      setDeletingId(null);
-      setChatStatus('error');
     }
   });
 
-
-
-  const handleStartChat = (book) => {
-    console.log(uid);
+  const handleStartChat = useCallback((book) => {
+    if (!uid || !book) return;
     createChatMutation({
       uid,
       chat_title: book.book_name
     });
-  };
+  }, [uid, createChatMutation]);
 
-  const handleDeleteChat = (item) => {
-    if (!uid || !item?.id) return;
-    setDeletingId(item.id);
-    deleteChatMutation({ uid, chatId: item.id });
-  };
+  const handleDeleteChat = useCallback((item) => {
+    handleHistoryDelete(item, { uid });
+  }, [uid, handleHistoryDelete]);
 
   // FIX — Get selected chat object
-  const selectedChatObj = userChats?.chats.find(c => c.id === selectedChat?.id);
+  const selectedChatObj = useMemo(() =>
+    userChats?.chats.find(c => c.id === selectedChat?.id),
+    [userChats?.chats, selectedChat?.id]
+  );
   return (
     <div className="max-w-7xl mx-auto my-5 space-y-6">
       <div className="relative overflow-hidden rounded-3xl border border-border bg-gradient-to-br from-primary/10 via-accent/10 to-primary/5 p-8 shadow-[var(--shadow-lg)]">

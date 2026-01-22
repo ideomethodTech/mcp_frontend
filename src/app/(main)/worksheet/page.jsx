@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -17,6 +17,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useDeleteWorksheet, useGenerateWorksheet, useGetBook, useUserWorksheet } from "@/lib/api/queries";
 import { useAuth } from "@/contexts/auth-context";
 import useApiStore from "@/store/useApiStore";
+import { useHistoryDelete } from "@/hooks/use-history-delete";
 import { toast } from "react-toastify";
 
 const formSchema = z.object({
@@ -103,8 +104,8 @@ function NewWorksheetForm({ onGenerate, data, bookLoading }) {
                             </FormControl>
 
                             <SelectContent>
-                              {data?.map((book) => (
-                                <SelectItem key={book.book_id} value={JSON.stringify(book)}>
+                              {data?.map((book, index) => (
+                                <SelectItem key={book.id || book.book_id || index} value={JSON.stringify(book)}>
                                   {book.book_name}
                                 </SelectItem>
                               ))}
@@ -174,12 +175,11 @@ export default function WorksheetPage() {
   const [selectedBookId, setSelectedBookId] = useState(null);
   const [isNewWorksheet, setIsNewWorksheet] = useState(false);
   const [currentWorksheetId, setCurrentWorksheetId] = useState(null);
-  const [deletingId, setDeletingId] = useState(null);
 
   const { user } = useAuth();
   const uid = user?.user?.uid;
   const pathname = usePathname();
-  const navItem = getNavItemByUrl(pathname);
+  const navItem = useMemo(() => getNavItemByUrl(pathname), [pathname]);
   const queryClient = useQueryClient();
   const { worksheetStatus, setWorksheetStatus } = useApiStore();
   const { data: userworksheet, isLoading: worksheetsLoading } = useUserWorksheet(uid, {
@@ -221,28 +221,23 @@ export default function WorksheetPage() {
     },
   });
 
-  const { mutate: deleteWorksheetMutation } = useDeleteWorksheet({
-    onSuccess: (_, variables) => {
-      setDeletingId(null);
+  const { handleDelete: handleHistoryDelete, deletingId } = useHistoryDelete({
+    useMutation: useDeleteWorksheet,
+    queryKeyToInvalidate: ["ws", uid],
+    idPropertyName: "worksheet_id",
+    onDeleteSuccess: (variables) => {
       setWorksheetStatus("success");
-      queryClient.invalidateQueries({ queryKey: ["ws", uid] });
       if (selectedworksheet && selectedworksheet.id === variables.worksheet_id) {
         setSelectedworksheet(null);
       }
     },
-    onError: () => {
-      setDeletingId(null);
-      setWorksheetStatus("error");
-    },
   });
 
-  const handleDeleteWorksheet = (item) => {
-    if (!item?.id || !uid) return;
-    setDeletingId(item.id);
-    deleteWorksheetMutation({ uid, worksheet_id: item.id });
-  };
+  const handleDeleteWorksheet = useCallback((item) => {
+    handleHistoryDelete(item, { uid });
+  }, [uid, handleHistoryDelete]);
 
-  const handleGenerate = (book, chapter) => {
+  const handleGenerate = useCallback((book, chapter) => {
     if (!book) return;
     setSelectedBookId(book.id);
     setIsNewWorksheet(true);
@@ -252,7 +247,7 @@ export default function WorksheetPage() {
       chapter: chapter,
       uid: uid,
     });
-  };
+  }, [uid, generateWSMutation]);
 
   return (
     <div className="max-w-7xl mx-auto my-5 space-y-6">
@@ -280,8 +275,8 @@ export default function WorksheetPage() {
             setIsNewWorksheet(false);
           }}
           isLoading={worksheetsLoading}
-        onDelete={handleDeleteWorksheet}
-        deletingId={deletingId}
+          onDelete={handleDeleteWorksheet}
+          deletingId={deletingId}
         />
 
         {/* Worksheet Content */}

@@ -36,10 +36,10 @@ if (typeof window !== "undefined" && isFirebaseConfigValid()) {
   } else {
     app = getApps()[0];
   }
-  
+
   // Initialize Firebase Storage
   storage = getStorage(app);
-  
+
   // Initialize Firebase Auth
   auth = getAuth(app);
 }
