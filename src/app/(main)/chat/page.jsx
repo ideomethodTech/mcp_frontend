@@ -128,10 +128,14 @@ function ChatInterface({ chatSession, setChatSession }) {
   const handleSendMessage = useCallback((prompt) => {
     if (!prompt.trim()) return;
 
+    console.log('Chat Session:', chatSession);
+    console.log('Book ID being sent:', chatSession.book_id);
+
     createChatMutation({
       chat_id: chatSession.id,
       uid: chatSession.uid,
       prompt,
+      book_id: chatSession.book_id,
     });
 
     setInput("");
@@ -274,6 +278,12 @@ export default function ChatPage() {
   // All Chats
   const { data: userChats, isLoading: chatsLoading } = useUserChats(uid);
 
+  useEffect(() => {
+    if (userChats?.chats) {
+      console.log('User chats data:', userChats.chats);
+    }
+  }, [userChats]);
+
   // Selected chat
   const [selectedChat, setSelectedChat] = useState(null);
 
@@ -284,18 +294,27 @@ export default function ChatPage() {
     refetch: refetchChatDetails,
   } = useChatDetails(uid, selectedChat?.id);
 
+  useEffect(() => {
+    if (chatMessages) {
+      console.log('Chat messages data:', chatMessages);
+    }
+  }, [chatMessages]);
+
   // Books
   const { data: bookData, isLoading: bookLoading } = useGetBook();
 
   // Create chat
   const { mutate: createChatMutation, isPending: creatingChat } = useCreateChat({
     onSuccess: async (data) => {
+      console.log('Create chat response:', data);
       const newChat = {
         id: data.chat_id,
         chat_id: data.chat_id,
         chat_title: data.chat_title,
         uid: data.uid,
+        book_id: data.book_id,
       };
+      console.log('New chat object:', newChat);
 
       // ✅ 1️⃣ Instantly select the new chat
       setSelectedChat(newChat);
@@ -335,7 +354,8 @@ export default function ChatPage() {
     if (!uid || !book) return;
     createChatMutation({
       uid,
-      chat_title: book.book_name
+      chat_title: book.book_name,
+      book_id: book.id,
     });
   }, [uid, createChatMutation]);
 
@@ -344,10 +364,26 @@ export default function ChatPage() {
   }, [uid, handleHistoryDelete]);
 
   // FIX — Get selected chat object
-  const selectedChatObj = useMemo(() =>
-    userChats?.chats.find(c => c.id === selectedChat?.id),
-    [userChats?.chats, selectedChat?.id]
-  );
+  const selectedChatObj = userChats?.chats.find(c => c.id === selectedChat?.id);
+
+  // Lookup book_id from books list if not available in chat data
+  const getBookIdForChat = () => {
+    if (selectedChat?.book_id || chatMessages?.book_id) {
+      return selectedChat?.book_id || chatMessages?.book_id;
+    }
+
+    // Fallback: Match chat title with book name to get book_id
+    const chatTitle = selectedChat?.chat_title || chatMessages?.chat_title;
+    const matchingBook = bookData?.content?.find(
+      book => book.book_name === chatTitle
+    );
+
+    console.log('Looking up book_id for chat:', chatTitle);
+    console.log('Matching book found:', matchingBook);
+
+    return matchingBook?.id;
+  };
+
   return (
     <div className="max-w-7xl mx-auto my-5 space-y-6">
       <div className="relative overflow-hidden rounded-3xl border border-border bg-gradient-to-br from-primary/10 via-accent/10 to-primary/5 p-8 shadow-[var(--shadow-lg)]">
@@ -393,6 +429,7 @@ export default function ChatPage() {
             book: selectedChat?.chat_title,
             messages: chatMessages?.messages || [],
             uid: uid,
+            book_id: getBookIdForChat(),
           }} setChatSession={setSelectedChat} />
         ) : bookLoading ? (
           <div className="flex items-center justify-center">

@@ -1,6 +1,6 @@
 import axios from "axios";
 
-export const baseURL = process.env.NEXT_API_URL || "https://portal.oliverpublications.in/"
+export const baseURL = process.env.NEXT_PUBLIC_API_URL
 const api = (config) => {
   const axiosInstance = axios.create({
     baseURL,

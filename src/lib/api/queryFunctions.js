@@ -2,11 +2,11 @@ import api from "./index";
 import ENDPOINTS from "./endpoints";
 
 // AI Generation Functions
-export const generateContent = async ({ chat_id, uid, prompt }) => {
+export const generateContent = async ({ chat_id, uid, prompt, book_id }) => {
   const response = await api({
     url: ENDPOINTS.GENERATE,
     method: "POST",
-    data: { chat_id, uid, prompt },
+    data: { chat_id, uid, prompt, book_id },
   });
   return response.data;
 };
@@ -158,6 +158,7 @@ export const createChat = async (data) => {
     data: {
       chat_title: data.chat_title,
       uid: data.uid,
+      book_id: data.book_id,
     },
   });
   return response.data;
