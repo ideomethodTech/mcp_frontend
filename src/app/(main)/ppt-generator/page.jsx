@@ -87,6 +87,11 @@ const mockData = {
 
 
 function PptDetails({ item }) {
+  const handleDownload = () => {
+    // Trigger browser print dialog which allows "Save as PDF"
+    window.print();
+  };
+
   return (
     <div className="lg:col-span-3">
       <div className="rounded-2xl border border-border bg-card shadow-[var(--shadow-md)]">
@@ -102,7 +107,10 @@ function PptDetails({ item }) {
                 </p>
               </div>
             </div>
-            <Button className="gap-2 bg-gradient-to-r from-primary to-accent hover:opacity-90">
+            <Button
+              className="gap-2 bg-gradient-to-r from-primary to-accent hover:opacity-90 print:hidden"
+              onClick={handleDownload}
+            >
               <Download className="h-4 w-4" />
               Download PPT
             </Button>
@@ -252,6 +260,7 @@ function NewPptForm({ onGenerate }) {
 export default function PptGeneratorPage() {
   const [selectedPpt, setSelectedPpt] = useState(mockHistory[0]);
   const [isLoading, setIsLoading] = useState(false);
+  const [deletingId, setDeletingId] = useState(null);
   const pathname = usePathname();
   const navItem = useMemo(() => getNavItemByUrl(pathname), [pathname]);
 
@@ -277,11 +286,32 @@ export default function PptGeneratorPage() {
     }, 2000);
   }, []);
 
+  const handleDeletePpt = useCallback((item) => {
+    setDeletingId(item.id);
+
+    // Simulate API delete delay
+    setTimeout(() => {
+      const index = mockHistory.findIndex(ppt => ppt.id === item.id);
+      if (index > -1) {
+        mockHistory.splice(index, 1);
+      }
+
+      // If we deleted the currently selected item, clear selection
+      if (selectedPpt?.id === item.id) {
+        setSelectedPpt(null);
+      }
+
+      setDeletingId(null);
+    }, 500);
+  }, [selectedPpt]);
+
   return (
     <ToolPageLayout
       historyData={mockHistory}
       selectedItem={selectedPpt}
       setSelectedItem={setSelectedPpt}
+      onDelete={handleDeletePpt}
+      deletingId={deletingId}
       isProcessing={isLoading}
       processingText={`Crafting ${navItem?.title}...`}
     >

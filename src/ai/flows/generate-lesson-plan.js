@@ -8,29 +8,26 @@
  * - GenerateLessonPlanOutput - The return type for the generateLessonPlan function.
  */
 
-import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
+import { ai } from '@/ai/genkit';
+import { z } from 'genkit';
 
 const GenerateLessonPlanInputSchema = z.object({
   topicName: z.string().describe('The name of the topic for the lesson plan.'),
   gradeLevel: z.string().describe('The grade level for the lesson plan.'),
   duration: z.string().describe('The duration of the lesson plan (e.g., one week, two days).'),
 });
-export type GenerateLessonPlanInput = z.infer<typeof GenerateLessonPlanInputSchema>;
-
 const GenerateLessonPlanOutputSchema = z.object({
   lessonPlan: z.string().describe('The structured lesson plan.'),
 });
-export type GenerateLessonPlanOutput = z.infer<typeof GenerateLessonPlanOutputSchema>;
 
-export async function generateLessonPlan(input: GenerateLessonPlanInput): Promise<GenerateLessonPlanOutput> {
+export async function generateLessonPlan(input) {
   return generateLessonPlanFlow(input);
 }
 
 const prompt = ai.definePrompt({
   name: 'generateLessonPlanPrompt',
-  input: {schema: GenerateLessonPlanInputSchema},
-  output: {schema: GenerateLessonPlanOutputSchema},
+  input: { schema: GenerateLessonPlanInputSchema },
+  output: { schema: GenerateLessonPlanOutputSchema },
   prompt: `You are an expert teacher specializing in creating lesson plans.
 
 You will use the topic name, grade level, and duration to generate a structured lesson plan.
@@ -53,7 +50,7 @@ const generateLessonPlanFlow = ai.defineFlow(
     outputSchema: GenerateLessonPlanOutputSchema,
   },
   async input => {
-    const {output} = await prompt(input);
-    return output!;
+    const { output } = await prompt(input);
+    return output;
   }
 );
