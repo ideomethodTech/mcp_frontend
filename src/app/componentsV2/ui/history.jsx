@@ -26,7 +26,7 @@ const History = ({
             }) :
               setSelectedItem(item)
           }}
-          className={`w-full text-left p-2 rounded-lg border ${selectedItem === item.id
+          className={`w-full text-left p-2 rounded-lg border ${(selectedItem?.id === item.id || selectedItem === item)
             ? 'bg-primary/10 border-primary'
             : 'hover:bg-muted/50'
             }`}
@@ -46,9 +46,9 @@ const History = ({
             aria-label="Delete"
             className="p-2 text-muted-foreground hover:text-destructive"
             onClick={() => onDelete(item)}
-            disabled={deletingId === item.id}
+            disabled={deletingId === (item.id || item.chat_id || item.lesson_plan_id || item.worksheet_id || item.answer_key_id)}
           >
-            {deletingId === item.id ? (
+            {deletingId === (item.id || item.chat_id || item.lesson_plan_id || item.worksheet_id || item.answer_key_id) ? (
               <Loader className="h-4 w-4 animate-spin" />
             ) : (
               <Trash2 className="h-4 w-4" />
@@ -68,7 +68,7 @@ const History = ({
           <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">
             History
           </p>
-              {historyData?.length !== 0 && historyData?.map((item, index) => (
+          {historyData?.length !== 0 && historyData?.map((item, index) => (
             historyItem({ index, item: item, selectedItem, setSelectedItem, isChat })
           ))}
         </div>

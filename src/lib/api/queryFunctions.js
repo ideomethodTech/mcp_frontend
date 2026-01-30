@@ -141,10 +141,10 @@ export const getLessonPlan = async (uid) => {
   return response.data;
 };
 
-export const deleteLessonPlan = async ({ lesson_plan_id }) => {
-  if (!lesson_plan_id) throw new Error("lesson_plan_id is required");
+export const deleteLessonPlan = async ({ uid, lesson_plan_id }) => {
+  if (!uid || !lesson_plan_id) throw new Error("uid and lesson_plan_id are required");
   const response = await api({
-    url: `${ENDPOINTS.DELETE_LESSON_PLAN}/${lesson_plan_id}`,
+    url: `${ENDPOINTS.DELETE_LESSON_PLAN}/${uid}/${lesson_plan_id}`,
     method: "DELETE",
   });
   return response.data;

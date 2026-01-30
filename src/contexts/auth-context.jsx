@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
 import api from "@/lib/api";
 
+import ENDPOINTS from "@/lib/api/endpoints";
+
 const AuthContext = createContext();
 
 export function AuthProvider({ children }) {
@@ -30,7 +32,7 @@ export function AuthProvider({ children }) {
   const signInWithEmail = async (email, password) => {
     try {
       const response = await api({
-        url: "/login",
+        url: ENDPOINTS.LOGIN,
         method: "POST",
         data: {
           email: email,
