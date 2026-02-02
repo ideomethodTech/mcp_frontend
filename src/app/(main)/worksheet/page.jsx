@@ -178,23 +178,30 @@ export default function WorksheetPage() {
   const [currentWorksheetId, setCurrentWorksheetId] = useState(null);
 
   const { user } = useAuth();
-  const uid = user?.user?.uid;
+  const uid = useMemo(() => user?.user?.uid, [user]);
   const pathname = usePathname();
   const navItem = useMemo(() => getNavItemByUrl(pathname), [pathname]);
   const queryClient = useQueryClient();
   const { worksheetStatus, setWorksheetStatus } = useApiStore();
-  const { data: userworksheet, isLoading: worksheetsLoading } = useUserWorksheet(uid, {
+  const {
+    data: userworksheet,
+    isLoading: worksheetsLoading,
+    isFetching: worksheetsFetching,
+    isError: worksheetsError
+  } = useUserWorksheet(uid, {
     enabled: !!uid,
-    onSuccess: () => setWorksheetStatus("success"),
-    onError: () => setWorksheetStatus("error"),
+    placeholderData: (prev) => prev,
   });
 
   useEffect(() => {
-    if (!uid) return;
-    if (worksheetsLoading) {
+    if (worksheetsLoading || worksheetsFetching) {
       setWorksheetStatus("loading");
+    } else if (worksheetsError) {
+      setWorksheetStatus("error");
+    } else {
+      setWorksheetStatus("success");
     }
-  }, [worksheetsLoading, uid, setWorksheetStatus]);
+  }, [worksheetsLoading, worksheetsFetching, worksheetsError, setWorksheetStatus]);
 
   const [selectedworksheet, setSelectedworksheet] = useState(null);
   const { data: bookData, isLoading: bookLoading } = useGetBook();
@@ -208,16 +215,22 @@ export default function WorksheetPage() {
       setWorksheetStatus("loading");
     },
     onSuccess: (data) => {
+      console.log("Worksheet generated successfully. Result ID:", data.worksheet_id);
       setWorksheetData(data.worksheet);
       setCurrentWorksheetId(data.worksheet_id);
       setWorksheetStatus("success");
+
+      // Force an immediate refetch of the history
       if (uid) {
+        console.log("Invalidating history queries for UID:", uid);
         queryClient.invalidateQueries({
           queryKey: ["ws", uid],
+          refetchType: 'all',
         });
       }
     },
-    onError: () => {
+    onError: (err) => {
+      console.error("Error generating worksheet:", err);
       setWorksheetStatus("error");
     },
   });
@@ -257,9 +270,11 @@ export default function WorksheetPage() {
       setSelectedItem={(item) => {
         setSelectedworksheet(item);
         setIsNewWorksheet(false);
+        // Always clear generated data when selection changes or new worksheet is requested
+        setWorksheetData(null);
       }}
       onDelete={handleDeleteWorksheet}
-      isHistoryLoading={worksheetsLoading}
+      isHistoryLoading={worksheetsFetching}
       deletingId={deletingId}
       isProcessing={isLoading || generatingWS}
       processingText={`Generating ${navItem?.title}...`}

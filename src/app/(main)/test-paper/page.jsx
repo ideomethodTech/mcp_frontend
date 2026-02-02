@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState, useMemo, useCallback } from "react";
-import { FileText, Loader2 } from "lucide-react";
+import { FileText, Loader2, Printer } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { ToolPageLayout } from "@/app/componentsV2/ui/tool-page-layout";
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -32,45 +33,103 @@ const TestPaperItem = ({ item, bookId, isNew, testPaperId }) => {
 
   const itemWithId = isNew ? { ...item, id: testPaperId } : item;
 
+  // Extract questions with multiple fallback levels for various API response formats
+  const questions =
+    (isNew ? (item?.questions || item?.test_paper?.questions) :
+      (item?.content?.test_paper?.questions || item?.content?.questions || item?.content?.test_paper?.test_paper?.questions)) || [];
+
+  // Extract metadata safely
+  const paperTitle = itemWithId.title || itemWithId.test_paper?.title || item?.content?.test_paper?.title || "Test Paper";
+  const paperClass = itemWithId.class || itemWithId.test_paper?.class || item?.content?.test_paper?.class || "N/A";
+  const paperSubject = itemWithId.subject || itemWithId.test_paper?.subject || item?.content?.test_paper?.subject || "N/A";
+  const paperMarks = itemWithId.total_marks || itemWithId.test_paper?.total_marks || item?.content?.test_paper?.total_marks || "N/A";
+  const paperDuration = itemWithId.duration || itemWithId.test_paper?.duration || item?.content?.test_paper?.duration || "N/A";
+
+  const renderText = (text) => {
+    if (typeof text === 'string') return text;
+    if (typeof text === 'object' && text !== null) {
+      return text.question || text.text || JSON.stringify(text);
+    }
+    return "";
+  };
+
   return (
-    <div className="rounded-2xl border border-border bg-card p-8 shadow-[var(--shadow-md)]">
-      <div className="flex items-start gap-3 mb-8">
-        <FileText className="h-7 w-7 text-primary mt-1" />
-        <div>
-          <h2 className="text-3xl font-bold text-foreground">{itemWithId.title || "Test Paper"}</h2>
-          <p className="text-muted-foreground text-sm mt-1">
-            Class: {itemWithId.class} • Subject: {itemWithId.subject} • Marks: {itemWithId.total_marks} • Duration:{" "}
-            {itemWithId.duration}
-          </p>
+    <div className="rounded-2xl border border-border bg-card shadow-[var(--shadow-md)] overflow-hidden">
+      {/* Header with Actions */}
+      <div className="p-6 border-b border-border flex items-center justify-between bg-muted/30">
+        <div className="flex items-center gap-3">
+          <FileText className="h-6 w-6 text-primary" />
+          <div>
+            <h2 className="text-xl font-bold text-foreground">{paperTitle}</h2>
+            <p className="text-xs text-muted-foreground uppercase tracking-wider">
+              Class: {paperClass} • Subject: {paperSubject}
+            </p>
+          </div>
+        </div>
+        <div className="flex gap-2 print:hidden">
+          <Button variant="outline" size="sm" className="gap-2" onClick={() => window.print()}>
+            <Printer className="h-4 w-4" />
+            Print
+          </Button>
         </div>
       </div>
 
-      {/* Test Paper content display */}
-      <div className="space-y-6">
-        {itemWithId.questions?.map((question, index) => (
-          <div key={index} className="border-b pb-6 last:border-0">
-            <div className="flex gap-3">
-              <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">
-                {index + 1}
-              </div>
-              <div className="flex-1">
-                <p className="font-semibold text-lg">{question.question}</p>
-                {question.options && (
-                  <div className="mt-3 space-y-2">
-                    {question.options.map((option, optIndex) => (
-                      <p key={optIndex} className="text-sm text-muted-foreground">
-                        {String.fromCharCode(65 + optIndex)}. {option}
-                      </p>
-                    ))}
+      <div className="p-8">
+        <div className="flex justify-between items-center mb-8 pb-4 border-b border-dashed">
+          <div className="text-sm font-medium">
+            <p>Total Marks: {paperMarks}</p>
+            <p>Duration: {paperDuration}</p>
+          </div>
+          <div className="text-right text-sm italic text-muted-foreground">
+            Date: _________________
+          </div>
+        </div>
+
+        {/* Test Paper content display */}
+        <div className="space-y-8">
+          {questions.length > 0 ? (
+            questions.map((question, index) => (
+              <div key={index} className="space-y-4">
+                <div className="flex gap-4">
+                  <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-sm">
+                    {index + 1}
                   </div>
-                )}
-                <div className="mt-4 text-sm text-primary">
-                  <span className="font-semibold">Marks:</span> {question.marks || "Not specified"}
+                  <div className="flex-1">
+                    <p className="font-semibold text-lg leading-snug">{renderText(question.question || question)}</p>
+
+                    {question.options && Array.isArray(question.options) && (
+                      <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-3">
+                        {question.options.map((option, optIndex) => (
+                          <div key={optIndex} className="flex items-center gap-2 text-sm text-muted-foreground bg-muted/20 p-2 rounded-lg border border-border/50">
+                            <span className="w-6 h-6 rounded-md bg-background border border-border flex items-center justify-center font-medium text-xs">
+                              {String.fromCharCode(65 + optIndex)}
+                            </span>
+                            {renderText(option)}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    <div className="mt-4 flex items-center justify-between text-xs">
+                      <div className="px-2 py-1 bg-primary/5 text-primary rounded-md font-medium">
+                        Points: {question.marks || question.points || "1"}
+                      </div>
+                      {question.answer && (
+                        <div className="text-muted-foreground italic print:hidden">
+                          Key: {renderText(question.answer)}
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </div>
+            ))
+          ) : (
+            <div className="text-center py-12 text-muted-foreground italic">
+              No questions found in this test paper.
             </div>
-          </div>
-        ))}
+          )}
+        </div>
       </div>
     </div>
   );
@@ -93,18 +152,25 @@ export default function TestPaperPage() {
   const queryClient = useQueryClient();
   const { setTestPaperStatus } = useApiStore();
 
-  const { data: userTestPapers, isLoading: testPapersLoading } = useUserTestPapers(uid, {
+  const {
+    data: userTestPapers,
+    isLoading: testPapersLoading,
+    isFetching: testPapersFetching,
+    isError: testPapersError
+  } = useUserTestPapers(uid, {
     enabled: !!uid,
-    onSuccess: () => setTestPaperStatus("success"),
-    onError: () => setTestPaperStatus("error"),
+    placeholderData: (prev) => prev,
   });
 
   useEffect(() => {
-    if (!uid) return;
-    if (testPapersLoading) {
+    if (testPapersLoading || testPapersFetching) {
       setTestPaperStatus("loading");
+    } else if (testPapersError) {
+      setTestPaperStatus("error");
+    } else {
+      setTestPaperStatus("success");
     }
-  }, [testPapersLoading, uid, setTestPaperStatus]);
+  }, [testPapersLoading, testPapersFetching, testPapersError, setTestPaperStatus]);
 
   const { data: bookData, isLoading: bookLoading } = useGetBook();
 
@@ -113,6 +179,7 @@ export default function TestPaperPage() {
       setTestPaperStatus("loading");
     },
     onSuccess: (data) => {
+      console.log("Test paper generated successfully. ID:", data.test_paper_id || data.id);
       setTestPaperData(data.test_paper || data);
       setCurrentTestPaperId(data.test_paper_id || data.id);
       setTestPaperStatus("success");
@@ -121,6 +188,7 @@ export default function TestPaperPage() {
       if (uid) {
         queryClient.invalidateQueries({
           queryKey: ["test-papers", uid],
+          refetchType: 'all',
         });
       }
 
@@ -139,6 +207,7 @@ export default function TestPaperPage() {
     setSelectedBookId(book.id);
     setIsNewTestPaper(true);
     setSelectedTestPaper(null);
+    setTestPaperData(null); // Clear previous results
 
     generateTestPaperMutation({
       uid: uid,
@@ -166,8 +235,10 @@ export default function TestPaperPage() {
       setSelectedItem={(item) => {
         setSelectedTestPaper(item);
         setIsNewTestPaper(false);
+        // Always clear generated data when selection changes or new test paper is requested
+        setTestPaperData(null);
       }}
-      isHistoryLoading={testPapersLoading}
+      isHistoryLoading={testPapersFetching}
       isProcessing={generatingTestPaper}
       processingText={`Generating ${navItem?.title}...`}
     >

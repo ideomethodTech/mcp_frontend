@@ -184,18 +184,26 @@ export default function LessonPlanPage() {
   const { lessonPlanStatus, setLessonPlanStatus } = useApiStore();
 
   // All lesson plans
-  const { data: userLP, isLoading: LPloading } = useUserLessonPlan(uid, {
+  const {
+    data: userLP,
+    isLoading: LPloading,
+    isFetching: LPfetching,
+    isError: LPerror,
+    refetch: refetchLP
+  } = useUserLessonPlan(uid, {
     enabled: !!uid,
-    onSuccess: () => setLessonPlanStatus('success'),
-    onError: () => setLessonPlanStatus('error'),
+    placeholderData: (prev) => prev,
   });
 
   useEffect(() => {
-    if (!uid) return;
-    if (LPloading) {
+    if (LPloading || LPfetching) {
       setLessonPlanStatus('loading');
+    } else if (LPerror) {
+      setLessonPlanStatus('error');
+    } else {
+      setLessonPlanStatus('success');
     }
-  }, [LPloading, uid, setLessonPlanStatus]);
+  }, [LPloading, LPfetching, LPerror, setLessonPlanStatus]);
 
   // Selected lesson plan
   const [selectedLessonPlan, setSelectedLessonPlan] = useState(null);
@@ -212,8 +220,11 @@ export default function LessonPlanPage() {
       setLessonPlanStatus('loading');
     },
     onSuccess: (data) => {
+      console.log("Lesson plan generated successfully:", data);
       setLessonPlanData(data.lesson_plan);
       setLessonPlanStatus('success');
+
+      // Force a refetch of the history
       if (uid) {
         queryClient.invalidateQueries({
           queryKey: ['lp', uid],
@@ -221,7 +232,7 @@ export default function LessonPlanPage() {
       }
     },
     onError: (err) => {
-      console.error("Error:", err);
+      console.error("Error generating lesson plan:", err);
       setLessonPlanStatus('error');
     },
   });
@@ -245,6 +256,10 @@ export default function LessonPlanPage() {
   const handleGenerate = useCallback((book, chapter, weekCount = DEFAULT_WEEK_COUNT) => {
     if (!book) return;
 
+    // Reset states for a new generation cycle
+    setSelectedLessonPlan(null);
+    setLessonPlanData(null);
+
     generateLessonPlan({
       book_id: book.id,
       chapter: chapter,
@@ -257,9 +272,11 @@ export default function LessonPlanPage() {
   const historyData = useMemo(() => userLP?.content || [], [userLP]);
 
   // Memoize processing state
+  // Only show the full page loader when ACTUALLY creating a new one (mutating)
+  // or on initial load. Refetching history should show loader only in the sidebar.
   const isProcessing = useMemo(
-    () => isCreateLPPending || LPloading,
-    [isCreateLPPending, LPloading]
+    () => isCreateLPPending || (LPloading && historyData.length === 0),
+    [isCreateLPPending, LPloading, historyData.length]
   );
 
   // Memoize processing text
@@ -272,9 +289,13 @@ export default function LessonPlanPage() {
     <ToolPageLayout
       historyData={historyData}
       selectedItem={selectedLessonPlan}
-      setSelectedItem={setSelectedLessonPlan}
+      setSelectedItem={(item) => {
+        // Clear all states and set the newly selected history item
+        setSelectedLessonPlan(item);
+        setLessonPlanData(null);
+      }}
       onDelete={handleDeleteLP}
-      isHistoryLoading={LPloading}
+      isHistoryLoading={LPfetching}
       deletingId={deletingId}
       isProcessing={isProcessing}
       processingText={processingText}

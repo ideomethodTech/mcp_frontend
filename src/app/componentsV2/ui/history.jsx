@@ -12,6 +12,7 @@ const History = ({
   isChat = false,
   onDelete,
   deletingId,
+  isLoading = false,
 }) => {
 
   const historyItem = ({ index, item, selectedItem, setSelectedItem }) => {
@@ -68,9 +69,29 @@ const History = ({
           <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">
             History
           </p>
-          {historyData?.length !== 0 && historyData?.map((item, index) => (
-            historyItem({ index, item: item, selectedItem, setSelectedItem, isChat })
-          ))}
+          {historyData && historyData.length > 0 ? (
+            <div className="relative">
+              {isLoading && (
+                <div className="absolute inset-0 bg-card/50 backdrop-blur-[1px] z-10 flex items-center justify-center rounded-lg">
+                  <Loader className="h-6 w-6 animate-spin text-primary" />
+                </div>
+              )}
+              <div className="space-y-2">
+                {historyData.map((item, index) => (
+                  historyItem({ index, item, selectedItem, setSelectedItem, isChat })
+                ))}
+              </div>
+            </div>
+          ) : isLoading ? (
+            <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
+              <Loader className="h-6 w-6 animate-spin mb-2" />
+              <p className="text-xs">Loading history...</p>
+            </div>
+          ) : (
+            <div className="text-center py-4 text-xs text-muted-foreground italic border border-dashed rounded-lg">
+              No previous {item?.toLowerCase() || 'items'} found.
+            </div>
+          )}
         </div>
       </div>
     </div>
