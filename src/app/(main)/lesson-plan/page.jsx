@@ -1,13 +1,8 @@
 "use client";
 
-'use client';
-
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo, useCallback, memo } from 'react';
 import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
-import { Loader2, Plus, File, FileText, Clock, BookOpen } from 'lucide-react';
-import { format } from 'date-fns';
+import { BookOpen } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -33,7 +28,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
-import History from '@/app/componentsV2/ui/history';
+import { ToolPageLayout } from '@/app/componentsV2/ui/tool-page-layout';
 import { usePathname } from 'next/navigation';
 import { getNavItemByUrl } from '@/app/utils';
 import { useQueryClient } from '@tanstack/react-query';
@@ -41,22 +36,25 @@ import { useCreateLessonPlan, useDeleteLessonPlan, useGetBook, useUserLessonPlan
 import LessonPlanItem from './components/LessonPlanItem';
 import { useAuth } from '@/contexts/auth-context';
 import useApiStore from '@/store/useApiStore';
-// import { useCreateLessonPlan, useGetBook } from '@/lib/api/queries';
+import { useHistoryDelete } from '@/hooks/use-history-delete';
 
-function LessonPlanDetails({ item, isgenrated }) {
-  // const lessonPlan = item.data;
-  console.log(" lp item", item);
+// Constants
+const DEFAULT_WEEK_COUNT = 2;
+
+// Memoized component to prevent unnecessary re-renders
+const LessonPlanDetails = memo(function LessonPlanDetails({ item, isGenerated }) {
   return (
     <div className="lg:col-span-3">
-      <LessonPlanItem item={item} isgenrated={isgenrated}></LessonPlanItem>
+      <LessonPlanItem item={item} isgenrated={isGenerated}></LessonPlanItem>
     </div>
   )
-}
+});
 
-function NewLessonPlanForm({ onGenerate, data }) {
+// Memoized form component to prevent unnecessary re-renders
+const NewLessonPlanForm = memo(function NewLessonPlanForm({ onGenerate, data }) {
   const [selectedBook, setSelectedBook] = useState(null);
   const [selectedChapter, setSelectedChapter] = useState(null);
-  const [selectedDuration, setselectedDuration] = useState(2);
+  const [selectedDuration, setSelectedDuration] = useState(DEFAULT_WEEK_COUNT);
 
   const form = useForm({
     defaultValues: {
@@ -66,11 +64,19 @@ function NewLessonPlanForm({ onGenerate, data }) {
     },
   });
 
-  const handleGenerate = () => {
+  // Memoize the generate handler to prevent re-creation
+  const handleSubmit = useCallback(() => {
     if (selectedBook && selectedChapter) {
       onGenerate(selectedBook, selectedChapter, selectedDuration);
     }
-  }
+  }, [selectedBook, selectedChapter, selectedDuration, onGenerate]);
+
+  // Memoize chapter options
+  const chapterOptions = useMemo(
+    () => selectedBook?.chapters || [],
+    [selectedBook?.chapters]
+  );
+
   return (
     <div className="lg:col-span-3">
       <div className="flex flex-col items-center justify-center min-h-[500px]">
@@ -83,14 +89,12 @@ function NewLessonPlanForm({ onGenerate, data }) {
                 <CardTitle className="font-headline text-xl">Book & Chapter Selection</CardTitle>
               </div>
               <CardDescription>
-                Choose the book and chapter to generate a worksheet.
+                Choose the book and chapter to generate a lesson plan.
               </CardDescription>
             </CardHeader>
             <CardContent>
               <Form {...form}>
-                <form onSubmit={form.handleSubmit(() => {
-                  onGenerate(selectedBook, selectedChapter, selectedDuration);
-                })} className="space-y-6">
+                <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <FormField
                       control={form.control}
@@ -109,13 +113,10 @@ function NewLessonPlanForm({ onGenerate, data }) {
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                              {/* {mockData.books.map((book) => (
-                                <SelectItem key={book.name} value={book.name}>{book.name}</SelectItem>
-                              ))} */}
-                              {data?.map((book) => (
+                              {data?.map((book, index) => (
                                 <SelectItem
-                                  key={book.id}     // ✅ FIXED
-                                  value={JSON.stringify(book)}  // ✅ CORRECT
+                                  key={book.id || index}
+                                  value={JSON.stringify(book)}
                                 >
                                   {book.book_name}
                                 </SelectItem>
@@ -143,7 +144,7 @@ function NewLessonPlanForm({ onGenerate, data }) {
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                              {selectedBook?.chapters?.map((chapter) => (
+                              {chapterOptions.map((chapter) => (
                                 <SelectItem
                                   key={chapter}
                                   value={JSON.stringify(chapter)}
@@ -157,26 +158,6 @@ function NewLessonPlanForm({ onGenerate, data }) {
                         </FormItem>
                       )}
                     />
-                    {/* <FormField
-                      control={form.control}
-                      name="duration"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Duration</FormLabel>
-                          <FormControl>
-                            <Input
-                              placeholder="e.g., 1 week"
-                              {...field}
-                              onChange={(e) => {
-                                field.onChange(e);                 // update RHF form
-                                setselectedDuration(e.target.value); // update local state
-                              }}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    /> */}
                   </div>
 
                   <Button type="submit" className="w-full !mt-8" size="lg" >
@@ -190,36 +171,48 @@ function NewLessonPlanForm({ onGenerate, data }) {
       </div>
     </div>
   )
-}
+});
+
 
 export default function LessonPlanPage() {
-  const [isLoading, setIsLoading] = useState(false);
-  const [lpdata, setlpdata] = useState(null);
-  const { user } = useAuth();   // ✅ dynamically fetched
-  const uid = user?.user?.uid;
-  const [deletingId, setDeletingId] = useState(null);
+  const [lessonPlanData, setLessonPlanData] = useState(null);
+  const { user } = useAuth();
+  const uid = useMemo(() => user?.user?.uid, [user]);
   const pathname = usePathname();
-  const navItem = getNavItemByUrl(pathname);
+  const navItem = useMemo(() => getNavItemByUrl(pathname), [pathname]);
   const queryClient = useQueryClient();
   const { lessonPlanStatus, setLessonPlanStatus } = useApiStore();
-  // All worksheets
-  const { data: userLP, isLoading: LPloading } = useUserLessonPlan(uid, {
+
+  // All lesson plans
+  const {
+    data: userLP,
+    isLoading: LPloading,
+    isFetching: LPfetching,
+    isError: LPerror,
+    refetch: refetchLP
+  } = useUserLessonPlan(uid, {
     enabled: !!uid,
-    onSuccess: () => setLessonPlanStatus('success'),
-    onError: () => setLessonPlanStatus('error'),
+    placeholderData: (prev) => prev,
   });
 
   useEffect(() => {
-    if (!uid) return;
-    if (LPloading) {
+    if (LPloading || LPfetching) {
       setLessonPlanStatus('loading');
+    } else if (LPerror) {
+      setLessonPlanStatus('error');
+    } else {
+      setLessonPlanStatus('success');
     }
-  }, [LPloading, uid, setLessonPlanStatus]);
+  }, [LPloading, LPfetching, LPerror, setLessonPlanStatus]);
 
-  // Selected worksheet
-  const [slectedLessonPlan, setSelectedLessonPlan] = useState(null);
+  // Selected lesson plan
+  const [selectedLessonPlan, setSelectedLessonPlan] = useState(null);
+
   // Books
   const { data: bookData, isLoading: bookLoading } = useGetBook();
+
+  // Memoize book content to prevent unnecessary re-renders
+  const bookContent = useMemo(() => bookData?.content, [bookData]);
 
 
   const { mutate: generateLessonPlan, isPending: isCreateLPPending } = useCreateLessonPlan({
@@ -227,9 +220,11 @@ export default function LessonPlanPage() {
       setLessonPlanStatus('loading');
     },
     onSuccess: (data) => {
-      console.log("Lesson plan generated:", data);
-      setlpdata(data.lesson_plan);
+      console.log("Lesson plan generated successfully:", data);
+      setLessonPlanData(data.lesson_plan);
       setLessonPlanStatus('success');
+
+      // Force a refetch of the history
       if (uid) {
         queryClient.invalidateQueries({
           queryKey: ['lp', uid],
@@ -237,98 +232,81 @@ export default function LessonPlanPage() {
       }
     },
     onError: (err) => {
-      console.error("Error:", err);
+      console.error("Error generating lesson plan:", err);
       setLessonPlanStatus('error');
     },
   });
 
-  const { mutate: deleteLessonPlanMutation } = useDeleteLessonPlan({
-    onSuccess: (_, variables) => {
-      setDeletingId(null);
+  const { handleDelete: handleHistoryDelete, deletingId } = useHistoryDelete({
+    useMutation: useDeleteLessonPlan,
+    queryKeyToInvalidate: ['lp', uid],
+    idPropertyName: 'lesson_plan_id',
+    onDeleteSuccess: (variables) => {
       setLessonPlanStatus('success');
-      queryClient.invalidateQueries({ queryKey: ['lp', uid] });
-      if (slectedLessonPlan && slectedLessonPlan.id === variables.lesson_plan_id) {
+      if (selectedLessonPlan && selectedLessonPlan.id === variables.lesson_plan_id) {
         setSelectedLessonPlan(null);
       }
-    },
-    onError: () => {
-      setDeletingId(null);
-      setLessonPlanStatus('error');
-    },
+    }
   });
 
-  const handleDeleteLessonPlan = (item) => {
-    if (!item?.id) return;
-    setDeletingId(item.id);
-    deleteLessonPlanMutation({ lesson_plan_id: item.id });
-  };
+  const handleDeleteLP = useCallback((item) => {
+    handleHistoryDelete(item, { uid });
+  }, [uid, handleHistoryDelete]);
 
-  const handleGenerate = (book, chapter, weekCount = 2) => {
+  const handleGenerate = useCallback((book, chapter, weekCount = DEFAULT_WEEK_COUNT) => {
     if (!book) return;
 
-    console.log("bcuw", book, "d", chapter, "s", weekCount);
+    // Reset states for a new generation cycle
+    setSelectedLessonPlan(null);
+    setLessonPlanData(null);
+
     generateLessonPlan({
       book_id: book.id,
       chapter: chapter,
       uid: uid,
       weeks: weekCount,
     });
-  };
+  }, [uid, generateLessonPlan]);
 
-  // const 
-  console.log("selectedworksheet", slectedLessonPlan)
+  // Memoize history data to prevent unnecessary processing
+  const historyData = useMemo(() => userLP?.content || [], [userLP]);
+
+  // Memoize processing state
+  // Only show the full page loader when ACTUALLY creating a new one (mutating)
+  // or on initial load. Refetching history should show loader only in the sidebar.
+  const isProcessing = useMemo(
+    () => isCreateLPPending || (LPloading && historyData.length === 0),
+    [isCreateLPPending, LPloading, historyData.length]
+  );
+
+  // Memoize processing text
+  const processingText = useMemo(
+    () => `Generating ${navItem?.title}...`,
+    [navItem?.title]
+  );
+
   return (
-    <div className="max-w-7xl mx-auto my-5 space-y-6">
-      <div className="relative overflow-hidden rounded-3xl border border-border bg-gradient-to-br from-primary/10 via-accent/10 to-primary/5 p-8 shadow-[var(--shadow-lg)]">
-        <div className="relative flex items-center gap-4">
-          <div className="p-3 rounded-xl bg-gradient-to-br from-primary to-accent shadow-[var(--shadow-glow)]">
-            <FileText className="h-8 w-8 text-white" />
-          </div>
-          <div>
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-              {navItem.title}
-            </h1>
-            <p className="text-muted-foreground mt-1 text-lg">
-              {navItem.description}
-            </p>
-          </div>
-        </div>
-      </div>
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        {/* {History} */}
-        <History
-          item={navItem.itemtype}
-          selectedItem={slectedLessonPlan}
-          setSelectedItem={setSelectedLessonPlan}
-          historyData={userLP?.content}
-          onDelete={handleDeleteLessonPlan}
-          deletingId={deletingId}
-        />
-        {/* Lesson Plan Content */}
-        {isCreateLPPending || LPloading? (
-        <div className="lg:col-span-3">
-            <div className="flex flex-col items-center justify-center min-h-[500px]">
-              <div className="w-full max-w-2xl">
-                  <div className="text-center">
-                    <Loader2 className="mx-auto h-12 w-12 animate-spin text-primary mb-4" />
-                    <h3 className="text-lg font-medium text-foreground">Generating {navItem.itemtype}...</h3>
-                    <p className="text-sm text-muted-foreground">
-                      Please wait while the AI prepares the questions.
-                    </p>
-                  </div>
-              </div>
-            </div>
-          </div>
-        ) : slectedLessonPlan ? (
-          <LessonPlanDetails item={slectedLessonPlan} isgenrated={false} />
-        ) :
-          lpdata ? (
-            <LessonPlanDetails item={lpdata} isgenrated={true} />
-          ) :
-            (
-              <NewLessonPlanForm onGenerate={handleGenerate} data={bookData?.content} />
-            )}
-      </div>
-    </div>
+    <ToolPageLayout
+      historyData={historyData}
+      selectedItem={selectedLessonPlan}
+      setSelectedItem={(item) => {
+        // Clear all states and set the newly selected history item
+        setSelectedLessonPlan(item);
+        setLessonPlanData(null);
+      }}
+      onDelete={handleDeleteLP}
+      isHistoryLoading={LPfetching}
+      deletingId={deletingId}
+      isProcessing={isProcessing}
+      processingText={processingText}
+    >
+      {selectedLessonPlan ? (
+        <LessonPlanDetails item={selectedLessonPlan} isGenerated={false} />
+      ) : lessonPlanData ? (
+        <LessonPlanDetails item={lessonPlanData} isGenerated={true} />
+      ) : (
+        <NewLessonPlanForm onGenerate={handleGenerate} data={bookContent} />
+      )}
+    </ToolPageLayout>
   );
 }

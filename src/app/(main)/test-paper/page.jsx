@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import { FileText, Loader2 } from "lucide-react";
+import { ToolPageLayout } from "@/app/componentsV2/ui/tool-page-layout";
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
@@ -88,7 +89,7 @@ export default function TestPaperPage() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const testPaperId = searchParams.get("test_paper_id");
-  const navItem = getNavItemByUrl(pathname);
+  const navItem = useMemo(() => getNavItemByUrl(pathname), [pathname]);
   const queryClient = useQueryClient();
   const { setTestPaperStatus } = useApiStore();
 
@@ -132,13 +133,8 @@ export default function TestPaperPage() {
     },
   });
 
-  const handleGenerate = (book, formData) => {
+  const handleGenerate = useCallback((book, formData) => {
     if (!book || !formData) return;
-
-    console.log("📚 Selected Book:", book.book_name);
-    console.log("📖 Selected Chapter:", formData.chapter);
-    console.log("📋 Available Chapters:", book.chapters);
-    console.log("✅ Chapter exists?", book.chapters.includes(formData.chapter));
 
     setSelectedBookId(book.id);
     setIsNewTestPaper(true);
@@ -153,7 +149,7 @@ export default function TestPaperPage() {
       total_marks: parseInt(formData.total_marks),
       duration: formData.duration,
     });
-  };
+  }, [uid, generateTestPaperMutation]);
   useEffect(() => {
     if (testPaperId && userTestPapers?.content) {
       const foundPaper = userTestPapers.content.find((tp) => tp.id === testPaperId);
@@ -164,194 +160,150 @@ export default function TestPaperPage() {
   }, [testPaperId, userTestPapers]);
 
   return (
-    <div className="max-w-7xl mx-auto my-5 space-y-6">
-      {/* Header */}
-      <div className="relative overflow-hidden rounded-3xl border border-border bg-gradient-to-br from-primary/10 via-accent/10 to-primary/5 p-8 shadow-[var(--shadow-lg)]">
-        <div className="relative flex items-center gap-4">
-          <div className="p-3 rounded-xl bg-gradient-to-br from-primary to-accent shadow-[var(--shadow-glow)]">
-            <FileText className="h-8 w-8 text-white" />
-          </div>
-          <div>
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-              {navItem.title}
-            </h1>
-            <p className="text-muted-foreground mt-1 text-lg">{navItem.description}</p>
-          </div>
-        </div>
-      </div>
-
-      {/* Main Content Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        {/* History Sidebar */}
-        <History
-          item={navItem.itemtype || "Test Paper"}
-          historyData={userTestPapers?.content || []}
-          selectedItem={selectedTestPaper}
-          setSelectedItem={(item) => {
-            setSelectedTestPaper(item);
-            setIsNewTestPaper(false);
-          }}
-          isLoading={testPapersLoading}
+    <ToolPageLayout
+      historyData={userTestPapers?.content || []}
+      selectedItem={selectedTestPaper}
+      setSelectedItem={(item) => {
+        setSelectedTestPaper(item);
+        setIsNewTestPaper(false);
+        // Always clear generated data when selection changes or new test paper is requested
+        setTestPaperData(null);
+      }}
+      isHistoryLoading={testPapersLoading}
+      isProcessing={generatingTestPaper}
+      processingText={`Generating ${navItem?.title}...`}
+    >
+      {selectedTestPaper ? (
+        <TestPaperItem
+          item={selectedTestPaper}
+          bookId={selectedTestPaper.book_id}
+          isNew={false}
+          testPaperId={selectedTestPaper.id}
         />
+      ) : testPaperData ? (
+        <TestPaperItem
+          item={testPaperData}
+          bookId={selectedBookId}
+          isNew={isNewTestPaper}
+          testPaperId={currentTestPaperId}
+        />
+      ) : (
+        <BookChapterForm
+          onGenerate={handleGenerate}
+          pageHeaderTitle="Test Papers"
+          pageHeaderDescription="Create formal assessments"
+          pageHeaderIcon={FileText}
+          buttonText="Generate Test Paper"
+          isLoading={generatingTestPaper}
+          formSchema={testPaperFormSchema}
+          defaultValues={{
+            book: "",
+            chapter: "",
+            class: "",
+            subject: "",
+            total_marks: "",
+            duration: "",
+          }}
+          extraFields={(control) => (
+            <>
+              {/* Class/Grade */}
+              <FormField
+                control={control}
+                name="class"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Class/Grade</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select class" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {["5", "6", "7", "8", "9", "10", "11", "12"].map((grade) => (
+                          <SelectItem key={grade} value={grade}>
+                            Grade {grade}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-        {/* Test Paper Content Area */}
-        {generatingTestPaper ? (
-          <div className="lg:col-span-3">
-            <div className="flex flex-col items-center justify-center min-h-[500px]">
-              <div className="w-full max-w-2xl">
-                <div className="text-center">
-                  <Loader2 className="mx-auto h-12 w-12 animate-spin text-primary mb-4" />
-                  <h3 className="text-lg font-medium text-foreground">Generating Test Paper...</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Creating questions, setting marks, and formatting your test paper.
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-        ) : selectedTestPaper ? (
-          <div className="lg:col-span-3">
-            <TestPaperItem
-              item={selectedTestPaper}
-              bookId={selectedTestPaper.book_id}
-              isNew={false}
-              testPaperId={selectedTestPaper.id}
-            />
-          </div>
-        ) : testPaperData ? (
-          <div className="lg:col-span-3">
-            <TestPaperItem
-              item={testPaperData}
-              bookId={selectedBookId}
-              isNew={isNewTestPaper}
-              testPaperId={currentTestPaperId}
-            />
-          </div>
-        ) : (
-          <BookChapterForm
-            onGenerate={(book, values) => handleGenerate(book, values)}
-            pageHeaderTitle="Test Papers"
-            pageHeaderDescription="Create formal assessments"
-            pageHeaderIcon={FileText}
-            buttonText="Generate Test Paper"
-            isLoading={generatingTestPaper}
-            formSchema={testPaperFormSchema}
-            defaultValues={{
-              book: "",
-              chapter: "",
-              class: "",
-              subject: "",
-              total_marks: "",
-              duration: "",
-            }}
-            extraFields={(control) => (
-              <>
-                {/* Class/Grade */}
-                <FormField
-                  control={control}
-                  name="class"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Class/Grade</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select class" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {["5", "6", "7", "8", "9", "10", "11", "12"].map((grade) => (
-                            <SelectItem key={grade} value={grade}>
-                              Grade {grade}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                {/* Subject */}
-                <FormField
-                  control={control}
-                  name="subject"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Subject</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select subject" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {[
-                            "Science",
-                            "Mathematics",
-                            "Physics",
-                            "Chemistry",
-                            "Biology",
-                            "English",
-                            "History",
-                            "Geography",
-                          ].map((subject) => (
+              {/* Subject */}
+              <FormField
+                control={control}
+                name="subject"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Subject</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select subject" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {["Science", "Mathematics", "Physics", "Chemistry", "Biology", "English", "History", "Geography"].map(
+                          (subject) => (
                             <SelectItem key={subject} value={subject}>
                               {subject}
                             </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                          )
+                        )}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-                {/* Total Marks */}
-                <FormField
-                  control={control}
-                  name="total_marks"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Total Marks</FormLabel>
+              {/* Total Marks */}
+              <FormField
+                control={control}
+                name="total_marks"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Total Marks</FormLabel>
+                    <FormControl>
+                      <Input {...field} placeholder="e.g., 100" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {/* Duration */}
+              <FormField
+                control={control}
+                name="duration"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Duration</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
                       <FormControl>
-                        <Input {...field} placeholder="e.g., 100" />
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select duration" />
+                        </SelectTrigger>
                       </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                {/* Duration */}
-                <FormField
-                  control={control}
-                  name="duration"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Duration</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select duration" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {["30 minutes", "1 hour", "1.5 hours", "2 hours", "2.5 hours", "3 hours"].map((duration) => (
-                            <SelectItem key={duration} value={duration}>
-                              {duration}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </>
-            )}
-          />
-        )}
-      </div>
-    </div>
+                      <SelectContent>
+                        {["30 minutes", "1 hour", "1.5 hours", "2 hours", "2.5 hours", "3 hours"].map((duration) => (
+                          <SelectItem key={duration} value={duration}>
+                            {duration}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </>
+          )}
+        />
+      )}
+    </ToolPageLayout>
   );
 }

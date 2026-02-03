@@ -45,10 +45,15 @@ const ActivityTag = ({ children }) => (
 
 /* ------------------ Main Component ------------------ */
 
-const LessonPlanItem = ({ item , isgenrated =false }) => {
+const LessonPlanItem = ({ item, isgenrated = false }) => {
   const lesson_plan = isgenrated
     ? item
     : item?.content?.lesson_plan;
+
+  const handleExport = () => {
+    // Trigger browser print dialog which allows "Save as PDF"
+    window.print();
+  };
 
   return (
     <div className="max-w-6xl mx-auto space-y-8 p-6">
@@ -75,7 +80,12 @@ const LessonPlanItem = ({ item , isgenrated =false }) => {
             </div>
           </div>
 
-          <Button variant="outline" size="sm">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleExport}
+            className="print:hidden"
+          >
             <FileText className="w-4 h-4 mr-2" />
             Export
           </Button>

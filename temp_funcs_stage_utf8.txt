@@ -1,12 +1,12 @@
-import api from "./index";
+﻿import api from "./index";
 import ENDPOINTS from "./endpoints";
 
 // AI Generation Functions
-export const generateContent = async ({ chat_id, uid, prompt, book_id }) => {
+export const generateContent = async ({ chat_id, uid, prompt }) => {
   const response = await api({
     url: ENDPOINTS.GENERATE,
     method: "POST",
-    data: { chat_id, uid, prompt, book_id },
+    data: { chat_id, uid, prompt },
   });
   return response.data;
 };
@@ -72,7 +72,7 @@ export const getWorksheet = async (uid) => {
   const response = await api({
     url: ENDPOINTS.GET_USER_WORKSHEET,
     method: "GET",
-    params: { uid }, // ✅ Correct way to pass query params
+    params: { uid }, // Γ£à Correct way to pass query params
   });
 
   return response.data;
@@ -88,7 +88,7 @@ export const deleteWorksheet = async ({ uid, worksheet_id }) => {
 };
 
 export const getAnswerKey = async (answerKeyId, uid) => {
-  if (!answerKeyId) return null; // ✅ SAFE
+  if (!answerKeyId) return null; // Γ£à SAFE
 
   const response = await api({
     url: ENDPOINTS.GET_USER_ANSWER_KEY,
@@ -141,10 +141,10 @@ export const getLessonPlan = async (uid) => {
   return response.data;
 };
 
-export const deleteLessonPlan = async ({ uid, lesson_plan_id }) => {
-  if (!uid || !lesson_plan_id) throw new Error("uid and lesson_plan_id are required");
+export const deleteLessonPlan = async ({ lesson_plan_id }) => {
+  if (!lesson_plan_id) throw new Error("lesson_plan_id is required");
   const response = await api({
-    url: `${ENDPOINTS.DELETE_LESSON_PLAN}/${uid}/${lesson_plan_id}`,
+    url: `${ENDPOINTS.DELETE_LESSON_PLAN}/${lesson_plan_id}`,
     method: "DELETE",
   });
   return response.data;
@@ -158,7 +158,6 @@ export const createChat = async (data) => {
     data: {
       chat_title: data.chat_title,
       uid: data.uid,
-      book_id: data.book_id,
     },
   });
   return response.data;
@@ -301,3 +300,4 @@ export const testTestPaperAPI = async () => {
   });
   return response.data;
 };
+

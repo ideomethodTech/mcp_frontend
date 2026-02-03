@@ -12,8 +12,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/contexts/auth-context";
-import { LogOut } from "lucide-react";
-import { NAV_ITEMS } from "@/lib/constants";
+import { LogOut, Shield } from "lucide-react";
+import { NAV_ITEMS, ADMIN_NAV_ITEM } from "@/lib/constants.jsx";
 import React from "react";
 import { usePathname } from "next/navigation";
 import { Logo } from "./icons";
@@ -33,10 +33,10 @@ export function Header() {
 
   const userInitials = user
     ? user?.user.username
-        .split(" ")
-        .map((n) => n[0])
-        .join("")
-        .toUpperCase()
+      .split(" ")
+      .map((n) => n[0])
+      .join("")
+      .toUpperCase()
     : user?.user.email[0]?.toUpperCase() || "U";
 
   console.log(user.user.username);
@@ -65,9 +65,8 @@ export function Header() {
                     <Link
                       key={item.href}
                       href={item.href}
-                      className={`flex items-center gap-2 p-2 rounded-md transition-colors ${
-                        isActive ? "bg-blue-50 text-blue-600" : "text-gray-900 hover:bg-gray-50"
-                      }`}
+                      className={`flex items-center gap-2 p-2 rounded-md transition-colors ${isActive ? "bg-blue-50 text-blue-600" : "text-gray-900 hover:bg-gray-50"
+                        }`}
                     >
                       <item.icon className="w-4 h-4" />
                     </Link>
@@ -103,6 +102,13 @@ export function Header() {
               <DropdownMenuSeparator />
               <DropdownMenuItem>Settings</DropdownMenuItem>
               <DropdownMenuItem>Support</DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem asChild>
+                <Link href="/admin" className="flex items-center cursor-pointer">
+                  <Shield className="mr-2 h-4 w-4" />
+                  Admin Panel
+                </Link>
+              </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={handleLogout}>
                 <LogOut className="mr-2 h-4 w-4" />

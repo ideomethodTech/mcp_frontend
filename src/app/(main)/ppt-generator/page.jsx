@@ -1,7 +1,10 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo, useCallback } from 'react';
+import { ToolPageLayout } from '@/app/componentsV2/ui/tool-page-layout';
+import { getNavItemByUrl } from '@/app/utils';
+import { usePathname } from 'next/navigation';
 import {
   Presentation,
   Loader2,
@@ -84,6 +87,11 @@ const mockData = {
 
 
 function PptDetails({ item }) {
+  const handleDownload = () => {
+    // Trigger browser print dialog which allows "Save as PDF"
+    window.print();
+  };
+
   return (
     <div className="lg:col-span-3">
       <div className="rounded-2xl border border-border bg-card shadow-[var(--shadow-md)]">
@@ -99,7 +107,10 @@ function PptDetails({ item }) {
                 </p>
               </div>
             </div>
-            <Button className="gap-2 bg-gradient-to-r from-primary to-accent hover:opacity-90">
+            <Button
+              className="gap-2 bg-gradient-to-r from-primary to-accent hover:opacity-90 print:hidden"
+              onClick={handleDownload}
+            >
               <Download className="h-4 w-4" />
               Download PPT
             </Button>
@@ -216,8 +227,8 @@ function NewPptForm({ onGenerate }) {
                   <SelectValue placeholder="Select a book" />
                 </SelectTrigger>
                 <SelectContent>
-                  {mockData.books.map((book) => (
-                    <SelectItem key={book.name} value={book.name}>{book.name}</SelectItem>
+                  {mockData.books.map((book, index) => (
+                    <SelectItem key={book.name || index} value={book.name}>{book.name}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -229,8 +240,8 @@ function NewPptForm({ onGenerate }) {
                   <SelectValue placeholder="Select a chapter" />
                 </SelectTrigger>
                 <SelectContent>
-                  {mockData.books.find(b => b.name === selectedBook)?.chapters.map((chapter) => (
-                    <SelectItem key={chapter.name} value={chapter.name}>{chapter.name}</SelectItem>
+                  {mockData.books.find(b => b.name === selectedBook)?.chapters.map((chapter, index) => (
+                    <SelectItem key={chapter.name || index} value={chapter.name}>{chapter.name}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -249,8 +260,11 @@ function NewPptForm({ onGenerate }) {
 export default function PptGeneratorPage() {
   const [selectedPpt, setSelectedPpt] = useState(mockHistory[0]);
   const [isLoading, setIsLoading] = useState(false);
+  const [deletingId, setDeletingId] = useState(null);
+  const pathname = usePathname();
+  const navItem = useMemo(() => getNavItemByUrl(pathname), [pathname]);
 
-  const handleGenerate = () => {
+  const handleGenerate = useCallback(() => {
     setIsLoading(true);
     setSelectedPpt(null);
     setTimeout(() => {
@@ -270,44 +284,42 @@ export default function PptGeneratorPage() {
       setSelectedPpt(newPpt);
       setIsLoading(false);
     }, 2000);
-  }
+  }, []);
+
+  const handleDeletePpt = useCallback((item) => {
+    setDeletingId(item.id);
+
+    // Simulate API delete delay
+    setTimeout(() => {
+      const index = mockHistory.findIndex(ppt => ppt.id === item.id);
+      if (index > -1) {
+        mockHistory.splice(index, 1);
+      }
+
+      // If we deleted the currently selected item, clear selection
+      if (selectedPpt?.id === item.id) {
+        setSelectedPpt(null);
+      }
+
+      setDeletingId(null);
+    }, 500);
+  }, [selectedPpt]);
 
   return (
-    <div className="max-w-7xl mx-auto my-5 space-y-6">
-      <div className="relative overflow-hidden rounded-3xl border border-border bg-gradient-to-br from-primary/10 via-accent/10 to-primary/5 p-8 shadow-[var(--shadow-lg)]">
-        <div className="relative flex items-center gap-4">
-          <div className="p-3 rounded-xl bg-gradient-to-br from-primary to-accent shadow-[var(--shadow-glow)]">
-            <FileText className="h-8 w-8 text-white" />
-          </div>
-          <div>
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-              PPT Generator
-            </h1>
-            <p className="text-muted-foreground mt-1 text-lg">
-              Transform book chapters into engaging presentations.            </p>
-          </div>
-        </div>
-      </div>
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        {/* {History} */}
-        <History selectedItem={selectedPpt} setSelectedItem={setSelectedPpt} historyData={mockHistory} />
-
-        {/* PPT generator Content */}
-        {isLoading ? (
-          <div className="flex items-center justify-center h-full">
-            <div className="text-center">
-              <Loader2 className="mx-auto h-12 w-12 animate-spin text-primary mb-4" />
-              <h3 className="text-lg font-medium text-foreground">Generating Presentation...</h3>
-              <p className="text-sm text-muted-foreground">
-                Please wait while the AI crafts your slides.
-              </p>
-            </div>
-          </div>
-        ) : selectedPpt ? (
-          <PptDetails item={selectedPpt} />
-        ) : (
-          <NewPptForm onGenerate={handleGenerate} />
-        )}
-      </div>
-    </div>)
+    <ToolPageLayout
+      historyData={mockHistory}
+      selectedItem={selectedPpt}
+      setSelectedItem={setSelectedPpt}
+      onDelete={handleDeletePpt}
+      deletingId={deletingId}
+      isProcessing={isLoading}
+      processingText={`Crafting ${navItem?.title}...`}
+    >
+      {selectedPpt ? (
+        <PptDetails item={selectedPpt} />
+      ) : (
+        <NewPptForm onGenerate={handleGenerate} />
+      )}
+    </ToolPageLayout>
+  );
 }

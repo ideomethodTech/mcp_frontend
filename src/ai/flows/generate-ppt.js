@@ -7,8 +7,8 @@
  * - GeneratePptOutput - The return type for the generatePpt function.
  */
 
-import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
+import { ai } from '@/ai/genkit';
+import { z } from 'genkit';
 
 const GeneratePptInputSchema = z.object({
   chapterText: z
@@ -16,8 +16,6 @@ const GeneratePptInputSchema = z.object({
     .describe('The text content of the book chapter to generate a PPT from.'),
   topic: z.string().describe('The main topic of the chapter.'),
 });
-export type GeneratePptInput = z.infer<typeof GeneratePptInputSchema>;
-
 const GeneratePptOutputSchema = z.object({
   presentation: z
     .string()
@@ -25,16 +23,15 @@ const GeneratePptOutputSchema = z.object({
       'A PowerPoint presentation in .pptx format (base64 encoded) generated from the chapter text.'
     ),
 });
-export type GeneratePptOutput = z.infer<typeof GeneratePptOutputSchema>;
 
-export async function generatePpt(input: GeneratePptInput): Promise<GeneratePptOutput> {
+export async function generatePpt(input) {
   return generatePptFlow(input);
 }
 
 const prompt = ai.definePrompt({
   name: 'generatePptPrompt',
-  input: {schema: GeneratePptInputSchema},
-  output: {schema: GeneratePptOutputSchema},
+  input: { schema: GeneratePptInputSchema },
+  output: { schema: GeneratePptOutputSchema },
   prompt: `You are an expert presentation creator.
 
 You will receive the text from a book chapter, and your job is to turn it into a PowerPoint presentation.
@@ -55,7 +52,7 @@ const generatePptFlow = ai.defineFlow(
     // In a real implementation, this would involve calling a service or library
     // to generate a .pptx file and then base64 encoding it.
     // For this example, we'll just return a placeholder.
-    const {output} = await prompt(input);
-    return output!;
+    const { output } = await prompt(input);
+    return output;
   }
 );

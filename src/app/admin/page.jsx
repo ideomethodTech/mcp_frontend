@@ -63,7 +63,7 @@ export default function AdminDashboardPage() {
       try {
         const { storage } = await import("@/lib/firebase");
         const { ref, uploadBytesResumable, getDownloadURL } = await import("firebase/storage");
-        
+
         if (storage) {
           setFirebaseStorage({ storage, ref, uploadBytesResumable, getDownloadURL });
           setFirebaseLoaded(true);
@@ -77,7 +77,7 @@ export default function AdminDashboardPage() {
         });
       }
     };
-    
+
     loadFirebase();
   }, [toast]);
 
@@ -130,7 +130,7 @@ export default function AdminDashboardPage() {
 
     try {
       const { storage, ref, uploadBytesResumable, getDownloadURL } = firebaseStorage;
-      
+
       // Create a unique filename
       const timestamp = Date.now();
       const fileName = `books/${uid}/${timestamp}_${bookFile.name}`;
@@ -161,14 +161,14 @@ export default function AdminDashboardPage() {
           try {
             const { getDownloadURL: getURL } = firebaseStorage;
             const downloadURL = await getURL(uploadTask.snapshot.ref);
-            
+
             // Now call the backend API with the Firebase URL
             uploadMutation.mutate({
               book_name: bookName,
               book_url: downloadURL,
               uid: uid,
             });
-            
+
             setIsUploading(false);
           } catch (error) {
             console.error("Error getting download URL:", error);
@@ -282,8 +282,8 @@ export default function AdminDashboardPage() {
                       {isUploading
                         ? "Uploading to Storage..."
                         : uploadMutation.isPending
-                        ? "Processing..."
-                        : "Upload"}
+                          ? "Processing..."
+                          : "Upload"}
                     </Button>
                   </DialogFooter>
                 </DialogContent>
