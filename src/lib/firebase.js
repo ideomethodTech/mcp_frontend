@@ -14,14 +14,19 @@ const firebaseConfig = {
 
 // Validate that we have the required config
 const isFirebaseConfigValid = () => {
-  return (
+  const isValid =
     firebaseConfig.apiKey &&
     firebaseConfig.authDomain &&
     firebaseConfig.projectId &&
     firebaseConfig.storageBucket &&
     firebaseConfig.messagingSenderId &&
-    firebaseConfig.appId
-  );
+    firebaseConfig.appId;
+
+  if (!isValid && typeof window !== "undefined") {
+    console.warn("Firebase configuration is incomplete. Check your .env.local file.");
+  }
+
+  return isValid;
 };
 
 // Initialize Firebase only if config is valid and we're on the client side

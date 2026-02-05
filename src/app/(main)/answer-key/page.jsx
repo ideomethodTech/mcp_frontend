@@ -34,6 +34,9 @@ const formSchema = z.object({
   chapter: z.string().nonempty("Please select a chapter."),
 });
 
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+
 function AnswerKeyDetails({ item }) {
   const data = item.content?.answers ? item.content : (item.answers ? item : item.content);
   if (!data || (!data.answers && !data.worksheet_title)) return (
@@ -76,11 +79,13 @@ function AnswerKeyDetails({ item }) {
 
                 <div className="flex-1">
                   {/* Question Text */}
-                  <p className="font-semibold text-lg text-foreground leading-tight">{q.question}</p>
+                  <div className="prose prose-sm max-w-none font-semibold text-lg text-foreground leading-tight mb-2">
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{q.question}</ReactMarkdown>
+                  </div>
 
                   {/* Type */}
                   <p className="text-xs text-muted-foreground mt-1 uppercase tracking-wide">
-                    {q.question_type.replace("_", " ")}
+                    {q.question_type?.replace("_", " ")}
                   </p>
 
                   {/* For MCQ */}
@@ -97,13 +102,17 @@ function AnswerKeyDetails({ item }) {
                   {/* For Key Points / Variations */}
                   {/* Correct Answer */}
                   <div className="mt-5">
-                    <p className="font-semibold text-primary text-sm">
-                      Correct Answer: <span className="text-foreground">{String(q.correct_answer)}</span>
+                    <p className="font-semibold text-primary text-sm flex gap-2">
+                      Correct Answer: <span className="text-foreground font-bold">
+                        {typeof q.correct_answer === 'object' ? JSON.stringify(q.correct_answer) : String(q.correct_answer)}
+                      </span>
                     </p>
                   </div>
 
                   {/* Explanation */}
-                  <p className="mt-3 text-sm text-muted-foreground italic">{q.explanation}</p>
+                  <div className="mt-3 prose prose-sm max-w-none text-muted-foreground italic">
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{q.explanation}</ReactMarkdown>
+                  </div>
 
                   {/* Common Mistakes */}
                   {q.common_mistakes?.length > 0 && (
@@ -160,7 +169,9 @@ function AnswerKeyDetails({ item }) {
                   {/* Learning Point */}
                   <div className="mt-6 border-t pt-4">
                     <p className="text-sm text-primary font-semibold">Learning Point:</p>
-                    <p className="text-sm text-muted-foreground mt-1">{q.learning_point}</p>
+                    <div className="prose prose-sm max-w-none text-muted-foreground mt-1">
+                      <ReactMarkdown remarkPlugins={[remarkGfm]}>{q.learning_point}</ReactMarkdown>
+                    </div>
                   </div>
                 </div>
               </div>

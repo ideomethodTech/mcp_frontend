@@ -1,4 +1,5 @@
-// import ReactMarkdown from 'react-markdown';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 export function parseDynamicLessonPlan(lessonPlanString) {
   if (!lessonPlanString || typeof lessonPlanString !== "string") {
@@ -63,12 +64,12 @@ export function parseDynamicLessonPlan(lessonPlanString) {
 
 export function LessonPlanDetails({ item }) {
   console.log("Lesson Plan Data:", item);
-  
+
   // Handle different response structures and parse JSON if needed
-  let lessonPlanContent = item?.learning?.lesson_plan || 
-                         item?.content || 
-                         item?.message || 
-                         "No content available";
+  let lessonPlanContent = item?.learning?.lesson_plan ||
+    item?.content ||
+    item?.message ||
+    "No content available";
 
   // If it's a string that looks like JSON, try to parse it
   if (typeof lessonPlanContent === 'string' && lessonPlanContent.trim().startsWith('{')) {
@@ -105,11 +106,12 @@ export function LessonPlanDetails({ item }) {
         {hasStructuredData ? (
           <StructuredLessonPlanView data={parsedLessonPlan} />
         ) : (
-          <div className="prose prose-sm max-w-none">
+          <div className="prose prose-sm max-w-none dark:prose-invert">
             <ReactMarkdown
+              remarkPlugins={[remarkGfm]}
               components={{
                 h1: ({ children }) => (
-                  <h1 className="text-2xl font-bold text-foreground mt-8 mb-4">{children}</h1>
+                  <h1 className="text-2xl font-bold text-foreground mt-8 mb-4 border-b pb-2">{children}</h1>
                 ),
                 h2: ({ children }) => (
                   <h2 className="text-xl font-bold text-foreground mt-6 mb-3">{children}</h2>
@@ -124,15 +126,40 @@ export function LessonPlanDetails({ item }) {
                   <p className="text-muted-foreground mb-4 leading-relaxed">{children}</p>
                 ),
                 ul: ({ children }) => (
-                  <ul className="list-none space-y-2 mb-4 ml-4">{children}</ul>
+                  <ul className="list-disc space-y-2 mb-4 ml-6">{children}</ul>
+                ),
+                ol: ({ children }) => (
+                  <ol className="list-decimal space-y-2 mb-4 ml-6">{children}</ol>
                 ),
                 li: ({ children }) => (
-                  <li className="text-muted-foreground leading-relaxed before:content-['•'] before:mr-2 before:text-primary">
+                  <li className="text-muted-foreground leading-relaxed">
                     {children}
                   </li>
                 ),
                 strong: ({ children }) => (
-                  <strong className="font-semibold text-foreground">{children}</strong>
+                  <strong className="font-bold text-foreground">{children}</strong>
+                ),
+                table: ({ children }) => (
+                  <div className="overflow-x-auto my-6">
+                    <table className="w-full border-collapse border border-border">
+                      {children}
+                    </table>
+                  </div>
+                ),
+                thead: ({ children }) => (
+                  <thead className="bg-muted/50">
+                    {children}
+                  </thead>
+                ),
+                th: ({ children }) => (
+                  <th className="border border-border px-4 py-2 text-left font-bold text-sm">
+                    {children}
+                  </th>
+                ),
+                td: ({ children }) => (
+                  <td className="border border-border px-4 py-2 text-sm">
+                    {children}
+                  </td>
                 ),
               }}
             >
@@ -154,7 +181,7 @@ function StructuredLessonPlanView({ data }) {
       {Object.entries(weeks).map(([week, weekData]) => (
         <div key={week} className="border border-border rounded-lg p-6">
           <h3 className="text-xl font-bold text-foreground mb-4">{week}</h3>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Objectives */}
             {weekData.objectives.length > 0 && (

@@ -2,12 +2,12 @@ const ENDPOINTS = {
   // AI Generation
   GENERATE: "/generate",
   GENERATE_WORKSHEET: "/generate/worksheet",
-  GENERATE_LESSONPLAN: "/generate/lesson_plan",
+  GENERATE_LESSON_PLAN: "/generate/lesson_plan",
   GENERATE_ANSWER_KEY: "/generate/answer_key",
   GENERATE_TEST_PAPER: "/api/test_paper/generate",
 
   // Book Management
-  UPLOAD_BOOK: "/book/upload_book",
+  UPLOAD_BOOK: "/upload/book",
   GET_BOOK: "/book/get_book",
 
   // Chat Management
