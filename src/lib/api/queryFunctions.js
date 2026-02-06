@@ -1,3 +1,4 @@
+import axios from "axios";
 import api from "./index";
 import ENDPOINTS from "./endpoints";
 
@@ -30,16 +31,27 @@ export const generateAnswerKey = async ({ worksheet_id, book_id, uid, chapter })
 };
 
 // Book Management Functions
-export const uploadBook = async (data) => {
-  const response = await api({
-    url: ENDPOINTS.UPLOAD_BOOK,
+export const uploadBook = async (formData) => {
+  console.log("--- Uploading Book Debug ---");
+  for (let [key, value] of formData.entries()) {
+    console.log(`${key}:`, value instanceof File ? `File(${value.name})` : value);
+  }
+
+  const baseURL = process.env.NEXT_PUBLIC_API_URL;
+  const token = localStorage.getItem("access_token");
+
+  // Using axios directly to ensure browsers handle the boundary correctly
+  const response = await axios({
+    url: `${baseURL}${ENDPOINTS.UPLOAD_BOOK}`,
     method: "POST",
-    data: {
-      book_url: data.book_url,
-      book_name: data.book_name,
-      uid: data.uid,
+    data: formData,
+    headers: {
+      Authorization: token ? `Bearer ${token}` : "",
+      // Do NOT set Content-Type, let axios/browser handle it
     },
   });
+
+  console.log("Upload Response:", response.data);
   return response.data;
 };
 
@@ -117,7 +129,7 @@ export const getAllAnswerKeys = async (uid) => {
 // lesson plan
 export const createLessonPlan = async (data) => {
   const response = await api({
-    url: ENDPOINTS.GENERATE_LESSONPLAN,
+    url: ENDPOINTS.GENERATE_LESSON_PLAN,
     method: "POST",
     data: {
       book_id: data.book_id,
@@ -218,6 +230,9 @@ export const loginUser = async (data) => {
       email: data.email,
       password: data.password,
     },
+    headers: {
+      "Content-Type": "application/json",
+    },
   });
   return response.data;
 };
@@ -232,6 +247,9 @@ export const registerUser = async (data) => {
       username: data.username,
       role: "user",
       profile_details: {},
+    },
+    headers: {
+      "Content-Type": "application/json",
     },
   });
   return response.data;

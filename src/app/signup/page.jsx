@@ -2,7 +2,8 @@
 
 import { useToast } from "@/hooks/use-toast";
 import { useRegister } from "@/lib/api/queries";
-import { AuthForm } from "@/components/ui/AuthForm";
+import { ModernAuthForm } from "@/components/auth/ModernAuthForm";
+import { AuthLayout } from "@/components/auth/AuthLayout";
 
 export default function SignupPage() {
   const { toast } = useToast();
@@ -37,13 +38,12 @@ export default function SignupPage() {
   };
 
   return (
-    <AuthForm
-      type="signup"
-      onSubmit={handleSubmit}
-      mutation={registerMutation}
-      title="Create Account"
-      description="Register to get started."
-      showFooter={true}
-    />
+    <AuthLayout>
+      <ModernAuthForm
+        type="signup"
+        onSubmit={handleSubmit}
+        mutation={registerMutation}
+      />
+    </AuthLayout>
   );
 }

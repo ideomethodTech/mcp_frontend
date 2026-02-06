@@ -21,7 +21,6 @@ import { Logo } from "./icons";
 export function Header() {
   const { user, signOut } = useAuth();
   const pathname = usePathname();
-  console.log(user)
 
   const handleLogout = async () => {
     try {
@@ -39,84 +38,73 @@ export function Header() {
       .toUpperCase()
     : user?.user.email[0]?.toUpperCase() || "U";
 
-  console.log(user.user.username);
-  console.log(user.user.email);
   return (
-    <header className="flex h-16 items-center justify-between  border-b bg-white px-6">
+    <header className="flex h-20 items-center justify-between bg-white px-12 border-none">
       {/* Logo and Branding */}
-      <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded flex items-center justify-center">
-          <Logo className="w-8 h-8 text-primary" />
+      <Link href="/" className="flex items-center gap-3">
+        <div className="w-10 h-10 bg-[#6366f1] rounded-lg flex items-center justify-center text-white font-bold text-xs">
+          AI
         </div>
         <div className="flex flex-col">
-          <span className="font-bold text-lg leading-tight">AI Learning Hub</span>
-          <span className="text-xs text-gray-500 leading-tight">Educational Intelligence</span>
+          <span className="font-bold text-lg leading-tight text-gray-900 tracking-tight">AI Learning Hub</span>
+          <span className="text-[10px] text-gray-400 font-medium uppercase tracking-wider leading-none">Educational Intelligence</span>
         </div>
-      </div>
-      <div className="flex items-center gap-6">
-        {/* Navigation */}
-        <TooltipProvider delayDuration={100}>
-          <div className="flex-1 flex items-right  ml-4">
-            {NAV_ITEMS.map((item) => {
-              const isActive = pathname === item.href;
-              return (
-                <Tooltip key={item.href}>
-                  <TooltipTrigger asChild>
-                    <Link
-                      key={item.href}
-                      href={item.href}
-                      className={`flex items-center gap-2 p-2 rounded-md transition-colors ${isActive ? "bg-blue-50 text-blue-600" : "text-gray-900 hover:bg-gray-50"
-                        }`}
-                    >
-                      <item.icon className="w-4 h-4" />
-                    </Link>
-                  </TooltipTrigger>
-                  <TooltipContent side="bottom" sideOffset={6}>
-                    <p className="text-sm font-medium">{item.title}</p>
-                  </TooltipContent>
-                </Tooltip>
-              );
-            })}
-          </div>
-        </TooltipProvider>
-        {/* User Info */}
-        <div className="flex items-center gap-3">
-          <div className="flex flex-col items-end">
-            <span className="text-sm font-medium text-gray-900">{user?.user.username || "Demo User"}</span>
-            <span className="text-xs text-gray-500">{user?.user.email || "demo@aihub.com"}</span>
-          </div>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Avatar className="h-10 w-10 cursor-pointer bg-blue-600">
-                <AvatarImage src={user?.photoURL} alt={user?.displayName || "User"} />
-                <AvatarFallback className="bg-blue-600 text-white">{userInitials}</AvatarFallback>
-              </Avatar>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuLabel>
-                <div className="flex flex-col space-y-1">
-                  <p className="text-sm font-medium leading-none">{user?.displayName || "User"}</p>
-                  <p className="text-xs leading-none text-muted-foreground">{user?.email}</p>
-                </div>
-              </DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem>Settings</DropdownMenuItem>
-              <DropdownMenuItem>Support</DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem asChild>
-                <Link href="/admin" className="flex items-center cursor-pointer">
-                  <Shield className="mr-2 h-4 w-4" />
-                  Admin Panel
-                </Link>
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={handleLogout}>
-                <LogOut className="mr-2 h-4 w-4" />
-                Logout
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
+      </Link>
+
+      {/* Navigation */}
+      <nav className="hidden md:flex items-center gap-8">
+        {NAV_ITEMS.map((item) => {
+          if (item.href === "/") return null;
+          const isActive = pathname === item.href;
+          // Shorten titles for header if needed or use as is
+          const displayTitle = item.title.replace(" Generator", "").replace(" with Book", "");
+
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={`text-sm font-semibold transition-colors ${isActive ? "text-indigo-600 border-b-2 border-indigo-600 -mb-[2px]" : "text-gray-600 hover:text-gray-900"
+                } pb-1`}
+            >
+              {displayTitle}
+            </Link>
+          );
+        })}
+      </nav>
+
+      {/* User Info */}
+      <div className="flex items-center gap-4">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Avatar className="h-10 w-10 cursor-pointer border-2 border-transparent hover:border-indigo-100 transition-all">
+              <AvatarImage src={user?.photoURL || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&h=100&fit=crop&crop=faces"} alt={user?.displayName || "User"} />
+              <AvatarFallback className="bg-indigo-600 text-white">{userInitials}</AvatarFallback>
+            </Avatar>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-56 mt-2">
+            <DropdownMenuLabel>
+              <div className="flex flex-col space-y-1">
+                <p className="text-sm font-bold leading-none">{user?.user.username || "User"}</p>
+                <p className="text-xs leading-none text-muted-foreground">{user?.user.email}</p>
+              </div>
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem className="cursor-pointer">Settings</DropdownMenuItem>
+            <DropdownMenuItem className="cursor-pointer">Support</DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem asChild>
+              <Link href="/admin" className="flex items-center cursor-pointer">
+                <Shield className="mr-2 h-4 w-4" />
+                Admin Panel
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={handleLogout} className="cursor-pointer text-red-600 focus:text-red-600">
+              <LogOut className="mr-2 h-4 w-4" />
+              Logout
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     </header>
   );

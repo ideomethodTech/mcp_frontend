@@ -8,6 +8,8 @@ import { useRouter } from "next/navigation";
 import React from "react";
 import { useGetAllAnswerKeys } from "@/lib/api/queries";
 import { useAuth } from "@/contexts/auth-context";
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 const WorksheetItem = ({ item, bookId, isNew, worksheetId }) => {
   const router = useRouter();
@@ -134,9 +136,14 @@ const WorksheetItem = ({ item, bookId, isNew, worksheetId }) => {
                   <div className="space-y-6">
                     {worksheetData.multipleChoice.map((question, index) => (
                       <div key={`mcq-${index}`} className="space-y-2">
-                        <p className="font-medium">
-                          {index + 1}. {renderText(question.question)}
-                        </p>
+                        <div className="flex gap-2 font-medium">
+                          <span>{index + 1}.</span>
+                          <div className="prose prose-sm max-w-none">
+                            <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                              {renderText(question.question)}
+                            </ReactMarkdown>
+                          </div>
+                        </div>
                         <div className="pl-4 space-y-1 text-sm grid grid-cols-1 md:grid-cols-2 gap-2">
                           {question.options?.map((option, i) => (
                             <p key={`opt-${index}-${i}`} className="flex items-center gap-2">
@@ -160,7 +167,11 @@ const WorksheetItem = ({ item, bookId, isNew, worksheetId }) => {
                         <div className="flex items-start gap-3">
                           <span className="font-medium">{index + 1}.</span>
                           <div className="flex-1">
-                            <p className="mb-2">{renderText(question.question)}</p>
+                            <div className="prose prose-sm max-w-none mb-2">
+                              <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                {renderText(question.question)}
+                              </ReactMarkdown>
+                            </div>
                             <div className="flex gap-6 pl-4 text-sm">
                               <span className="flex items-center gap-2"><div className="w-3 h-3 rounded-full border border-border" /> True</span>
                               <span className="flex items-center gap-2"><div className="w-3 h-3 rounded-full border border-border" /> False</span>
@@ -180,7 +191,11 @@ const WorksheetItem = ({ item, bookId, isNew, worksheetId }) => {
                     {worksheetData.fillInTheBlanks.map((question, index) => (
                       <div key={`fib-${index}`} className="flex items-start gap-3">
                         <span className="font-medium">{index + 1}.</span>
-                        <p className="flex-1">{renderText(question.question)}</p>
+                        <div className="prose prose-sm max-w-none flex-1">
+                          <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                            {renderText(question.question)}
+                          </ReactMarkdown>
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -193,15 +208,25 @@ const WorksheetItem = ({ item, bookId, isNew, worksheetId }) => {
                   <div className="space-y-6">
                     {worksheetData.shortAnswer.map((question, index) => (
                       <div key={`sa-${index}`} className="space-y-2">
-                        <p className="font-medium">
-                          {index + 1}. {renderText(question.question)}
-                        </p>
+                        <div className="flex gap-2 font-medium">
+                          <span>{index + 1}.</span>
+                          <div className="prose prose-sm max-w-none">
+                            <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                              {renderText(question.question || question.text)}
+                            </ReactMarkdown>
+                          </div>
+                        </div>
                         <div className="pl-4 min-h-[40px] border-b border-dashed border-border/50 text-muted-foreground italic text-sm">
                           Space for answer...
                         </div>
                         {/* Always show expected answer in the preview for the teacher */}
                         <div className="bg-primary/5 p-3 rounded-lg text-xs text-primary/80 mt-2">
-                          <span className="font-bold">Expected:</span> {renderText(question.expected_answer || question.answer)}
+                          <span className="font-bold">Expected:</span>
+                          <div className="prose prose-xs max-w-none inline-block align-top ml-2">
+                            <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                              {renderText(question.expected_answer || question.answer)}
+                            </ReactMarkdown>
+                          </div>
                         </div>
                       </div>
                     ))}

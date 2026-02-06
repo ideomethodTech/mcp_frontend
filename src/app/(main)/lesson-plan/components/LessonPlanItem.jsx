@@ -23,22 +23,22 @@ import React from "react";
 /* ------------------ UI Enhancements ------------------ */
 
 const Tag = ({ children }) => (
-  <span className="px-3 py-1 rounded-full bg-primary/10 text-primary text-sm font-medium shadow-sm">
+  <span className="px-3 py-1 rounded-full bg-indigo-50 text-indigo-600 text-sm font-medium shadow-sm">
     {children}
   </span>
 );
 
 const SectionHeader = ({ icon: Icon, title }) => (
   <div className="flex items-center gap-2">
-    <div className="p-2 rounded-xl bg-primary/10">
-      <Icon className="w-5 h-5 text-primary" />
+    <div className="p-2 rounded-xl bg-indigo-50">
+      <Icon className="w-5 h-5 text-indigo-600" />
     </div>
-    <h3 className="text-xl font-semibold">{title}</h3>
+    <h3 className="text-xl font-semibold text-gray-900">{title}</h3>
   </div>
 );
 
 const ActivityTag = ({ children }) => (
-  <span className="px-2 py-0.5 rounded-lg bg-primary/10 text-primary text-xs font-medium">
+  <span className="px-2 py-0.5 rounded-lg bg-indigo-50 text-indigo-600 text-xs font-medium">
     {children}
   </span>
 );
@@ -153,8 +153,8 @@ const LessonPlanItem = ({ item, isgenrated = false }) => {
       </div> */}
 
       {/* Activities */}
-      <div className="rounded-lg border-2 border-primary/20 bg-card shadow-sm">
-        <div className="p-6 bg-primary/5">
+      <div className="rounded-lg border-2 border-indigo-100 bg-card shadow-sm">
+        <div className="p-6 bg-indigo-50">
           <SectionHeader icon={Calendar} title="Activities" />
         </div>
 
@@ -283,7 +283,7 @@ const LessonPlanItem = ({ item, isgenrated = false }) => {
           {/* Advanced */}
           <div>
             <div className="flex items-center gap-2">
-              <Lightbulb className="w-4 h-4 text-primary" />
+              <Lightbulb className="w-4 h-4 text-indigo-600" />
               <h4 className="font-semibold text-sm">For Advanced Students</h4>
             </div>
 
@@ -304,7 +304,7 @@ const LessonPlanItem = ({ item, isgenrated = false }) => {
           {/* Struggling */}
           <div>
             <div className="flex items-center gap-2">
-              <Lightbulb className="w-4 h-4 text-primary" />
+              <Lightbulb className="w-4 h-4 text-indigo-600" />
               <h4 className="font-semibold text-sm">For Struggling Students</h4>
             </div>
 
@@ -323,8 +323,8 @@ const LessonPlanItem = ({ item, isgenrated = false }) => {
       </div>
 
       {/* Homework */}
-      <div className="rounded-lg border-2 border-primary/20 bg-card shadow-sm">
-        <div className="p-6 bg-primary/5">
+      <div className="rounded-lg border-2 border-indigo-100 bg-card shadow-sm">
+        <div className="p-6 bg-indigo-50">
           <SectionHeader icon={FileText} title="Homework Assignment" />
         </div>
 
