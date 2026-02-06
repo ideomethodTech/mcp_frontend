@@ -12,11 +12,12 @@ export const generateContent = async ({ chat_id, uid, prompt, book_id }) => {
   return response.data;
 };
 
-export const generateWorksheet = async ({ book_id, uid, chapter }) => {
+export const generateWorksheet = async (data) => {
+  console.log("🚀 Sending Worksheet Generation Request:", JSON.stringify(data, null, 2));
   const response = await api({
     url: ENDPOINTS.GENERATE_WORKSHEET,
     method: "POST",
-    data: { book_id, uid, chapter },
+    data: data,
   });
   return response.data;
 };

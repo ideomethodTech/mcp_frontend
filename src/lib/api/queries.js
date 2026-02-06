@@ -37,7 +37,7 @@ export const useGenerateContent = (options) =>
 
 export const useGenerateWorksheet = (options) =>
   useMutation({
-    mutationFn: ({ book_id, uid, chapter }) => generateWorksheet({ book_id, uid, chapter }),
+    mutationFn: (data) => generateWorksheet(data),
     ...options,
   });
 
