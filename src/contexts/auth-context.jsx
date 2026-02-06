@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
 import api from "@/lib/api";
 
+import ENDPOINTS from "@/lib/api/endpoints";
+
 const AuthContext = createContext();
 
 export function AuthProvider({ children }) {
@@ -17,7 +19,28 @@ export function AuthProvider({ children }) {
     const storedUser = localStorage.getItem("user");
     if (storedUser) {
       try {
-        setUser(JSON.parse(storedUser));
+        const parsedUser = JSON.parse(storedUser);
+        setUser(parsedUser);
+
+        // Check Firebase sync on load
+        const syncFirebase = async () => {
+          try {
+            const { auth } = await import("@/lib/firebase");
+            if (auth) {
+              const { onAuthStateChanged } = await import("firebase/auth");
+              onAuthStateChanged(auth, (fbUser) => {
+                if (!fbUser) {
+                  console.warn("User in app session but not in Firebase. Storage may be limited.");
+                } else {
+                  console.log("Firebase sync verified:", fbUser.email);
+                }
+              });
+            }
+          } catch (e) {
+            console.error("Context sync check failed:", e);
+          }
+        };
+        syncFirebase();
       } catch (error) {
         console.error("Failed to parse stored user:", error);
         localStorage.removeItem("user");
@@ -30,7 +53,7 @@ export function AuthProvider({ children }) {
   const signInWithEmail = async (email, password) => {
     try {
       const response = await api({
-        url: "/login",
+        url: ENDPOINTS.LOGIN,
         method: "POST",
         data: {
           email: email,
@@ -67,6 +90,7 @@ export function AuthProvider({ children }) {
     try {
       localStorage.removeItem("user");
       localStorage.removeItem("access_token");
+
       setUser(null);
       router.push("/login");
     } catch (error) {

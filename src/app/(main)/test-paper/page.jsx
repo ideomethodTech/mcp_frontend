@@ -17,6 +17,8 @@ import { toast } from "react-toastify";
 import * as z from "zod";
 import { BookChapterForm } from "@/components/ui/BookChapterForm";
 
+
+
 const testPaperFormSchema = z.object({
   book: z.string().nonempty("Please select a book."),
   chapter: z.string().nonempty("Please select a chapter."),
@@ -26,6 +28,9 @@ const testPaperFormSchema = z.object({
   duration: z.string().nonempty("Please enter duration."),
 });
 
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+
 // Test Paper Item Component (similar to WorksheetItem)
 const TestPaperItem = ({ item, bookId, isNew, testPaperId }) => {
   if (!item) return null;
@@ -34,39 +39,53 @@ const TestPaperItem = ({ item, bookId, isNew, testPaperId }) => {
 
   return (
     <div className="rounded-2xl border border-border bg-card p-8 shadow-[var(--shadow-md)]">
-      <div className="flex items-start gap-3 mb-8">
-        <FileText className="h-7 w-7 text-primary mt-1" />
+      <div className="flex items-start gap-4 mb-10">
+        <div className="p-3 rounded-xl bg-gradient-to-br from-[#6366f1] to-[#8b5cf6] shadow-sm">
+          <FileText className="h-6 w-6 text-white" />
+        </div>
         <div>
-          <h2 className="text-3xl font-bold text-foreground">{itemWithId.title || "Test Paper"}</h2>
-          <p className="text-muted-foreground text-sm mt-1">
-            Class: {itemWithId.class} • Subject: {itemWithId.subject} • Marks: {itemWithId.total_marks} • Duration:{" "}
-            {itemWithId.duration}
-          </p>
+          <h2 className="text-3xl font-bold text-gray-900 tracking-tight">{itemWithId.title || "Test Paper"}</h2>
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-gray-400 mt-2 font-medium">
+            <span className="flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-indigo-400" /> Class: {itemWithId.class}</span>
+            <span className="flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-purple-400" /> Subject: {itemWithId.subject}</span>
+            <span className="flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-blue-400" /> Marks: {itemWithId.total_marks}</span>
+            <span className="flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-indigo-400" /> Duration: {itemWithId.duration}</span>
+          </div>
         </div>
       </div>
 
       {/* Test Paper content display */}
-      <div className="space-y-6">
+      <div className="space-y-10">
         {itemWithId.questions?.map((question, index) => (
-          <div key={index} className="border-b pb-6 last:border-0">
-            <div className="flex gap-3">
-              <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">
-                {index + 1}
+          <div key={index} className="group relative pl-14 last:border-0 border-b border-gray-50 pb-10 last:pb-0">
+            {/* Question Number Badge */}
+            <div className="absolute left-0 top-0 w-10 h-10 rounded-full bg-white border-2 border-indigo-100 flex items-center justify-center text-[#6366f1] font-bold text-sm shadow-sm group-hover:scale-110 group-hover:bg-indigo-600 group-hover:text-white group-hover:border-indigo-600 transition-all duration-300">
+              {index + 1}
+            </div>
+
+            <div className="flex-1">
+              <div className="prose prose-sm max-w-none text-gray-800 font-medium leading-relaxed">
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                  {question.question}
+                </ReactMarkdown>
               </div>
-              <div className="flex-1">
-                <p className="font-semibold text-lg">{question.question}</p>
-                {question.options && (
-                  <div className="mt-3 space-y-2">
-                    {question.options.map((option, optIndex) => (
-                      <p key={optIndex} className="text-sm text-muted-foreground">
-                        {String.fromCharCode(65 + optIndex)}. {option}
-                      </p>
-                    ))}
-                  </div>
-                )}
-                <div className="mt-4 text-sm text-primary">
-                  <span className="font-semibold">Marks:</span> {question.marks || "Not specified"}
+
+              {question.options && (
+                <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {question.options.map((option, optIndex) => (
+                    <div key={optIndex} className="flex gap-3 p-4 rounded-xl bg-gray-50 border border-transparent hover:border-indigo-100 hover:bg-indigo-50/30 transition-all group/opt">
+                      <span className="flex-shrink-0 w-6 h-6 rounded-md bg-white border border-gray-200 flex items-center justify-center text-[10px] font-bold text-gray-400 group-hover/opt:text-indigo-600 group-hover/opt:border-indigo-200 shadow-sm transition-all">
+                        {String.fromCharCode(65 + optIndex)}
+                      </span>
+                      <p className="text-sm text-gray-600 group-hover/opt:text-indigo-900 transition-colors">{option}</p>
+                    </div>
+                  ))}
                 </div>
+              )}
+
+              <div className="mt-6 flex items-center gap-2 px-3 py-1.5 rounded-lg bg-indigo-50/50 w-fit">
+                <span className="text-[10px] font-bold uppercase tracking-widest text-[#6366f1]">Marks</span>
+                <span className="text-sm font-bold text-indigo-900">{question.marks || "Not specified"}</span>
               </div>
             </div>
           </div>
@@ -166,6 +185,8 @@ export default function TestPaperPage() {
       setSelectedItem={(item) => {
         setSelectedTestPaper(item);
         setIsNewTestPaper(false);
+        // Always clear generated data when selection changes or new test paper is requested
+        setTestPaperData(null);
       }}
       isHistoryLoading={testPapersLoading}
       isProcessing={generatingTestPaper}

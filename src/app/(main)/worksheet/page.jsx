@@ -257,6 +257,8 @@ export default function WorksheetPage() {
       setSelectedItem={(item) => {
         setSelectedworksheet(item);
         setIsNewWorksheet(false);
+        // Always clear generated data when selection changes or new worksheet is requested
+        setWorksheetData(null);
       }}
       onDelete={handleDeleteWorksheet}
       isHistoryLoading={worksheetsLoading}
