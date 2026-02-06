@@ -2,8 +2,7 @@
 
 import { useLogin } from "@/lib/api/queries";
 import { toast } from "react-toastify";
-import { ModernAuthForm } from "@/components/auth/ModernAuthForm";
-import { AuthLayout } from "@/components/auth/AuthLayout";
+import { AuthForm } from "@/components/ui/AuthForm";
 
 export default function LoginPage() {
   const loginMutation = useLogin({
@@ -24,7 +23,7 @@ export default function LoginPage() {
     },
     onError: (error) => {
       console.error("Login failed:", error);
-      toast.error(error.response?.data?.message || "Invalid email or password");
+      toast.error(error.response?.data?.message  || "Invalid email or password");
     },
   });
 
@@ -36,12 +35,13 @@ export default function LoginPage() {
   }
 
   return (
-    <AuthLayout>
-      <ModernAuthForm
-        type="login"
-        onSubmit={onSubmit}
-        mutation={loginMutation}
-      />
-    </AuthLayout>
+    <AuthForm
+      type="login"
+      onSubmit={onSubmit}
+      mutation={loginMutation}
+      title="Welcome Back"
+      description="Enter your credentials to access your account."
+      allowSignup={false}
+    />
   );
 }
