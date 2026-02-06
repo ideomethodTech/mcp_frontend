@@ -5,9 +5,6 @@ const api = (config) => {
   const axiosInstance = axios.create({
     baseURL,
     timeout: 100000,
-    headers: {
-      "Content-Type": "application/json",
-    },
   });
 
   // ADD THIS: Request interceptor to add auth token
@@ -51,13 +48,32 @@ const api = (config) => {
       return response;
     },
     (error) => {
-      // Handle cases where error response is HTML (like 404 pages)
-      const contentType = error.response?.headers?.["content-type"];
-      if (typeof contentType === "string" && contentType.includes("text/html")) {
-        console.error("API Error: Received HTML error page instead of JSON:", error.config?.url);
-        const customError = new Error(`API endpoint not found: ${error.config?.url}`);
-        customError.name = "APINotFoundError";
-        return Promise.reject(customError);
+      // Enhanced diagnostic logging for "Network Error"
+      if (!error.response) {
+        console.error("🌐 Network Error detected!");
+        console.error("Config URL:", error.config?.url);
+        console.error("Base URL:", error.config?.baseURL);
+        console.error("Full URL attempted:", (error.config?.baseURL || '') + (error.config?.url || ''));
+
+        // Check for common causes
+        if (typeof window !== 'undefined' && !window.navigator.onLine) {
+          console.error("Device is offline.");
+        } else {
+          console.error("Possible causes: CORS issues, server down, or invalid domain.");
+        }
+      } else {
+        // Handle cases where error response is HTML (like 404 pages)
+        const contentType = error.response?.headers?.["content-type"];
+        if (typeof contentType === "string" && contentType.includes("text/html")) {
+          console.error("API Error: Received HTML error page instead of JSON:", error.config?.url);
+          const customError = new Error(`API endpoint not found (404/500 HTML): ${error.config?.url}`);
+          customError.name = "APINotFoundError";
+          return Promise.reject(customError);
+        }
+
+        // Log structured error if available
+        console.error("API Error Status:", error.response.status);
+        console.error("API Error Response Data:", JSON.stringify(error.response.data, null, 2));
       }
 
       // Handle specific JSON parse errors
@@ -69,7 +85,7 @@ const api = (config) => {
       }
 
       // Handle global errors here
-      console.error("API Error:", error);
+      console.error("Final API Error Log:", error.message || error);
       return Promise.reject(error);
     }
   );

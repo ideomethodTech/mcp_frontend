@@ -28,10 +28,7 @@ export default function AdminDashboardPage() {
   const [bookName, setBookName] = useState("");
   const [bookFile, setBookFile] = useState(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
-  const [firebaseLoaded, setFirebaseLoaded] = useState(false);
-  const [firebaseStorage, setFirebaseStorage] = useState(null);
 
   const uploadMutation = useUploadBook({
     onSuccess: () => {
@@ -42,7 +39,6 @@ export default function AdminDashboardPage() {
       setIsDialogOpen(false);
       setBookName("");
       setBookFile(null);
-      setUploadProgress(0);
       queryClient.invalidateQueries({ queryKey: ["books"] });
     },
     onError: (error) => {
@@ -56,30 +52,6 @@ export default function AdminDashboardPage() {
 
   const booksQuery = useGetBook();
   const { user } = useAuth();
-
-  // Dynamically import Firebase only on client side
-  useEffect(() => {
-    const loadFirebase = async () => {
-      try {
-        const { storage } = await import("@/lib/firebase");
-        const { ref, uploadBytesResumable, getDownloadURL } = await import("firebase/storage");
-        
-        if (storage) {
-          setFirebaseStorage({ storage, ref, uploadBytesResumable, getDownloadURL });
-          setFirebaseLoaded(true);
-        }
-      } catch (error) {
-        console.error("Failed to load Firebase:", error);
-        toast({
-          title: "Firebase initialization failed",
-          description: "File upload functionality may not work",
-          variant: "destructive",
-        });
-      }
-    };
-    
-    loadFirebase();
-  }, [toast]);
 
   const handleFileChange = (e) => {
     const file = e.target.files?.[0];
@@ -96,8 +68,12 @@ export default function AdminDashboardPage() {
     }
   };
 
+  const forceSyncFirebase = null; // Removed Auth sync
+
   const handleUpload = async () => {
-    const uid = user?.user.uid;
+    const uid = user?.user?.uid || user?.uid;
+    console.log("Admin Upload Debug - User Object:", user);
+    console.log("Admin Upload Debug - Detected UID:", uid);
 
     if (!uid) {
       toast({
@@ -117,70 +93,22 @@ export default function AdminDashboardPage() {
       return;
     }
 
-    if (!firebaseLoaded || !firebaseStorage) {
-      toast({
-        title: "Firebase not ready",
-        description: "Please wait for Firebase to initialize",
-        variant: "destructive",
-      });
-      return;
-    }
-
     setIsUploading(true);
 
     try {
-      const { storage, ref, uploadBytesResumable, getDownloadURL } = firebaseStorage;
-      
-      // Create a unique filename
-      const timestamp = Date.now();
-      const fileName = `books/${uid}/${timestamp}_${bookFile.name}`;
-      const storageRef = ref(storage, fileName);
+      const formData = new FormData();
+      formData.append("title", bookName);
+      formData.append("uid", uid);
+      formData.append("file", bookFile);
 
-      // Upload file to Firebase Storage
-      const uploadTask = uploadBytesResumable(storageRef, bookFile);
-
-      uploadTask.on(
-        "state_changed",
-        (snapshot) => {
-          // Track upload progress
-          const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-          setUploadProgress(progress);
-        },
-        (error) => {
-          // Handle upload error
-          console.error("Upload error:", error);
-          toast({
-            title: "Upload failed",
-            description: "Failed to upload file to storage",
-            variant: "destructive",
-          });
+      uploadMutation.mutate(formData, {
+        onSuccess: () => {
           setIsUploading(false);
         },
-        async () => {
-          // Upload completed successfully, get download URL
-          try {
-            const { getDownloadURL: getURL } = firebaseStorage;
-            const downloadURL = await getURL(uploadTask.snapshot.ref);
-            
-            // Now call the backend API with the Firebase URL
-            uploadMutation.mutate({
-              book_name: bookName,
-              book_url: downloadURL,
-              uid: uid,
-            });
-            
-            setIsUploading(false);
-          } catch (error) {
-            console.error("Error getting download URL:", error);
-            toast({
-              title: "Error",
-              description: "Failed to get file URL",
-              variant: "destructive",
-            });
-            setIsUploading(false);
-          }
-        }
-      );
+        onError: () => {
+          setIsUploading(false);
+        },
+      });
     } catch (error) {
       console.error("Upload error:", error);
       toast({
@@ -213,7 +141,8 @@ export default function AdminDashboardPage() {
               <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                 <DialogTrigger asChild>
                   <Button>
-                    <FilePlus2 className="mr-2 h-4 w-4" /> Upload Book
+                    <FilePlus2 className="mr-2 h-4 w-4" />
+                    Upload Book
                   </Button>
                 </DialogTrigger>
                 <DialogContent className="sm:max-w-[425px]">
@@ -250,25 +179,12 @@ export default function AdminDashboardPage() {
                           disabled={isUploading || uploadMutation.isPending}
                         />
                         {bookFile && (
-                          <p className="text-sm text-muted-foreground mt-2">
-                            Selected: {bookFile.name}
-                          </p>
+                          <div className="text-sm mt-2">
+                            <p className="text-muted-foreground font-medium">Selected: {bookFile.name}</p>
+                          </div>
                         )}
                       </div>
                     </div>
-                    {isUploading && (
-                      <div className="col-span-4">
-                        <div className="w-full bg-secondary rounded-full h-2">
-                          <div
-                            className="bg-primary h-2 rounded-full transition-all duration-300"
-                            style={{ width: `${uploadProgress}%` }}
-                          />
-                        </div>
-                        <p className="text-sm text-muted-foreground mt-2 text-center">
-                          Uploading: {Math.round(uploadProgress)}%
-                        </p>
-                      </div>
-                    )}
                   </div>
                   <DialogFooter>
                     <Button
@@ -280,10 +196,10 @@ export default function AdminDashboardPage() {
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                       )}
                       {isUploading
-                        ? "Uploading to Storage..."
+                        ? "Uploading..."
                         : uploadMutation.isPending
-                        ? "Processing..."
-                        : "Upload"}
+                          ? "Processing..."
+                          : "Upload"}
                     </Button>
                   </DialogFooter>
                 </DialogContent>
