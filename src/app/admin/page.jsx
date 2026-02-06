@@ -18,7 +18,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { useUploadBook, useGetBook } from "@/lib/api/queries";
+import { useUploadBook, useGetBook, useDeleteBook } from "@/lib/api/queries";
 import { useAuth } from "@/contexts/auth-context";
 import { useQueryClient } from "@tanstack/react-query";
 
@@ -120,11 +120,52 @@ export default function AdminDashboardPage() {
     }
   };
 
+  const deleteMutation = useDeleteBook({
+    onSuccess: () => {
+      toast({
+        title: "Book deleted",
+        description: "The book has been successfully removed.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["books"] });
+    },
+    onError: (error) => {
+      const serverMessage = error.response?.data?.message || error.response?.data?.detail;
+      toast({
+        title: "Deletion failed",
+        description: serverMessage || "Failed to delete book. You may not have administrative privileges.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleDeleteBook = (book) => {
+    const currentUid = user?.user?.uid || user?.uid;
+    if (!currentUid) return;
+
+    // Use the book's owner UID if available (e.g., book.uid or book.user_id), 
+    // otherwise fallback to the current user's UID.
+    const targetUid = book.uid || book.user_id || currentUid;
+
+    if (window.confirm(`Are you sure you want to delete "${book.book_name}"?`)) {
+      deleteMutation.mutate({ uid: targetUid, book_id: book.id });
+    }
+  };
+
   const books = booksQuery.data?.content || [];
 
   return (
     <div>
-      <h1 className="font-headline text-3xl font-bold tracking-tight mb-4">Admin Dashboard</h1>
+      <div className="flex items-center justify-between mb-8">
+        <h1 className="font-headline text-3xl font-bold tracking-tight">Admin Dashboard</h1>
+        {user && (
+          <div className="px-4 py-2 bg-indigo-50 border border-indigo-100 rounded-xl flex items-center gap-3">
+            <div className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse" />
+            <span className="text-xs font-bold text-indigo-700 uppercase tracking-wider">
+              Role: {user?.user?.role || "Unknown"}
+            </span>
+          </div>
+        )}
+      </div>
       <Tabs defaultValue="books">
         <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="books">Book Management</TabsTrigger>
@@ -242,8 +283,18 @@ export default function AdminDashboardPage() {
                         <TableCell>{book.chapters?.length || 0} chapters</TableCell>
                         <TableCell>{new Date(book.created_at).toLocaleDateString()}</TableCell>
                         <TableCell className="text-right">
-                          <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-destructive">
-                            <Trash2 className="h-4 w-4" />
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="text-muted-foreground hover:text-destructive"
+                            onClick={() => handleDeleteBook(book)}
+                            disabled={deleteMutation.isPending}
+                          >
+                            {deleteMutation.isPending ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <Trash2 className="h-4 w-4" />
+                            )}
                           </Button>
                         </TableCell>
                       </TableRow>
