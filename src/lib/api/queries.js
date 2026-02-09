@@ -26,6 +26,7 @@ import {
   deleteChat,
   deleteChatMessage,
   deleteAnswerKey,
+  deleteBook,
 } from "./queryFunctions";
 
 // AI Generation Hooks
@@ -51,6 +52,12 @@ export const useGenerateAnswerKey = (options) =>
 export const useUploadBook = (options) =>
   useMutation({
     mutationFn: uploadBook,
+    ...options,
+  });
+
+export const useDeleteBook = (options) =>
+  useMutation({
+    mutationFn: deleteBook,
     ...options,
   });
 

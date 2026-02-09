@@ -1,5 +1,5 @@
 'use client';
-
+import { useAuth } from '@/contexts/auth-context';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -26,6 +26,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Logo } from '@/components/icons';
 import { Loader2 } from 'lucide-react';
+import { useToast } from "@/hooks/use-toast";
 
 const formSchema = z.object({
   email: z.string().email('Please enter a valid email address.'),
@@ -33,32 +34,40 @@ const formSchema = z.object({
 });
 
 export default function AdminLoginPage() {
-    const router = useRouter();
-    const [isLoading, setIsLoading] = useState(false);
-    const form = useForm({
-        resolver: zodResolver(formSchema),
-        defaultValues: {
-          email: '',
-          password: '',
-        },
-      });
+  const { signInWithEmail } = useAuth();
+  const router = useRouter();
+  const [isLoading, setIsLoading] = useState(false);
+  const { toast } = useToast();
 
-    function onSubmit(values) {
-        console.log(values);
-        setIsLoading(true);
-        // Mock authentication
-        setTimeout(() => {
-            router.push('/admin');
-        }, 1500);
+  const form = useForm({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      email: '',
+      password: '',
+    },
+  });
+
+  async function onSubmit(values) {
+    setIsLoading(true);
+    try {
+      await signInWithEmail(values.email, values.password);
+      router.push('/admin');
+    } catch (error) {
+      console.error("Admin Login Error:", error);
+      // AuthContext handles most errors via toastify, 
+      // but we can add a local toast if needed.
+    } finally {
+      setIsLoading(false);
     }
-    
+  }
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
       <Card className="w-full max-w-sm">
         <CardHeader className="text-center">
-            <div className="flex justify-center mb-4">
-                <Logo className="h-10 w-10 text-primary" />
-            </div>
+          <div className="flex justify-center mb-4">
+            <Logo className="h-10 w-10 text-primary" />
+          </div>
           <CardTitle className="font-headline text-2xl">Admin Login</CardTitle>
           <CardDescription>Enter your credentials to access the dashboard.</CardDescription>
         </CardHeader>
@@ -91,10 +100,10 @@ export default function AdminLoginPage() {
                   </FormItem>
                 )}
               />
-               <Button type="submit" className="w-full" disabled={isLoading}>
-                    {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    Log In
-                </Button>
+              <Button type="submit" className="w-full" disabled={isLoading}>
+                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Log In
+              </Button>
             </form>
           </Form>
         </CardContent>

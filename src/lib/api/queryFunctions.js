@@ -64,6 +64,15 @@ export const getBooks = async (uid = null) => {
   return response.data;
 };
 
+export const deleteBook = async ({ uid, book_id }) => {
+  if (!uid || !book_id) throw new Error("uid and book_id are required");
+  const response = await api({
+    url: `${ENDPOINTS.DELETE_BOOK}/${uid}/${book_id}`,
+    method: "DELETE",
+  });
+  return response.data;
+};
+
 //Worksheet
 export const createWorksheet = async (data) => {
   const response = await api({
