@@ -1,198 +1,131 @@
+"use client";
 
-'use client';
-
-import { useState, useMemo, useCallback } from 'react';
-import { ToolPageLayout } from '@/app/componentsV2/ui/tool-page-layout';
-import { getNavItemByUrl } from '@/app/utils';
-import { usePathname } from 'next/navigation';
+import { useEffect, useState, useMemo, useCallback } from "react";
 import {
-  Presentation,
-  Loader2,
-  Download,
-  BookOpen,
-  FileIcon,
-  Plus,
-  FileImage,
-  Palette,
-  Layers,
-  FileText,
-  FileType,
-} from 'lucide-react';
-import { format } from 'date-fns';
-import { PageHeader } from '@/components/page-header';
-import { Button } from '@/components/ui/button';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
-import { cn } from '@/lib/utils';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import Link from 'next/link';
-import History from '@/app/componentsV2/ui/history';
+  Presentation, Loader2, Download, Layers, Palette, FileType, Sparkles, Zap, Clock
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useAuth } from "@/contexts/auth-context";
+import { toast } from "react-toastify";
+import { format } from "date-fns";
+import { BookChapterForm } from "@/components/ui/BookChapterForm";
+import { ToolPageLayout } from "@/app/componentsV2/ui/tool-page-layout";
+import * as z from "zod";
 
-const mockHistory = [
-  {
-    id: '1',
-    title: 'The Brahmin and the Disciple',
-    slides: 11,
-    date: new Date('2025-10-13'),
-    details: {
-      subtitle: 'A Tale of Greed, Magic, and Unexpected Consequences',
-      author: 'Epoch AI Generated Presentation',
-      theme: 'Dark',
-      filename: 'The_Brahmin_and_the_Disciple_1760352312808.pptx',
-    },
-  },
-  {
-    id: '2',
-    title: 'Introduction to Photosynthesis',
-    slides: 15,
-    date: new Date('2025-10-11'),
-    details: {
-      subtitle: 'Understanding how plants create food.',
-      author: 'Epoch AI Generated Presentation',
-      theme: 'Light',
-      filename: 'Intro_to_Photosynthesis_1759992312808.pptx',
-    },
-  },
-];
+const pptFormSchema = z.object({
+  book: z.string().nonempty("Please select a book."),
+  chapter: z.string().nonempty("Please select a chapter."),
+});
 
-const mockData = {
-  books: [
-    {
-      name: 'Oliver English Class 05',
-      chapters: [
-        { name: 'The Brahmin and the Disciple (Story)', pages: '7 - 16' },
-        { name: 'Another Chapter', pages: '17 - 28' },
-      ]
-    },
-    {
-      name: 'The Great Gatsby',
-      chapters: [
-        { name: 'Chapter 1', pages: '1 - 20' },
-        { name: 'Chapter 2', pages: '21 - 45' },
-      ]
-    }
-  ]
-}
-
+// --- Ppt Details Component (Matching Premium Style) ---
 
 function PptDetails({ item }) {
+  if (!item) return null;
+
   const handleDownload = () => {
-    // Trigger browser print dialog which allows "Save as PDF"
-    window.print();
+    toast.info("Preparing your presentation...");
+
+    // Create a dummy blob to simulate a real download to the local machine
+    const dummyContent = "This is a placeholder for the generated PowerPoint presentation.";
+    const blob = new Blob([dummyContent], { type: 'application/vnd.openxmlformats-officedocument.presentationml.presentation' });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = item.details?.filename || "presentation.pptx";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+
+    setTimeout(() => {
+      toast.success("Presentation downloaded successfully!");
+    }, 1500);
   };
 
   return (
-    <div className="lg:col-span-3">
-      <div className="rounded-2xl border border-border bg-card shadow-[var(--shadow-md)]">
-        {/* Header with Actions */}
-        <div className="p-6 border-b border-border">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-3">
-              <Presentation className="h-6 w-6 text-primary" />
-              <div>
-                <h2 className="text-xl font-bold text-foreground">{item.title}</h2>
-                <p className="text-sm text-muted-foreground">
-                  {item.details.subtitle}
-                </p>
+    <div className="lg:col-span-3 animate-in fade-in duration-500">
+      <div className="rounded-2xl border border-border bg-card shadow-[var(--shadow-md)] overflow-hidden">
+        {/* Header */}
+        <div className="p-8 border-b border-border flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <div className="flex items-center gap-5">
+            <div className="w-16 h-16 bg-gradient-to-br from-[#6366f1] to-[#8b5cf6] rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-100">
+              <Presentation className="h-8 w-8 text-white" />
+            </div>
+            <div>
+              <h2 className="text-3xl font-extrabold text-foreground tracking-tight leading-tight">{item.title}</h2>
+              <p className="text-muted-foreground font-medium mt-1 uppercase text-[10px] tracking-widest">{item.book} • {item.chapter}</p>
+            </div>
+          </div>
+          <Button
+            className="h-12 px-6 bg-gradient-to-r from-primary to-accent hover:opacity-90 text-white rounded-xl shadow-xl shadow-indigo-100 text-sm font-bold gap-2 transition-all hover:scale-105 active:scale-95"
+            onClick={handleDownload}
+          >
+            <Download className="h-4 w-4" />
+            Download PPTX
+          </Button>
+        </div>
+
+        {/* Stats Bar */}
+        <div className="bg-muted/30 p-8 border-b border-border">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="bg-card rounded-2xl p-6 border border-border shadow-sm text-center group hover:border-primary/30 transition-all">
+              <Layers className="h-5 w-5 text-primary mx-auto mb-3" />
+              <p className="text-2xl font-black text-foreground leading-none mb-1">{item.slides}</p>
+              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Total Slides</p>
+            </div>
+            <div className="bg-card rounded-2xl p-6 border border-border shadow-sm text-center group hover:border-accent/30 transition-all">
+              <Palette className="h-5 w-5 text-accent mx-auto mb-3" />
+              <p className="text-2xl font-black text-foreground leading-none mb-1">{item.details?.theme || "Modern"}</p>
+              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Visual Theme</p>
+            </div>
+            <div className="bg-card rounded-2xl p-6 border border-border shadow-sm text-center group hover:border-emerald-500/30 transition-all">
+              <FileType className="h-5 w-5 text-emerald-500 mx-auto mb-3" />
+              <p className="text-2xl font-black text-foreground leading-none mb-1">PPTX</p>
+              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Format</p>
+            </div>
+            <div className="bg-card rounded-2xl p-6 border border-border shadow-sm text-center group hover:border-orange-500/30 transition-all">
+              <Clock className="h-5 w-5 text-orange-500 mx-auto mb-3" />
+              <p className="text-2xl font-black text-foreground leading-none mb-1">Standard</p>
+              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Duration</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Details */}
+        <div className="p-8">
+          <div className="space-y-8">
+            <div className="bg-primary/5 rounded-2xl p-6 border border-primary/10 relative overflow-hidden group">
+              <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+                <Sparkles className="w-12 h-12 text-primary" />
               </div>
-            </div>
-            <Button
-              className="gap-2 bg-gradient-to-r from-primary to-accent hover:opacity-90 print:hidden"
-              onClick={handleDownload}
-            >
-              <Download className="h-4 w-4" />
-              Download PPT
-            </Button>
-          </div>
-        </div>
-
-        {/* Presentation Stats */}
-        <div className="p-6 border-b border-border">
-          <div className="grid grid-cols-4 gap-4">
-            <div className="rounded-xl border border-border bg-gradient-to-br from-primary/5 to-accent/5 p-4 text-center">
-              <Layers className="h-5 w-5 text-primary mx-auto mb-2" />
-              <p className="text-2xl font-bold text-foreground">{item.slides}</p>
-              <p className="text-xs text-muted-foreground">Slides</p>
-            </div>
-            <div className="rounded-xl border border-border bg-gradient-to-br from-purple-500/5 to-purple-600/5 p-4 text-center">
-              <Palette className="h-5 w-5 text-purple-500 mx-auto mb-2" />
-              <p className="text-2xl font-bold text-foreground">{item.details.theme}</p>
-              <p className="text-xs text-muted-foreground">Theme</p>
-            </div>
-            <div className="rounded-xl border border-border bg-gradient-to-br from-green-500/5 to-green-600/5 p-4 text-center">
-              <FileType className="h-5 w-5 text-green-500 mx-auto mb-2" />
-              <p className="text-2xl font-bold text-foreground">PPTX</p>
-              <p className="text-xs text-muted-foreground">Format</p>
-            </div>
-            <div className="rounded-xl border border-border bg-gradient-to-br from-orange-500/5 to-orange-600/5 p-4 text-center">
-              <Presentation className="h-5 w-5 text-orange-500 mx-auto mb-2" />
-              <p className="text-2xl font-bold text-foreground">Standard</p>
-              <p className="text-xs text-muted-foreground">Aspect Ratio</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Presentation Details */}
-        <div className="p-6">
-          <div className="space-y-4">
-            <div className="rounded-xl bg-gradient-to-br from-primary/5 to-accent/5 p-6 border border-primary/10">
-              <p className="text-sm text-muted-foreground mb-2">Generated on:   {item?.date ? format(new Date(item.date), 'dd/MM/yyyy') : '—'}
-              </p>
-              <p className="text-sm text-muted-foreground">
-                Filename: {item.details.filename}
-              </p>
+              <div className="flex items-center gap-2 mb-3">
+                <Zap className="w-4 h-4 text-primary fill-primary" />
+                <span className="text-[10px] font-black text-primary uppercase tracking-widest">Generated Details</span>
+              </div>
+              <p className="text-sm font-bold text-foreground opacity-70 mb-2">Created: {format(new Date(item.created_at), 'MMMM do, yyyy')}</p>
+              <p className="text-sm font-bold text-foreground opacity-70">Filename: <span className="p-1 px-2 bg-background rounded-lg ml-1 font-mono text-xs border border-border">{item.details?.filename || "presentation.pptx"}</span></p>
             </div>
 
             <div>
-              <h3 className="text-lg font-semibold text-foreground mb-4">Presentation Preview</h3>
-              <p className="text-muted-foreground mb-4">
-                This presentation has been automatically generated based on your selected content.
-                It includes engaging visuals, clear structure, and comprehensive coverage of the topic.
-              </p>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="rounded-xl border border-border p-4 bg-muted/30">
-                  <div className="aspect-video bg-gradient-to-br from-primary/20 to-accent/20 rounded-lg mb-3 flex items-center justify-center">
-                    <Presentation className="h-12 w-12 text-primary/50" />
+              <h3 className="text-lg font-black text-foreground mb-6 uppercase tracking-tight">Presentation Preview</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {[
+                  { title: "Introduction", desc: "Overview & Learning Objectives", icon: Presentation },
+                  { title: "Key Concepts", desc: "Core terminology and definitions", icon: Layers },
+                  { title: "Deep Dive", desc: "Detailed analysis and examples", icon: FileType },
+                  { title: "Summary", desc: "Key takeaways and next steps", icon: Palette },
+                ].map((preview, i) => (
+                  <div key={i} className="group flex flex-col gap-4 p-5 rounded-2xl bg-muted/20 border border-transparent hover:border-primary/20 hover:bg-card transition-all shadow-sm hover:shadow-md">
+                    <div className="aspect-video bg-primary/5 rounded-xl flex items-center justify-center group-hover:bg-primary/10 transition-colors relative overflow-hidden">
+                      <preview.icon className="h-12 w-12 text-primary/20 group-hover:text-primary transition-colors z-10" />
+                      <span className="absolute top-3 left-3 bg-card text-[10px] font-bold text-muted-foreground px-2 py-0.5 rounded-full z-20 border border-border">Slide {i + 1}</span>
+                    </div>
+                    <div>
+                      <p className="font-bold text-foreground text-sm">{preview.title}</p>
+                      <p className="text-xs text-muted-foreground font-medium">{preview.desc}</p>
+                    </div>
                   </div>
-                  <p className="text-sm font-medium text-foreground">Slide 1: Title Slide</p>
-                  <p className="text-xs text-muted-foreground">Introduction & overview</p>
-                </div>
-
-                <div className="rounded-xl border border-border p-4 bg-muted/30">
-                  <div className="aspect-video bg-gradient-to-br from-primary/20 to-accent/20 rounded-lg mb-3 flex items-center justify-center">
-                    <Layers className="h-12 w-12 text-primary/50" />
-                  </div>
-                  <p className="text-sm font-medium text-foreground">Slide 2: Characters</p>
-                  <p className="text-xs text-muted-foreground">Main characters overview</p>
-                </div>
-
-                <div className="rounded-xl border border-border p-4 bg-muted/30">
-                  <div className="aspect-video bg-gradient-to-br from-primary/20 to-accent/20 rounded-lg mb-3 flex items-center justify-center">
-                    <FileType className="h-12 w-12 text-primary/50" />
-                  </div>
-                  <p className="text-sm font-medium text-foreground">Slide 3: Plot Summary</p>
-                  <p className="text-xs text-muted-foreground">Story progression</p>
-                </div>
-
-                <div className="rounded-xl border border-border p-4 bg-muted/30">
-                  <div className="aspect-video bg-gradient-to-br from-primary/20 to-accent/20 rounded-lg mb-3 flex items-center justify-center">
-                    <Palette className="h-12 w-12 text-primary/50" />
-                  </div>
-                  <p className="text-sm font-medium text-foreground">Slide 4: Key Themes</p>
-                  <p className="text-xs text-muted-foreground">Analysis & insights</p>
-                </div>
+                ))}
               </div>
             </div>
           </div>
@@ -202,123 +135,83 @@ function PptDetails({ item }) {
   );
 }
 
-
-function NewPptForm({ onGenerate }) {
-  const [selectedBook, setSelectedBook] = useState(null);
-
-  return (
-    <div className="flex flex-col items-center justify-center min-h-[500px]">
-      <Card className="w-full max-w-2xl">
-        <CardHeader>
-          <div className="flex items-center gap-3 mb-2">
-            <BookOpen className="w-6 h-6 text-muted-foreground" />
-            <CardTitle className="font-headline text-xl">Generate a New Presentation</CardTitle>
-          </div>
-          <CardDescription>
-            Choose a book and chapter to automatically create a PowerPoint presentation.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-1">
-              <label className="text-sm font-medium">Select Book</label>
-              <Select onValueChange={setSelectedBook}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a book" />
-                </SelectTrigger>
-                <SelectContent>
-                  {mockData.books.map((book, index) => (
-                    <SelectItem key={book.name || index} value={book.name}>{book.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1">
-              <label className="text-sm font-medium">Select Chapter</label>
-              <Select disabled={!selectedBook}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a chapter" />
-                </SelectTrigger>
-                <SelectContent>
-                  {mockData.books.find(b => b.name === selectedBook)?.chapters.map((chapter, index) => (
-                    <SelectItem key={chapter.name || index} value={chapter.name}>{chapter.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          <Button onClick={onGenerate} className="w-full !mt-8" size="lg">
-            <Presentation className="mr-2 h-4 w-4" />
-            Generate Presentation
-          </Button>
-        </CardContent>
-      </Card>
-    </div>
-  )
-}
+// --- Main Page Component ---
 
 export default function PptGeneratorPage() {
-  const [selectedPpt, setSelectedPpt] = useState(mockHistory[0]);
+  const { user } = useAuth();
+  const uid = user?.user?.uid || user?.uid;
+
+  const [historyData, setHistoryData] = useState([]); // Removed mock history data
+  const [selectedPpt, setSelectedPpt] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [deletingId, setDeletingId] = useState(null);
-  const pathname = usePathname();
-  const navItem = useMemo(() => getNavItemByUrl(pathname), [pathname]);
 
-  const handleGenerate = useCallback(() => {
+  const handleGenerate = useCallback((book, formData) => {
     setIsLoading(true);
     setSelectedPpt(null);
+
+    // Simulate generation delay
     setTimeout(() => {
+      const chapterName = formData.chapter;
       const newPpt = {
-        id: '3',
-        title: 'New Presentation',
-        slides: 12,
-        date: new Date(),
+        id: Math.random().toString(36).substr(2, 9),
+        title: `${chapterName} Presentation`,
+        slides: Math.floor(Math.random() * 8) + 8,
+        book: book.book_name,
+        chapter: chapterName,
+        created_at: new Date().toISOString(),
         details: {
-          subtitle: 'Generated from selected chapter.',
+          subtitle: `A comprehensive overview of ${chapterName}`,
           author: 'Epoch AI Generated Presentation',
-          theme: 'Dark',
-          filename: 'New_Presentation.pptx',
+          theme: Math.random() > 0.5 ? 'Dark' : 'Light',
+          filename: `${chapterName.replace(/\s+/g, '_')}_${Date.now()}.pptx`,
         },
       };
-      mockHistory.unshift(newPpt);
+
+      setHistoryData(prev => [newPpt, ...prev]);
       setSelectedPpt(newPpt);
       setIsLoading(false);
-    }, 2000);
+      toast.success("Presentation generated successfully!");
+    }, 3000);
   }, []);
 
   const handleDeletePpt = useCallback((item) => {
     setDeletingId(item.id);
 
-    // Simulate API delete delay
+    // Simulate delete
     setTimeout(() => {
-      const index = mockHistory.findIndex(ppt => ppt.id === item.id);
-      if (index > -1) {
-        mockHistory.splice(index, 1);
-      }
-
-      // If we deleted the currently selected item, clear selection
+      setHistoryData(prev => prev.filter(ppt => ppt.id !== item.id));
       if (selectedPpt?.id === item.id) {
         setSelectedPpt(null);
       }
-
       setDeletingId(null);
+      toast.success("Presentation deleted successfully");
     }, 500);
   }, [selectedPpt]);
 
   return (
     <ToolPageLayout
-      historyData={mockHistory}
+      historyData={historyData}
       selectedItem={selectedPpt}
       setSelectedItem={setSelectedPpt}
       onDelete={handleDeletePpt}
+      isHistoryLoading={false}
       deletingId={deletingId}
       isProcessing={isLoading}
-      processingText={`Crafting ${navItem?.title}...`}
+      processingText="Crafting Slides..."
     >
       {selectedPpt ? (
         <PptDetails item={selectedPpt} />
       ) : (
-        <NewPptForm onGenerate={handleGenerate} />
+        <BookChapterForm
+          onGenerate={handleGenerate}
+          pageHeaderTitle="PowerPoint Generator"
+          pageHeaderDescription="Create visually stunning presentations"
+          pageHeaderIcon={Presentation}
+          buttonText="Generate Presentation"
+          isLoading={isLoading}
+          formSchema={pptFormSchema}
+        />
       )}
     </ToolPageLayout>
   );
