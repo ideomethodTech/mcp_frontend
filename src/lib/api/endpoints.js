@@ -9,6 +9,7 @@ const ENDPOINTS = {
   // Book Management
   UPLOAD_BOOK: "/upload/book",
   GET_BOOK: "/book/get_book",
+  DELETE_BOOK: "/book", // DELETE /book/{uid}/{book_id}
 
   // Chat Management
   CREATE_CHAT: "/chat/create_chat",
