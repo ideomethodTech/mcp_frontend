@@ -34,9 +34,6 @@ export function BookChapterForm({
     },
   });
 
-  import { useAuth } from "@/contexts/auth-context";
-
-  // ... inside component ...
   const { user } = useAuth();
   const uid = user?.user?.uid || user?.uid;
   const { data: booksData, isLoading: bookLoading } = useGetBook(uid);
