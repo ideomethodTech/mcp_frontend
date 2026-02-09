@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { BookOpen } from "lucide-react";
 import { BookChapterFormHeader } from "./BookChapterFormHeader";
 import { useGetBook } from "@/lib/api/queries";
+import { useAuth } from "@/contexts/auth-context";
 
 export function BookChapterForm({
   onGenerate,
@@ -33,7 +34,12 @@ export function BookChapterForm({
     },
   });
 
-  const { data: booksData, isLoading: bookLoading } = useGetBook();
+  import { useAuth } from "@/contexts/auth-context";
+
+  // ... inside component ...
+  const { user } = useAuth();
+  const uid = user?.user?.uid || user?.uid;
+  const { data: booksData, isLoading: bookLoading } = useGetBook(uid);
   const selectedBookId = form.watch("book");
   const selectedBook = booksData?.content?.find((b) => b.id === selectedBookId);
 

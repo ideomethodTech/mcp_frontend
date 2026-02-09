@@ -50,8 +50,9 @@ export default function AdminDashboardPage() {
     },
   });
 
-  const booksQuery = useGetBook();
+  const [deletingBookId, setDeletingBookId] = useState(null);
   const { user } = useAuth();
+  const booksQuery = useGetBook(user?.user?.uid || user?.uid);
 
   const handleFileChange = (e) => {
     const file = e.target.files?.[0];
@@ -121,6 +122,9 @@ export default function AdminDashboardPage() {
   };
 
   const deleteMutation = useDeleteBook({
+    onMutate: (variables) => {
+      setDeletingBookId(variables.book_id);
+    },
     onSuccess: () => {
       toast({
         title: "Book deleted",
@@ -136,18 +140,24 @@ export default function AdminDashboardPage() {
         variant: "destructive",
       });
     },
+    onSettled: () => {
+      setDeletingBookId(null);
+    },
   });
 
   const handleDeleteBook = (book) => {
     const currentUid = user?.user?.uid || user?.uid;
-    if (!currentUid) return;
+    const bookId = book.id || book.book_id;
 
-    // Use the book's owner UID if available (e.g., book.uid or book.user_id), 
-    // otherwise fallback to the current user's UID.
-    const targetUid = book.uid || book.user_id || currentUid;
+    if (!currentUid) return;
+    if (!bookId) {
+      toast({ title: "Error", description: "Book ID not found", variant: "destructive" });
+      return;
+    }
 
     if (window.confirm(`Are you sure you want to delete "${book.book_name}"?`)) {
-      deleteMutation.mutate({ uid: targetUid, book_id: book.id });
+      // Use the currently logged-in admin's UID for the path to ensure authorization
+      deleteMutation.mutate({ uid: currentUid, book_id: bookId });
     }
   };
 
@@ -288,9 +298,9 @@ export default function AdminDashboardPage() {
                             size="icon"
                             className="text-muted-foreground hover:text-destructive"
                             onClick={() => handleDeleteBook(book)}
-                            disabled={deleteMutation.isPending}
+                            disabled={deletingBookId !== null}
                           >
-                            {deleteMutation.isPending ? (
+                            {deletingBookId === (book.id || book.book_id) ? (
                               <Loader2 className="h-4 w-4 animate-spin" />
                             ) : (
                               <Trash2 className="h-4 w-4" />
