@@ -1,4 +1,6 @@
+
 "use client";
+import React from "react";
 
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -9,7 +11,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Logo } from "@/components/icons";
-import { Loader2 } from "lucide-react";
+import { Loader2, Eye, EyeOff } from "lucide-react";
 
 const loginSchema = z.object({
   email: z.string().email("Please enter a valid email address."),
@@ -22,9 +24,10 @@ const signupSchema = z.object({
   password: z.string().min(6, "Password must be at least 6 characters."),
 });
 
+
 export function AuthForm({ type = "login", onSubmit, mutation, title, description, showFooter = true }) {
   const schema = type === "login" ? loginSchema : signupSchema;
-
+  const [showPassword, setShowPassword] = React.useState(false);
   const form = useForm({
     resolver: zodResolver(schema),
     defaultValues: type === "login" ? { email: "", password: "" } : { username: "", email: "", password: "" },
@@ -78,7 +81,22 @@ export function AuthForm({ type = "login", onSubmit, mutation, title, descriptio
                   <FormItem>
                     <FormLabel>Password</FormLabel>
                     <FormControl>
-                      <Input type="password" placeholder="••••••••" {...field} />
+                      <div className="relative">
+                        <Input
+                          type={showPassword ? "text" : "password"}
+                          placeholder="••••••••"
+                          {...field}
+                        />
+                        <button
+                          type="button"
+                          tabIndex={-1}
+                          className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-primary focus:outline-none"
+                          onClick={() => setShowPassword((v) => !v)}
+                          aria-label={showPassword ? "Hide password" : "Show password"}
+                        >
+                          {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                        </button>
+                      </div>
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -105,3 +123,4 @@ export function AuthForm({ type = "login", onSubmit, mutation, title, descriptio
     </div>
   );
 }
+

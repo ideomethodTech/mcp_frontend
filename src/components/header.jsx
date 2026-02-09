@@ -77,7 +77,7 @@ export function Header() {
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Avatar className="h-10 w-10 cursor-pointer border-2 border-transparent hover:border-indigo-100 transition-all">
-              <AvatarImage src={user?.photoURL || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&h=100&fit=crop&crop=faces"} alt={user?.displayName || "User"} />
+              <AvatarImage src={user?.photoURL} alt={user?.displayName || "User"} />
               <AvatarFallback className="bg-indigo-600 text-white">{userInitials}</AvatarFallback>
             </Avatar>
           </DropdownMenuTrigger>
