@@ -60,7 +60,7 @@ const ChatMessage = ({ isUser = false, content, isLoading = false }) => {
         </div>
       )}
       <div className={cn(
-        'rounded-2xl rounded-tr-sm p-4 max-w-[80%] shadow-md',
+        'rounded-2xl rounded-tr-sm p-4 max-w-[80%] shadow-md break-words whitespace-pre-line',
         isUser
           ? 'bg-muted text-foreground'
           : 'bg-white dark:bg-card/80 text-foreground border border-border'
@@ -74,7 +74,7 @@ const ChatMessage = ({ isUser = false, content, isLoading = false }) => {
           isUser ? (
             <p className="mb-2">{content ? content : null}</p>
           ) : (
-            <div className="prose prose-sm max-w-none text-foreground">
+            <div className="prose prose-sm max-w-none text-foreground break-words whitespace-pre-line">
               <ReactMarkdown remarkPlugins={[remarkGfm]} components={components}>
                 {content || ''}
               </ReactMarkdown>

@@ -31,7 +31,7 @@ export const generateAnswerKey = async ({ worksheet_id, book_id, uid, chapter })
 };
 
 // Book Management Functions
-export const uploadBook = async (formData) => {
+export const uploadBook = async (formData, onUploadProgress) => {
   console.log("--- Uploading Book Debug ---");
   for (let [key, value] of formData.entries()) {
     console.log(`${key}:`, value instanceof File ? `File(${value.name})` : value);
@@ -49,6 +49,7 @@ export const uploadBook = async (formData) => {
       Authorization: token ? `Bearer ${token}` : "",
       // Do NOT set Content-Type, let axios/browser handle it
     },
+    onUploadProgress,
   });
 
   console.log("Upload Response:", response.data);
