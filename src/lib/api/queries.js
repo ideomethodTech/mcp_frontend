@@ -61,10 +61,10 @@ export const useDeleteBook = (options) =>
     ...options,
   });
 
-export const useGetBook = (options = {}) =>
+export const useGetBook = (uid, options = {}) =>
   useQuery({
-    queryKey: ["books"],
-    queryFn: () => getBooks(),
+    queryKey: ["books", uid],
+    queryFn: () => getBooks(uid),
     enabled: true,
 
     ...options,
