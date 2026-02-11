@@ -132,10 +132,10 @@ function ChatInterface({ chatSession, setChatSession }) {
     console.log('Book ID being sent:', chatSession.book_id);
 
     createChatMutation({
-      chat_id: chatSession.id,
       uid: chatSession.uid,
       prompt,
       book_id: chatSession.book_id,
+      chat_id: chatSession.id,
     });
 
     setInput("");

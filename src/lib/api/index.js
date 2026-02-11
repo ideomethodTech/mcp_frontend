@@ -4,12 +4,16 @@ export const baseURL = process.env.NEXT_PUBLIC_API_URL
 const api = (config) => {
   const axiosInstance = axios.create({
     baseURL,
-    timeout: 100000,
+    timeout: 300000,
   });
 
   // ADD THIS: Request interceptor to add auth token
   axiosInstance.interceptors.request.use(
     (config) => {
+      // Log outgoing request details for debugging
+      console.log("➡️ API Request URL:", config.url);
+      console.log("➡️ API Request Payload:", config.data);
+
       const token = localStorage.getItem("access_token");
       if (token) {
         config.headers.Authorization = `Bearer ${token}`;

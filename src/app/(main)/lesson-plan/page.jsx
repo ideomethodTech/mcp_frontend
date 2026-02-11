@@ -214,6 +214,7 @@ export default function LessonPlanPage() {
       setLessonPlanStatus("loading");
     },
     onSuccess: (data) => {
+      console.log("Successfully generated lesson plan:", data);
       setLessonPlanData(data);
       setSelectedPlan(null);
       setLessonPlanStatus("success");
@@ -245,7 +246,25 @@ export default function LessonPlanPage() {
   }, [uid, handleHistoryDelete]);
 
   const handleGenerate = useCallback((book, chapter, weekCount = 2) => {
-    if (!book) return;
+    console.log("handleGenerate called with:", {
+      bookName: book?.book_name,
+      bookId: book?.id,
+      chapter,
+      weekCount
+    });
+
+    if (!book) {
+      console.warn("handleGenerate: No book selected");
+      return;
+    }
+
+    // Validate ID
+    if (!book.id) {
+      console.error("handleGenerate: Book object is missing 'id' property:", book);
+      toast.error("Selected book has no ID. Please try another book.");
+      return;
+    }
+
     setIsNewPlan(true);
     setSelectedPlan(null);
     setLessonPlanData(null);

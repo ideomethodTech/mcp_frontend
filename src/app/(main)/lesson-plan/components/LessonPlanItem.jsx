@@ -60,9 +60,14 @@ const ActivityTag = ({ children }) => (
 /* ------------------ Main Component ------------------ */
 
 const LessonPlanItem = ({ item, isgenrated = false }) => {
+  console.log("LessonPlanItem rendered with:", { item, isgenrated });
+
+  // Robust data access: try direct access, then nested content, then specific property
   const lesson_plan = isgenrated
-    ? item
-    : item?.content?.lesson_plan;
+    ? (item?.lesson_plan || item?.content?.lesson_plan || item)
+    : (item?.content?.lesson_plan || item?.lesson_plan || item);
+
+  console.log("Extracted lesson_plan:", lesson_plan);
 
   const handleExport = () => {
     window.print();
