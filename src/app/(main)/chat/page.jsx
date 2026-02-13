@@ -139,7 +139,7 @@ function ChatInterface({ chatSession, setChatSession }) {
     });
 
     setInput("");
-  }, [chatSession.id, chatSession.uid, createChatMutation]);
+  }, [chatSession, createChatMutation]);
 
   const handleDeleteMessage = useCallback((messageId) => {
     if (!chatSession?.id || !messageId) return;

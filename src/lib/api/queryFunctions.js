@@ -4,6 +4,7 @@ import ENDPOINTS from "./endpoints";
 
 // AI Generation Functions
 export const generateContent = async ({ uid, prompt, book_id, chat_id }) => {
+  console.log("SENDING CHAT REQUEST:", { uid, prompt, book_id, chat_id });
   const response = await api({
     url: ENDPOINTS.GENERATE,
     method: "POST",
@@ -147,7 +148,7 @@ export const createLessonPlan = async (data) => {
     method: "POST",
     data: {
       book_id: data.book_id,
-      chapter: data.chapter,
+      prompt: data.chapter,
       uid: data.uid,
       weeks: data.weeks,
     },
