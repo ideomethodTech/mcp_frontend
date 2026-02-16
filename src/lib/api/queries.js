@@ -52,7 +52,7 @@ export const useGenerateAnswerKey = (options) =>
 // Book Management Hooks
 export const useUploadBook = (options) =>
   useMutation({
-    mutationFn: uploadBook,
+    mutationFn: ({ formData, onUploadProgress }) => uploadBook(formData, onUploadProgress),
     ...options,
   });
 

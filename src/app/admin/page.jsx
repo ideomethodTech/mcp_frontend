@@ -29,6 +29,7 @@ export default function AdminDashboardPage() {
   const [bookFile, setBookFile] = useState(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
 
   const uploadMutation = useUploadBook({
     onSuccess: () => {
@@ -95,6 +96,7 @@ export default function AdminDashboardPage() {
     }
 
     setIsUploading(true);
+    setUploadProgress(0);
 
     try {
       const formData = new FormData();
@@ -102,14 +104,27 @@ export default function AdminDashboardPage() {
       formData.append("uid", uid);
       formData.append("file", bookFile);
 
-      uploadMutation.mutate(formData, {
-        onSuccess: () => {
-          setIsUploading(false);
+      uploadMutation.mutate(
+        {
+          formData,
+          onUploadProgress: (progressEvent) => {
+            if (progressEvent.total) {
+              const percent = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+              setUploadProgress(percent);
+            }
+          },
         },
-        onError: () => {
-          setIsUploading(false);
-        },
-      });
+        {
+          onSuccess: () => {
+            setIsUploading(false);
+            setUploadProgress(0);
+          },
+          onError: () => {
+            setIsUploading(false);
+            setUploadProgress(0);
+          },
+        }
+      );
     } catch (error) {
       console.error("Upload error:", error);
       toast({
@@ -177,10 +192,11 @@ export default function AdminDashboardPage() {
         )}
       </div>
       <Tabs defaultValue="books">
-        <TabsList className="grid w-full grid-cols-3">
+        {/* <TabsList className="grid w-full grid-cols-3"> */}
+        <TabsList className="grid w-full grid-cols-1">
           <TabsTrigger value="books">Book Management</TabsTrigger>
-          <TabsTrigger value="activity">User Activity</TabsTrigger>
-          <TabsTrigger value="config">Tool Configuration</TabsTrigger>
+          {/* <TabsTrigger value="activity">User Activity</TabsTrigger>
+          <TabsTrigger value="config">Tool Configuration</TabsTrigger> */}
         </TabsList>
         <TabsContent value="books">
           <Card>
@@ -237,6 +253,17 @@ export default function AdminDashboardPage() {
                       </div>
                     </div>
                   </div>
+                  {isUploading && (
+                    <div className="w-full mb-2">
+                      <div className="h-2 w-full bg-gray-200 rounded-full overflow-hidden">
+                        <div
+                          className="h-2 bg-indigo-500 transition-all duration-200"
+                          style={{ width: `${uploadProgress}%` }}
+                        />
+                      </div>
+                      <div className="text-xs text-muted-foreground mt-1 text-right">{uploadProgress}%</div>
+                    </div>
+                  )}
                   <DialogFooter>
                     <Button
                       type="submit"
@@ -315,7 +342,7 @@ export default function AdminDashboardPage() {
             </CardContent>
           </Card>
         </TabsContent>
-        <TabsContent value="activity">
+        {/* <TabsContent value="activity">
           <Card>
             <CardHeader>
               <CardTitle>User Activity</CardTitle>
@@ -336,7 +363,7 @@ export default function AdminDashboardPage() {
               <p>Tool configuration options are coming soon.</p>
             </CardContent>
           </Card>
-        </TabsContent>
+        </TabsContent> */}
       </Tabs>
     </div>
   );

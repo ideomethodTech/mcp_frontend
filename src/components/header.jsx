@@ -77,7 +77,7 @@ export function Header() {
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Avatar className="h-10 w-10 cursor-pointer border-2 border-transparent hover:border-indigo-100 transition-all">
-              <AvatarImage src={user?.photoURL || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&h=100&fit=crop&crop=faces"} alt={user?.displayName || "User"} />
+              <AvatarImage src={user?.photoURL} alt={user?.displayName || "User"} />
               <AvatarFallback className="bg-indigo-600 text-white">{userInitials}</AvatarFallback>
             </Avatar>
           </DropdownMenuTrigger>
@@ -88,16 +88,20 @@ export function Header() {
                 <p className="text-xs leading-none text-muted-foreground">{user?.user.email}</p>
               </div>
             </DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem className="cursor-pointer">Settings</DropdownMenuItem>
-            <DropdownMenuItem className="cursor-pointer">Support</DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem asChild>
-              <Link href="/admin" className="flex items-center cursor-pointer">
-                <Shield className="mr-2 h-4 w-4" />
-                Admin Panel
-              </Link>
-            </DropdownMenuItem>
+            {/* <DropdownMenuSeparator /> */}
+            {/* <DropdownMenuItem className="cursor-pointer">Settings</DropdownMenuItem> */}
+            {/* <DropdownMenuItem className="cursor-pointer">Support</DropdownMenuItem> */}
+            {user?.user?.role === "admin" && (
+              <>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                  <Link href="/admin" className="flex items-center cursor-pointer">
+                    <Shield className="mr-2 h-4 w-4" />
+                    Admin Panel
+                  </Link>
+                </DropdownMenuItem>
+              </>
+            )}
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={handleLogout} className="cursor-pointer text-red-600 focus:text-red-600">
               <LogOut className="mr-2 h-4 w-4" />

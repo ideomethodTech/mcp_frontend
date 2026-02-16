@@ -27,32 +27,63 @@ import { useQueryClient } from '@tanstack/react-query';
 import useApiStore from '@/store/useApiStore';
 import { useHistoryDelete } from '@/hooks/use-history-delete';
 import { Trash2 } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 const ChatMessage = ({ isUser = false, content, isLoading = false }) => {
+  // Custom renderers for markdown (disable code blocks)
+  const components = {
+    code: () => null, // Do not render code blocks or inline code
+    pre: () => null,
+    // Optionally, customize other elements for branding
+    h1: ({node, ...props}) => <h1 className="text-2xl font-bold mt-4 mb-2" {...props} />,
+    h2: ({node, ...props}) => <h2 className="text-xl font-semibold mt-3 mb-2" {...props} />,
+    h3: ({node, ...props}) => <h3 className="text-lg font-semibold mt-2 mb-1" {...props} />,
+    ul: ({node, ...props}) => <ul className="list-disc pl-6 my-2" {...props} />,
+    ol: ({node, ...props}) => <ol className="list-decimal pl-6 my-2" {...props} />,
+    li: ({node, ...props}) => <li className="mb-1" {...props} />,
+    blockquote: ({node, ...props}) => <blockquote className="border-l-4 border-primary pl-4 italic text-muted-foreground my-2" {...props} />,
+    a: ({node, ...props}) => <a className="text-primary underline" target="_blank" rel="noopener noreferrer" {...props} />,
+    p: ({node, ...props}) => <p className="mb-2" {...props} />,
+  };
+
   return (
     <div
       className={cn(
-        'flex items-start gap-3',
+        'flex items-start gap-3 transition-all duration-200',
         isUser ? 'justify-end' : 'justify-start'
       )}
     >
       {!isUser && (
-        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-white text-sm font-semibold flex-shrink-0">
+        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-white text-sm font-semibold flex-shrink-0 shadow-md">
           AI
         </div>
       )}
-      <div className="bg-gradient-to-br from-primary to-accent rounded-2xl rounded-tr-sm p-4 max-w-[80%]">
+      <div className={cn(
+        'rounded-2xl rounded-tr-sm p-4 max-w-[80%] shadow-md break-words whitespace-pre-line',
+        isUser
+          ? 'bg-muted text-foreground'
+          : 'bg-white dark:bg-card/80 text-foreground border border-border'
+      )}>
         {isLoading ? (
           <div className="space-y-2">
             <Skeleton className="h-3 w-40" />
             <Skeleton className="h-3 w-32" />
           </div>
         ) : (
-          <p>{typeof content === 'string' ? content : (content?.response || JSON.stringify(content))}</p>
+          isUser ? (
+            <p className="mb-2">{content ? content : null}</p>
+          ) : (
+            <div className="prose prose-sm max-w-none text-foreground break-words whitespace-pre-line">
+              <ReactMarkdown remarkPlugins={[remarkGfm]} components={components}>
+                {content || ''}
+              </ReactMarkdown>
+            </div>
+          )
         )}
       </div>
       {isUser && (
-        <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center text-foreground text-sm font-semibold flex-shrink-0">
+        <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center text-foreground text-sm font-semibold flex-shrink-0 shadow-md">
           U
         </div>
       )}
