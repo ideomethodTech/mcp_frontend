@@ -134,7 +134,7 @@ const LessonPlanItem = ({ item, isgenrated = false }) => {
           </CardHeader>
           <CardContent className="pt-6">
             <ul className="space-y-4">
-              {lesson_plan?.learning_objectives?.map((objective, idx) => (
+              {Array.isArray(lesson_plan?.learning_objectives) && lesson_plan.learning_objectives.map((objective, idx) => (
                 <li key={idx} className="flex gap-4 group">
                   <div className="flex-shrink-0 w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-bold transition-colors group-hover:bg-primary group-hover:text-white">
                     {idx + 1}
@@ -153,7 +153,7 @@ const LessonPlanItem = ({ item, isgenrated = false }) => {
           </CardHeader>
           <CardContent className="pt-6">
             <div className="flex flex-wrap gap-2.5">
-              {lesson_plan?.key_vocabulary?.map((word, idx) => (
+              {Array.isArray(lesson_plan?.key_vocabulary) && lesson_plan.key_vocabulary.map((word, idx) => (
                 <Tag key={idx} className="bg-accent/5 text-accent border border-accent/20 px-4 py-2 text-base">
                   {word}
                 </Tag>
@@ -170,7 +170,7 @@ const LessonPlanItem = ({ item, isgenrated = false }) => {
         </CardHeader>
         <CardContent className="p-0">
           <Accordion type="single" collapsible className="w-full">
-            {lesson_plan?.activities?.map((activity, idx) => (
+            {Array.isArray(lesson_plan?.activities) && lesson_plan.activities.map((activity, idx) => (
               <AccordionItem
                 key={idx}
                 value={`activity-${idx}`}
@@ -212,7 +212,7 @@ const LessonPlanItem = ({ item, isgenrated = false }) => {
                         <ListChecks className="h-4 w-4" /> Sequence of Steps
                       </h4>
                       <div className="space-y-3">
-                        {activity.steps?.map((step, sidx) => (
+                        {Array.isArray(activity.steps) && activity.steps.map((step, sidx) => (
                           <div key={sidx} className="flex gap-4 p-3 rounded-xl hover:bg-muted/50 transition-colors border border-transparent hover:border-border">
                             <span className="flex-shrink-0 w-6 h-6 rounded-lg bg-muted text-muted-foreground flex items-center justify-center text-xs font-bold">
                               {sidx + 1}
@@ -225,7 +225,7 @@ const LessonPlanItem = ({ item, isgenrated = false }) => {
                   </div>
 
                   {/* Materials Tag Strip */}
-                  {activity.materials_used?.length > 0 && (
+                  {Array.isArray(activity.materials_used) && activity.materials_used.length > 0 && (
                     <div className="pt-4 border-t border-border/50">
                       <div className="flex items-center gap-2 mb-4">
                         <Package className="h-4 w-4 text-muted-foreground" />
@@ -260,7 +260,7 @@ const LessonPlanItem = ({ item, isgenrated = false }) => {
                 <div className="w-1.5 h-6 bg-primary rounded-full" /> Formative
               </h4>
               <div className="grid grid-cols-1 gap-2 pl-3">
-                {lesson_plan?.assessment_methods?.formative?.map((m, i) => (
+                {Array.isArray(lesson_plan?.assessment_methods?.formative) && lesson_plan.assessment_methods.formative.map((m, i) => (
                   <div key={i} className="flex items-center gap-3 text-sm text-muted-foreground">
                     <div className="w-1.5 h-1.5 rounded-full bg-primary/40" />
                     {m}
@@ -276,7 +276,7 @@ const LessonPlanItem = ({ item, isgenrated = false }) => {
                 <div className="w-1.5 h-6 bg-accent rounded-full" /> Summative
               </h4>
               <div className="grid grid-cols-1 gap-2 pl-3">
-                {lesson_plan?.assessment_methods?.summative?.map((m, i) => (
+                {Array.isArray(lesson_plan?.assessment_methods?.summative) && lesson_plan.assessment_methods.summative.map((m, i) => (
                   <div key={i} className="flex items-center gap-3 text-sm text-muted-foreground">
                     <div className="w-1.5 h-1.5 rounded-full bg-accent/40" />
                     {m}
@@ -300,7 +300,7 @@ const LessonPlanItem = ({ item, isgenrated = false }) => {
                   <h4 className="font-bold text-sm text-primary uppercase tracking-tight">Advanced Track</h4>
                 </div>
                 <ul className="space-y-2 pl-6 list-disc text-sm text-muted-foreground">
-                  {lesson_plan?.differentiation_strategies?.for_advanced_students?.map((s, i) => (
+                  {Array.isArray(lesson_plan?.differentiation_strategies?.for_advanced_students) && lesson_plan.differentiation_strategies.for_advanced_students.map((s, i) => (
                     <li key={i}>{s}</li>
                   ))}
                 </ul>
@@ -312,7 +312,7 @@ const LessonPlanItem = ({ item, isgenrated = false }) => {
                   <h4 className="font-bold text-sm text-accent uppercase tracking-tight">Supports</h4>
                 </div>
                 <ul className="space-y-2 pl-6 list-disc text-sm text-muted-foreground">
-                  {lesson_plan?.differentiation_strategies?.for_struggling_students?.map((s, i) => (
+                  {Array.isArray(lesson_plan?.differentiation_strategies?.for_struggling_students) && lesson_plan.differentiation_strategies.for_struggling_students.map((s, i) => (
                     <li key={i}>{s}</li>
                   ))}
                 </ul>

@@ -194,7 +194,7 @@ export default function LessonPlanPage() {
   const [isNewPlan, setIsNewPlan] = useState(false);
 
   // API Queries
-  const { data: userLP, isLoading: LPloading } = useUserLessonPlan(uid, {
+  const { data: userLP, isLoading: LPloading, isFetching: LPFetching } = useUserLessonPlan(uid, {
     enabled: !!uid,
     onSuccess: () => setLessonPlanStatus("success"),
     onError: () => setLessonPlanStatus("error"),
@@ -225,7 +225,8 @@ export default function LessonPlanPage() {
     onError: (err) => {
       console.error('Error generating lesson plan:', err);
       setLessonPlanStatus("error");
-      toast.error("Failed to generate lesson plan.");
+      const errorMessage = err.response?.data?.error || err.response?.data?.message || "Failed to generate lesson plan.";
+      toast.error(errorMessage);
     },
   });
 
@@ -237,6 +238,13 @@ export default function LessonPlanPage() {
       setLessonPlanStatus("success");
       if (selectedPlan && selectedPlan.lesson_plan_id === variables.lessonPlanId) {
         setSelectedPlan(null);
+      }
+      // Force immediate background refetch of history to update sidebar
+      if (uid) {
+        queryClient.invalidateQueries({
+          queryKey: ['lp', uid],
+          refetchType: 'all',
+        });
       }
     }
   });
@@ -287,7 +295,7 @@ export default function LessonPlanPage() {
         setLessonPlanData(null);
       }}
       onDelete={handleDeleteLP}
-      isHistoryLoading={LPloading}
+      isHistoryLoading={LPloading || LPFetching}
       deletingId={deletingId}
       isProcessing={isCreateLPPending}
       processingText={`Generating ${navItem?.title || 'Lesson Plan'}...`}

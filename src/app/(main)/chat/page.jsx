@@ -48,7 +48,7 @@ const ChatMessage = ({ isUser = false, content, isLoading = false }) => {
             <Skeleton className="h-3 w-32" />
           </div>
         ) : (
-          <p>{content ? content : null}</p>
+          <p>{typeof content === 'string' ? content : (content?.response || JSON.stringify(content))}</p>
         )}
       </div>
       {isUser && (
@@ -91,8 +91,8 @@ function ChatInterface({ chatSession, setChatSession }) {
             idx === prev.length - 1
               ? {
                 ...m,
-                response: data || data.response || 'No response',
-                id: data.id, // ✅ THIS IS REQUIRED
+                response: data?.response || data || 'No response',
+                id: data?.id, // ✅ THIS IS REQUIRED
               }
               : m
           )

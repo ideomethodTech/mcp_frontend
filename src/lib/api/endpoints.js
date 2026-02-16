@@ -34,6 +34,7 @@ const ENDPOINTS = {
   GET_ALL_TEST_PAPERS: "/api/test_paper/list/",
   GET_TEST_PAPER: "/api/test_paper/get/",
   GET_TEST_PAPER_ANSWERS: "/api/test_paper/answers/",
+  DELETE_TEST_PAPER: "/api/test_paper/", // DELETE /api/test_paper/{uid}/{test_paper_id}
   TEST_PAPER_TEST: "/api/test_paper/test/",
 
   // Authentication

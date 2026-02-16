@@ -307,7 +307,7 @@ export default function AnswerKeyPage() {
   const uid = user?.user?.uid;
   const { toast } = useToast();
 
-  const { data: allAnswerKeys, isLoading: isLoadingHistory } = useGetAllAnswerKeys(uid);
+  const { data: allAnswerKeys, isLoading: isLoadingHistory, isFetching: isFetchingHistory } = useGetAllAnswerKeys(uid);
   const { data: allWorksheets } = useUserWorksheet(uid, {
     enabled: !!uid,
   });
@@ -346,9 +346,10 @@ export default function AnswerKeyPage() {
     },
     onError: (err) => {
       console.error("Failed to generate answer key", err);
+      const errorMessage = err.response?.data?.error || err.response?.data?.message || "Failed to generate answer key. Please try again.";
       toast({
         title: "Error",
-        description: "Failed to generate answer key. Please try again.",
+        description: errorMessage,
         variant: "destructive",
       });
     },
@@ -462,7 +463,7 @@ export default function AnswerKeyPage() {
       selectedItem={selectedItem}
       setSelectedItem={handleHistorySelect}
       onDelete={handleDeleteAnswerKey}
-      isHistoryLoading={isLoadingHistory}
+      isHistoryLoading={isLoadingHistory || isFetchingHistory}
       deletingId={deletingId}
       isProcessing={isGenerating}
       processingText={`Generating ${navItem?.title}...`}

@@ -299,7 +299,8 @@ export const generateTestPaper = async (data) => {
     data: {
       uid: data.uid,
       book_id: data.book_id,
-      prompt: data.chapter,
+      chapter: data.chapter,
+      prompt: `Generate a ${data.subject} test paper based on chapter: ${data.chapter}. Ensure questions are specific to this subject and chapter context.`, // More explicit prompt for RAG
       class: data.class,
       subject: data.subject,
       total_marks: data.total_marks,
@@ -345,6 +346,15 @@ export const getTestPaperAnswers = async (testPaperId, uid) => {
       test_paper_id: testPaperId,
       uid,
     },
+  });
+  return response.data;
+};
+
+export const deleteTestPaper = async ({ uid, test_paper_id }) => {
+  if (!uid || !test_paper_id) throw new Error("uid and test_paper_id are required");
+  const response = await api({
+    url: `${ENDPOINTS.DELETE_TEST_PAPER}${uid}/${test_paper_id}`,
+    method: "DELETE",
   });
   return response.data;
 };

@@ -183,7 +183,7 @@ export default function WorksheetPage() {
   const navItem = useMemo(() => getNavItemByUrl(pathname), [pathname]);
   const queryClient = useQueryClient();
   const { worksheetStatus, setWorksheetStatus } = useApiStore();
-  const { data: userworksheet, isLoading: worksheetsLoading } = useUserWorksheet(uid, {
+  const { data: userworksheet, isLoading: worksheetsLoading, isFetching: worksheetsFetching } = useUserWorksheet(uid, {
     enabled: !!uid,
     onSuccess: () => setWorksheetStatus("success"),
     onError: () => setWorksheetStatus("error"),
@@ -217,8 +217,10 @@ export default function WorksheetPage() {
         });
       }
     },
-    onError: () => {
+    onError: (error) => {
       setWorksheetStatus("error");
+      const errorMessage = error.response?.data?.error || error.response?.data?.message || "Failed to generate worksheet. Please try again.";
+      toast.error(errorMessage);
     },
   });
 
@@ -230,6 +232,13 @@ export default function WorksheetPage() {
       setWorksheetStatus("success");
       if (selectedworksheet && selectedworksheet.id === variables.worksheet_id) {
         setSelectedworksheet(null);
+      }
+      // Force immediate background refetch of history to update sidebar
+      if (uid) {
+        queryClient.invalidateQueries({
+          queryKey: ["ws", uid],
+          refetchType: 'all',
+        });
       }
     },
   });
@@ -261,7 +270,7 @@ export default function WorksheetPage() {
         setWorksheetData(null);
       }}
       onDelete={handleDeleteWorksheet}
-      isHistoryLoading={worksheetsLoading}
+      isHistoryLoading={worksheetsLoading || worksheetsFetching}
       deletingId={deletingId}
       isProcessing={isLoading || generatingWS}
       processingText={`Generating ${navItem?.title}...`}
