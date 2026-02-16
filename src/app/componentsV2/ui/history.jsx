@@ -45,11 +45,14 @@ const History = ({
         {onDelete && (
           <button
             aria-label="Delete"
-            className="p-2 text-muted-foreground hover:text-destructive"
-            onClick={() => onDelete(item)}
-            disabled={deletingId === (item.id || item.chat_id || item.lesson_plan_id || item.worksheet_id || item.answer_key_id)}
+            className="p-2 text-muted-foreground hover:text-destructive shrink-0"
+            onClick={(e) => {
+              e.stopPropagation();
+              onDelete(item);
+            }}
+            disabled={!!deletingId && (deletingId === item.id || deletingId === item.chat_id || deletingId === item.lesson_plan_id || deletingId === item.worksheet_id || deletingId === item.answer_key_id)}
           >
-            {deletingId === (item.id || item.chat_id || item.lesson_plan_id || item.worksheet_id || item.answer_key_id) ? (
+            {(deletingId && (deletingId === item.id || deletingId === item.chat_id || deletingId === item.lesson_plan_id || deletingId === item.worksheet_id || deletingId === item.answer_key_id)) ? (
               <Loader className="h-4 w-4 animate-spin" />
             ) : (
               <Trash2 className="h-4 w-4" />

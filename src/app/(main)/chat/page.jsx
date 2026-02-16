@@ -122,8 +122,8 @@ function ChatInterface({ chatSession, setChatSession }) {
             idx === prev.length - 1
               ? {
                 ...m,
-                response: data || data.response || 'No response',
-                id: data.id, // ✅ THIS IS REQUIRED
+                response: data?.response || data || 'No response',
+                id: data?.id, // ✅ THIS IS REQUIRED
               }
               : m
           )
@@ -163,14 +163,14 @@ function ChatInterface({ chatSession, setChatSession }) {
     console.log('Book ID being sent:', chatSession.book_id);
 
     createChatMutation({
-      chat_id: chatSession.id,
       uid: chatSession.uid,
       prompt,
       book_id: chatSession.book_id,
+      chat_id: chatSession.id,
     });
 
     setInput("");
-  }, [chatSession.id, chatSession.uid, createChatMutation]);
+  }, [chatSession, createChatMutation]);
 
   const handleDeleteMessage = useCallback((messageId) => {
     if (!chatSession?.id || !messageId) return;

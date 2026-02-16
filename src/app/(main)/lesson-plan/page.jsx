@@ -194,7 +194,7 @@ export default function LessonPlanPage() {
   const [isNewPlan, setIsNewPlan] = useState(false);
 
   // API Queries
-  const { data: userLP, isLoading: LPloading } = useUserLessonPlan(uid, {
+  const { data: userLP, isLoading: LPloading, isFetching: LPFetching } = useUserLessonPlan(uid, {
     enabled: !!uid,
     onSuccess: () => setLessonPlanStatus("success"),
     onError: () => setLessonPlanStatus("error"),
@@ -214,6 +214,7 @@ export default function LessonPlanPage() {
       setLessonPlanStatus("loading");
     },
     onSuccess: (data) => {
+      console.log("Successfully generated lesson plan:", data);
       setLessonPlanData(data);
       setSelectedPlan(null);
       setLessonPlanStatus("success");
@@ -224,7 +225,8 @@ export default function LessonPlanPage() {
     onError: (err) => {
       console.error('Error generating lesson plan:', err);
       setLessonPlanStatus("error");
-      toast.error("Failed to generate lesson plan.");
+      const errorMessage = err.response?.data?.error || err.response?.data?.message || "Failed to generate lesson plan.";
+      toast.error(errorMessage);
     },
   });
 
@@ -237,6 +239,13 @@ export default function LessonPlanPage() {
       if (selectedPlan && selectedPlan.lesson_plan_id === variables.lessonPlanId) {
         setSelectedPlan(null);
       }
+      // Force immediate background refetch of history to update sidebar
+      if (uid) {
+        queryClient.invalidateQueries({
+          queryKey: ['lp', uid],
+          refetchType: 'all',
+        });
+      }
     }
   });
 
@@ -245,7 +254,25 @@ export default function LessonPlanPage() {
   }, [uid, handleHistoryDelete]);
 
   const handleGenerate = useCallback((book, chapter, weekCount = 2) => {
-    if (!book) return;
+    console.log("handleGenerate called with:", {
+      bookName: book?.book_name,
+      bookId: book?.id,
+      chapter,
+      weekCount
+    });
+
+    if (!book) {
+      console.warn("handleGenerate: No book selected");
+      return;
+    }
+
+    // Validate ID
+    if (!book.id) {
+      console.error("handleGenerate: Book object is missing 'id' property:", book);
+      toast.error("Selected book has no ID. Please try another book.");
+      return;
+    }
+
     setIsNewPlan(true);
     setSelectedPlan(null);
     setLessonPlanData(null);
@@ -268,7 +295,7 @@ export default function LessonPlanPage() {
         setLessonPlanData(null);
       }}
       onDelete={handleDeleteLP}
-      isHistoryLoading={LPloading}
+      isHistoryLoading={LPloading || LPFetching}
       deletingId={deletingId}
       isProcessing={isCreateLPPending}
       processingText={`Generating ${navItem?.title || 'Lesson Plan'}...`}

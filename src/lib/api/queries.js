@@ -27,12 +27,13 @@ import {
   deleteChatMessage,
   deleteAnswerKey,
   deleteBook,
+  deleteTestPaper,
 } from "./queryFunctions";
 
 // AI Generation Hooks
 export const useGenerateContent = (options) =>
   useMutation({
-    mutationFn: ({ chat_id, uid, prompt, book_id }) => generateContent({ chat_id, uid, prompt, book_id }),
+    mutationFn: ({ uid, prompt, book_id, chat_id }) => generateContent({ uid, prompt, book_id, chat_id }),
     ...options,
   });
 
@@ -231,5 +232,10 @@ export const useTestPaperAPITest = (options = {}) =>
   useQuery({
     queryKey: ["test-paper-api-test"],
     queryFn: testTestPaperAPI,
+    ...options,
+  });
+export const useDeleteTestPaper = (options) =>
+  useMutation({
+    mutationFn: deleteTestPaper,
     ...options,
   });
