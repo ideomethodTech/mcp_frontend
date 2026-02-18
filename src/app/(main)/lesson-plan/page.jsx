@@ -26,6 +26,7 @@ import {
 import { useCreateLessonPlan, useDeleteLessonPlan, useGetBook, useUserLessonPlan } from '@/lib/api/queries';
 import { useAuth } from '@/contexts/auth-context';
 import { useQueryClient } from '@tanstack/react-query';
+import { toast } from 'react-toastify';
 import { useHistoryDelete } from '@/hooks/use-history-delete';
 import LessonPlanItem from './components/LessonPlanItem';
 
@@ -194,7 +195,7 @@ function NewLessonPlanForm({ onGenerate, data, isLoading }) {
 
   return (
     <div className="flex-1 flex items-center justify-center h-[calc(100vh-80px)] bg-white p-10">
-      <div className="w-full max-w-lg">
+      <div className="w-full max-w-lg animate-in fade-in zoom-in-95 duration-500">
         <div className="text-center mb-10">
           <div className="w-20 h-20 bg-indigo-50 text-indigo-500 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-sm">
             <BookOpen className="w-10 h-10" />
@@ -295,8 +296,9 @@ export default function LessonPlanPage() {
       queryClient.invalidateQueries({ queryKey: ['lp', uid] });
     },
     onError: (err) => {
-      const msg = err.response?.data?.error || err.response?.data?.message || "Failed to generate lesson plan.";
-      toast.error(msg);
+      console.error('Error generating lesson plan:', err);
+      const errorMessage = err.response?.data?.error || err.response?.data?.message || "Failed to generate lesson plan.";
+      toast.error(errorMessage);
     },
   });
 

@@ -471,8 +471,9 @@ export default function AnswerKeyPage() {
       toast.success("Answer key generated and verified.");
     },
     onError: (err) => {
-      const msg = err.response?.data?.error || err.response?.data?.message || "Failed to generate answer key.";
-      toast.error(msg);
+      console.error("Failed to generate answer key", err);
+      const errorMessage = err.response?.data?.error || err.response?.data?.message || "Failed to generate answer key.";
+      toast.error(errorMessage);
     },
   });
 

@@ -34,6 +34,7 @@ export function ToolPageLayout({
     children,
     title: titleOverride,
     description: descriptionOverride,
+    isChat = false,
 }) {
     const pathname = usePathname();
     const navItem = useMemo(() => getNavItemByUrl(pathname), [pathname]);
@@ -73,6 +74,7 @@ export function ToolPageLayout({
                     isLoading={isHistoryLoading}
                     onDelete={onDelete}
                     deletingId={deletingId}
+                    isChat={isChat}
                 />
 
                 {/* MAIN CONTENT AREA */}

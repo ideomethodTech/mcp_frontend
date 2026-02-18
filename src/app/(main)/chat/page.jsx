@@ -381,7 +381,6 @@ export default function ChatPage() {
     onSuccess: (data) => {
       setSelectedChat({
         id: data.chat_id,
-        chat_id: data.chat_id,
         chat_title: data.chat_title,
         uid: data.uid,
         book_id: data.book_id,
