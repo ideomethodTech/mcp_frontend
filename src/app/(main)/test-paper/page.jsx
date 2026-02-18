@@ -295,7 +295,7 @@ function NewTestPaperForm({ onGenerate, data, isLoading }) {
                 </SelectTrigger>
                 <SelectContent className="rounded-2xl border-gray-100 shadow-xl p-2 font-bold">
                   {data?.map((book, index) => (
-                    <SelectItem key={book.id || index} value={JSON.stringify(book)} className="rounded-xl py-3 px-4">
+                    <SelectItem key={book.id || index} value={JSON.stringify(book)} className="rounded-xl py-3 font-bold text-gray-600 focus:bg-indigo-50 focus:text-indigo-600">
                       {book.book_name}
                     </SelectItem>
                   ))}
@@ -316,7 +316,7 @@ function NewTestPaperForm({ onGenerate, data, isLoading }) {
                 </SelectTrigger>
                 <SelectContent className="rounded-2xl border-gray-100 shadow-xl p-2 font-bold">
                   {(selectedBook?.chapters || []).map((chapter, index) => (
-                    <SelectItem key={index} value={chapter} className="rounded-xl py-3 px-4">
+                    <SelectItem key={index} value={chapter} className="rounded-xl py-3 font-bold text-gray-600 focus:bg-indigo-50 focus:text-indigo-600">
                       {chapter}
                     </SelectItem>
                   ))}
@@ -335,7 +335,7 @@ function NewTestPaperForm({ onGenerate, data, isLoading }) {
                 </SelectTrigger>
                 <SelectContent className="rounded-2xl border-gray-100 shadow-xl p-2 font-bold">
                   {["5", "6", "7", "8", "9", "10", "11", "12"].map(grade => (
-                    <SelectItem key={grade} value={grade} className="rounded-xl py-3 px-4">Grade {grade}</SelectItem>
+                    <SelectItem key={grade} value={grade} className="rounded-xl py-3 font-bold text-gray-600 focus:bg-indigo-50 focus:text-indigo-600">Grade {grade}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -350,7 +350,7 @@ function NewTestPaperForm({ onGenerate, data, isLoading }) {
                 </SelectTrigger>
                 <SelectContent className="rounded-2xl border-gray-100 shadow-xl p-2 font-bold">
                   {["Science", "Mathematics", "Physics", "Chemistry", "Biology", "English", "History", "Geography"].map(sub => (
-                    <SelectItem key={sub} value={sub} className="rounded-xl py-3 px-4">{sub}</SelectItem>
+                    <SelectItem key={sub} value={sub} className="rounded-xl py-3 font-bold text-gray-600 focus:bg-indigo-50 focus:text-indigo-600">{sub}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -378,7 +378,7 @@ function NewTestPaperForm({ onGenerate, data, isLoading }) {
                 </SelectTrigger>
                 <SelectContent className="rounded-2xl border-gray-100 shadow-xl p-2 font-bold">
                   {["30 mins", "1 hour", "1.5 hours", "2 hours", "3 hours"].map(d => (
-                    <SelectItem key={d} value={d} className="rounded-xl py-3 px-4">{d}</SelectItem>
+                    <SelectItem key={d} value={d} className="rounded-xl py-3 font-bold text-gray-600 focus:bg-indigo-50 focus:text-indigo-600">{d}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>

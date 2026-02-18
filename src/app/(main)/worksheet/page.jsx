@@ -182,7 +182,7 @@ function NewWorksheetForm({ onGenerate, data, isLoading }) {
                   <SelectItem
                     key={book.id || index}
                     value={JSON.stringify(book)}
-                    className="rounded-xl py-3 px-4"
+                    className="rounded-xl py-3 font-bold text-gray-600 focus:bg-indigo-50 focus:text-indigo-600"
                   >
                     {book.book_name}
                   </SelectItem>
@@ -209,7 +209,7 @@ function NewWorksheetForm({ onGenerate, data, isLoading }) {
                   <SelectItem
                     key={index}
                     value={chapter}
-                    className="rounded-xl py-3 px-4"
+                    className="rounded-xl py-3 font-bold text-gray-600 focus:bg-indigo-50 focus:text-indigo-600"
                   >
                     {chapter}
                   </SelectItem>

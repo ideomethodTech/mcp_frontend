@@ -333,7 +333,7 @@ function NewPptForm({ onGenerate, isLoading }) {
               </SelectTrigger>
               <SelectContent className="rounded-2xl border-gray-100 shadow-xl p-2 font-bold">
                 {mockBooks.map((book, index) => (
-                  <SelectItem key={book.id || index} value={book.book_name} className="rounded-xl py-3 px-4">
+                  <SelectItem key={book.id || index} value={book.book_name} className="rounded-xl py-3 font-bold text-gray-600 focus:bg-indigo-50 focus:text-indigo-600">
                     {book.book_name}
                   </SelectItem>
                 ))}
@@ -356,7 +356,7 @@ function NewPptForm({ onGenerate, isLoading }) {
               </SelectTrigger>
               <SelectContent className="rounded-2xl border-gray-100 shadow-xl p-2 font-bold">
                 {currentBook?.chapters?.map((chapter, index) => (
-                  <SelectItem key={index} value={chapter} className="rounded-xl py-3 px-4">
+                  <SelectItem key={index} value={chapter} className="rounded-xl py-3 font-bold text-gray-600 focus:bg-indigo-50 focus:text-indigo-600">
                     {chapter}
                   </SelectItem>
                 ))}
