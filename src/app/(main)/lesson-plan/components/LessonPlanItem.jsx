@@ -1,337 +1,158 @@
 import { Button } from "@/components/ui/button";
 import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@radix-ui/react-accordion";
-import { Separator } from "@radix-ui/react-separator";
-import {
   BookOpen,
-  Calendar,
   Clock,
-  FileText,
-  GraduationCap,
-  Package,
   Target,
-  Users,
-  Lightbulb,
-  ListChecks,
+  CheckCircle2,
+  FileText,
+  MousePointer2
 } from "lucide-react";
 import React from "react";
-
-/* ------------------ UI Enhancements ------------------ */
-
-const Tag = ({ children }) => (
-  <span className="px-3 py-1 rounded-full bg-indigo-50 text-indigo-600 text-sm font-medium shadow-sm">
-    {children}
-  </span>
-);
-
-const SectionHeader = ({ icon: Icon, title }) => (
-  <div className="flex items-center gap-2">
-    <div className="p-2 rounded-xl bg-indigo-50">
-      <Icon className="w-5 h-5 text-indigo-600" />
-    </div>
-    <h3 className="text-xl font-semibold text-gray-900">{title}</h3>
-  </div>
-);
-
-const ActivityTag = ({ children }) => (
-  <span className="px-2 py-0.5 rounded-lg bg-indigo-50 text-indigo-600 text-xs font-medium">
-    {children}
-  </span>
-);
-
-/* ------------------ Main Component ------------------ */
+import { cn } from "@/lib/utils";
 
 const LessonPlanItem = ({ item, isgenrated = false }) => {
-  const lesson_plan = isgenrated
-    ? item
-    : item?.content?.lesson_plan;
+  // Robust data extraction
+  const lesson_plan = item?.content?.lesson_plan ||
+    (item?.activities ? item : null) ||
+    item?.lesson_plan ||
+    (isgenrated ? item : null);
+
+  if (!lesson_plan) return null;
 
   const handleExport = () => {
-    // Trigger browser print dialog which allows "Save as PDF"
     window.print();
   };
 
+  // Helper for activity styling matching the screenshot
+  const getActivityConfig = (index) => {
+    const configs = [
+      {
+        label: "INTRODUCTION",
+        pillColor: "bg-[#E0E7FF] text-[#4338ca]", // Indigo
+        titleColor: "text-[#1e1b4b]"
+      },
+      {
+        label: "EXPLORATION",
+        pillColor: "bg-[#FFEDD5] text-[#c2410c]", // Orange
+        titleColor: "text-[#431407]"
+      },
+      {
+        label: "CONCLUSION",
+        pillColor: "bg-[#E0F2FE] text-[#0369a1]", // Sky Blue
+        titleColor: "text-[#0c4a6e]"
+      },
+      {
+        label: "ACTIVITY",
+        pillColor: "bg-[#DCFCE7] text-[#15803d]", // Green
+        titleColor: "text-[#052e16]"
+      }
+    ];
+    return configs[index % configs.length];
+  };
+
   return (
-    <div className="max-w-6xl mx-auto space-y-8 p-6">
+    <div className="max-w-7xl mx-auto space-y-8 pb-12 font-sans text-slate-800">
 
-      {/* Main Title */}
-      <div className="rounded-lg border-2 border-border bg-card shadow-sm">
-        <div className="p-6 flex items-start justify-between">
-          <div className="space-y-2">
-            <h2 className="text-3xl font-semibold">{lesson_plan?.title}</h2>
-
-            <div className="flex flex-wrap gap-2">
-              <Tag>
-                <BookOpen className="w-3 h-3 mr-1 inline" />
-                {lesson_plan?.subject}
-              </Tag>
-              <Tag>
-                <GraduationCap className="w-3 h-3 mr-1 inline" />
-                {lesson_plan?.grade_level}
-              </Tag>
-              <Tag>
-                <Clock className="w-3 h-3 mr-1 inline" />
-                {lesson_plan?.duration}
-              </Tag>
-            </div>
-          </div>
-
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleExport}
-            className="print:hidden"
-          >
-            <FileText className="w-4 h-4 mr-2" />
-            Export
-          </Button>
-        </div>
-      </div>
-
-      {/* Two Column Section */}
-      <div className="grid gap-6 md:grid-cols-2">
-
-        {/* Learning Objectives */}
-        <div className="rounded-lg border bg-card shadow-sm">
-          <div className="p-6">
-            <SectionHeader icon={Target} title="Learning Objectives" />
-          </div>
-          <div className="p-6 pt-0">
-            <ul className="space-y-2">
-              {lesson_plan?.learning_objectives?.map((objective, idx) => (
-                <li key={idx} className="flex gap-2 text-sm">
-                  <span className="text-muted-foreground font-semibold">
-                    {idx + 1}.
-                  </span>
-                  {objective}
-                </li>
-              ))}
-            </ul>
-          </div>
-        </div>
-
-        {/* Key Vocabulary */}
-        <div className="rounded-lg border bg-card shadow-sm">
-          <div className="p-6">
-            <SectionHeader icon={BookOpen} title="Key Vocabulary" />
-          </div>
-          <div className="p-6 pt-0">
-            <div className="flex flex-wrap gap-2">
-              {lesson_plan?.key_vocabulary?.slice(0, 3).map((word, idx) => (
-                <Tag key={idx}>{word}</Tag>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Materials Needed */}
-      {/* <div className="rounded-lg border bg-card shadow-sm">
-        <div className="p-6">
-          <SectionHeader icon={Package} title="Materials Needed" />
-        </div>
-        <div className="p-6 pt-0">
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-2 truncate">
-            {lesson_plan?.materials?.map((item, idx) => (
-      <div key={idx} className="flex items-start gap-2 w-full min-w-0">
-        <Circle className="w-3 h-3 text-muted-foreground mt-1" />
-
-        <span
-          className="text-sm text-muted-foreground truncate w-full min-w-0"
-          title={item}
-        >
-          {item}
+      {/* Subject Header Pill */}
+      <div>
+        <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-indigo-50 text-indigo-700 font-bold text-sm">
+          <BookOpen className="w-4 h-4" />
+          {lesson_plan.subject || "Subject"}
         </span>
       </div>
-    ))}
+
+      {/* Top Grid: Goals & Objectives */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+        {/* Curriculum Goals Card */}
+        <div className="bg-[#F8FAFC] rounded-2xl p-8 border border-slate-100">
+          <div className="flex items-center gap-2 mb-6">
+            <Target className="w-5 h-5 text-indigo-600" />
+            <h3 className="font-bold text-lg text-slate-900">Curriculum Goals</h3>
           </div>
-        </div>
-      </div> */}
 
-      {/* Activities */}
-      <div className="rounded-lg border-2 border-indigo-100 bg-card shadow-sm">
-        <div className="p-6 bg-indigo-50">
-          <SectionHeader icon={Calendar} title="Activities" />
-        </div>
-
-        <div className="p-6 pt-6">
-          <Accordion type="single" collapsible className="space-y-4">
-            {lesson_plan?.activities?.map((activity, idx) => (
-              <AccordionItem
-                key={idx}
-                value={`activity-${idx}`}
-                className="border rounded-lg px-4"
-              >
-                <AccordionTrigger>
-                  <div className="flex items-center gap-3 text-left">
-                    <ActivityTag>Activity {idx + 1}</ActivityTag>
-                    <div>
-                      <div className="font-semibold">
-                        {activity.activity_name}
-                      </div>
-                      <div className="text-sm text-muted-foreground flex items-center gap-2 mt-1">
-                        <Clock className="w-3 h-3" />
-                        {activity.duration}
-                      </div>
-                    </div>
-                  </div>
-                </AccordionTrigger>
-
-                <AccordionContent className="space-y-4 pt-4">
-                  {/* Description */}
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">
-                      Description
-                    </p>
-                    <p className="text-sm mt-1">{activity.description}</p>
-                  </div>
-
-                  {/* Learning Objective */}
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">
-                      Learning Objective
-                    </p>
-                    <p className="text-sm mt-1">{activity.learning_objective}</p>
-                  </div>
-
-                  {/* Materials Used */}
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground mb-2">
-                      Materials Used
-                    </p>
-                    <div className="flex flex-wrap gap-2">
-                      {activity.materials_used?.map((m, i) => (
-                        <Tag key={i}>{m}</Tag>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Steps */}
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground mb-2">
-                      Steps
-                    </p>
-                    <ol className="space-y-2">
-                      {activity.steps?.map((step, sidx) => (
-                        <li key={sidx} className="flex gap-2 text-sm">
-                          <span className="text-muted-foreground font-semibold">
-                            {sidx + 1}.
-                          </span>
-                          {step}
-                        </li>
-                      ))}
-                    </ol>
-                  </div>
-                </AccordionContent>
-              </AccordionItem>
+          <ul className="space-y-4">
+            <li className="flex items-start gap-3 text-sm font-medium text-slate-600">
+              <span className="w-1.5 h-1.5 rounded-full bg-slate-400 mt-2 flex-shrink-0" />
+              <span>Target Grade: {lesson_plan.grade_level}</span>
+            </li>
+            <li className="flex items-start gap-3 text-sm font-medium text-slate-600">
+              <span className="w-1.5 h-1.5 rounded-full bg-slate-400 mt-2 flex-shrink-0" />
+              <span>Duration: {lesson_plan.duration}</span>
+            </li>
+            {Array.isArray(lesson_plan.key_vocabulary) && lesson_plan.key_vocabulary.map((vocab, i) => (
+              <li key={i} className="flex items-start gap-3 text-sm font-medium text-slate-600">
+                <span className="w-1.5 h-1.5 rounded-full bg-slate-400 mt-2 flex-shrink-0" />
+                <span>Vocabulary: {vocab?.toString()}</span>
+              </li>
             ))}
-          </Accordion>
+          </ul>
+        </div>
+
+        {/* Learning Objectives Card */}
+        <div className="bg-white rounded-2xl p-8 border border-slate-100 shadow-sm">
+          <div className="flex items-center gap-2 mb-6">
+            <CheckCircle2 className="w-5 h-5 text-emerald-500" />
+            <h3 className="font-bold text-lg text-slate-900">Learning Objectives</h3>
+          </div>
+
+          <ul className="space-y-5">
+            {Array.isArray(lesson_plan.learning_objectives) && lesson_plan.learning_objectives.map((obj, i) => (
+              <li key={i} className="flex items-start gap-3">
+                <div className="mt-0.5 flex-shrink-0">
+                  <div className="w-5 h-5 rounded-full bg-emerald-100 flex items-center justify-center">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                  </div>
+                </div>
+                <span className="text-sm font-medium text-slate-700 leading-relaxed">{obj}</span>
+              </li>
+            ))}
+          </ul>
         </div>
       </div>
 
-      {/* Assessment Methods */}
-      <div className="rounded-lg border bg-card shadow-sm">
-        <div className="p-6">
-          <SectionHeader icon={ListChecks} title="Assessment Methods" />
+      {/* Class Structure Section */}
+      <div className="mt-8">
+        <div className="flex items-center gap-2 mb-6">
+          <Clock className="w-5 h-5 text-slate-400" />
+          <h3 className="font-bold text-lg text-slate-900">Class Structure & Teaching Flow</h3>
         </div>
 
-        <div className="p-6 pt-0 space-y-6">
-          {/* Formative */}
-          <div>
-            <Tag>Formative</Tag>
-            <ul className="space-y-1.5 mt-3">
-              {lesson_plan?.assessment_methods?.formative?.map((m, i) => (
-                <li key={i} className="flex gap-2 text-sm">
-                  <span className="text-muted-foreground">•</span>
-                  {m}
-                </li>
-              ))}
-            </ul>
-          </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {Array.isArray(lesson_plan.activities) && lesson_plan.activities.map((activity, idx) => {
+            const config = getActivityConfig(idx);
+            return (
+              <div key={idx} className="bg-white rounded-2xl p-6 border border-slate-100 shadow-[0_2px_8px_rgba(0,0,0,0.02)] hover:shadow-[0_4px_12px_rgba(0,0,0,0.04)] transition-all flex flex-col h-full">
+                {/* Pill */}
+                <div className="mb-4">
+                  <span className={cn(
+                    "px-3 py-1 rounded-md text-[10px] font-extrabold tracking-widest uppercase",
+                    config.pillColor
+                  )}>
+                    {config.label}
+                  </span>
+                </div>
 
-          <Separator />
+                {/* Title */}
+                <h4 className={cn("font-bold text-base mb-3 leading-snug", config.titleColor)}>
+                  {activity.activity_name}
+                </h4>
 
-          {/* Summative */}
-          <div>
-            <Tag>Summative</Tag>
-            <ul className="space-y-1.5 mt-3">
-              {lesson_plan?.assessment_methods?.summative?.map((m, i) => (
-                <li key={i} className="flex gap-2 text-sm">
-                  <span className="text-muted-foreground">•</span>
-                  {m}
-                </li>
-              ))}
-            </ul>
-          </div>
-        </div>
-      </div>
+                {/* Description */}
+                <p className="text-xs text-slate-500 font-medium leading-relaxed mb-6 flex-1">
+                  {activity.description}
+                </p>
 
-      {/* Differentiation */}
-      <div className="rounded-lg border bg-card shadow-sm">
-        <div className="p-6">
-          <SectionHeader
-            icon={Users}
-            title="Differentiation Strategies"
-          />
-        </div>
-
-        <div className="p-6 pt-0 space-y-6">
-          {/* Advanced */}
-          <div>
-            <div className="flex items-center gap-2">
-              <Lightbulb className="w-4 h-4 text-indigo-600" />
-              <h4 className="font-semibold text-sm">For Advanced Students</h4>
-            </div>
-
-            <ul className="space-y-1.5 mt-2">
-              {lesson_plan?.differentiation_strategies?.for_advanced_students?.map(
-                (s, i) => (
-                  <li key={i} className="flex gap-2 text-sm">
-                    <span className="text-muted-foreground">•</span>
-                    {s}
-                  </li>
-                )
-              )}
-            </ul>
-          </div>
-
-          <Separator />
-
-          {/* Struggling */}
-          <div>
-            <div className="flex items-center gap-2">
-              <Lightbulb className="w-4 h-4 text-indigo-600" />
-              <h4 className="font-semibold text-sm">For Struggling Students</h4>
-            </div>
-
-            <ul className="space-y-1.5 mt-2">
-              {lesson_plan?.differentiation_strategies?.for_struggling_students?.map(
-                (s, i) => (
-                  <li key={i} className="flex gap-2 text-sm">
-                    <span className="text-muted-foreground">•</span>
-                    {s}
-                  </li>
-                )
-              )}
-            </ul>
-          </div>
+                {/* Footer Time */}
+                <div className="mt-auto pt-4 border-t border-slate-50 text-xs font-semibold text-slate-400">
+                  {activity.duration}
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
 
-      {/* Homework */}
-      <div className="rounded-lg border-2 border-indigo-100 bg-card shadow-sm">
-        <div className="p-6 bg-indigo-50">
-          <SectionHeader icon={FileText} title="Homework Assignment" />
-        </div>
-
-        <div className="p-6 pt-6">
-          <p className="text-sm">{lesson_plan?.homework_assignment}</p>
-        </div>
-      </div>
     </div>
   );
 };

@@ -61,7 +61,7 @@ const WorksheetSidebar = ({
           <div className="bg-white/20 rounded-full p-1 flex items-center justify-center">
             <Plus className="w-4 h-4" />
           </div>
-          {!isNavCollapsed && "Create New Worksheet"}
+          {!isNavCollapsed && "New Worksheet"}
         </Button>
       </div>
 
@@ -69,8 +69,8 @@ const WorksheetSidebar = ({
         {/* Active Worksheet Section */}
         {!isNavCollapsed && selectedWorksheet && (
           <div className="space-y-4">
-            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest px-1">Active Worksheet</p>
-            <div className="bg-indigo-50 rounded-2xl p-4 border border-indigo-100 shadow-sm transition-all animate-in fade-in slide-in-from-left-2">
+            <p className="text-[10px] font-bold text-gray-400 tracking-widest px-1">Active Item</p>
+            <div className="bg-indigo-50 rounded-2xl p-4 border border-indigo-100 shadow-sm transition-all animate-in fade-in slide-in-from-left-2 transition-all">
               <p className="font-bold text-indigo-900 text-sm line-clamp-1">
                 {selectedWorksheet.title || selectedWorksheet.chapter || "Worksheet"}
               </p>
@@ -81,7 +81,7 @@ const WorksheetSidebar = ({
         {/* History Section */}
         <div className="space-y-4">
           <div className="flex items-center justify-between px-1">
-            {!isNavCollapsed && <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">History</p>}
+            {!isNavCollapsed && <p className="text-[10px] font-bold text-gray-400 tracking-widest">History</p>}
             <button className="text-gray-400 hover:text-gray-600">
               <Search className="w-4 h-4" />
             </button>
@@ -111,7 +111,7 @@ const WorksheetSidebar = ({
                       </p>
                       <div className="flex items-center justify-between text-[9px] text-gray-400 font-medium">
                         <span className="truncate max-w-[100px]">{ws.book || "Book"}</span>
-                        <span className="bg-gray-100 px-1.5 rounded-full py-0.5 uppercase tracking-tighter whitespace-nowrap ml-1">
+                        <span className="bg-gray-100 px-1.5 rounded-full py-0.5 uppercase tracking-tighter whitespace-nowrap ml-1 font-bold">
                           {new Date(ws.created_at).toLocaleDateString() || "Recent"}
                         </span>
                       </div>
@@ -136,7 +136,7 @@ const WorksheetSidebar = ({
             {(userWorksheets?.content || []).length === 0 && !isNavCollapsed && (
               <div className="text-center py-6 border-2 border-dashed border-gray-100 rounded-2xl">
                 <Clock className="w-5 h-5 text-gray-300 mx-auto mb-2" />
-                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">No history yet</p>
+                <p className="text-[10px] font-bold text-gray-400 tracking-widest">No history yet</p>
               </div>
             )}
           </div>
@@ -148,24 +148,24 @@ const WorksheetSidebar = ({
 
 // --- New Worksheet Form Component ---
 
-function NewWorksheetForm({ onGenerate, data }) {
+function NewWorksheetForm({ onGenerate, data, isLoading }) {
   const [selectedBook, setSelectedBook] = useState(null);
   const [selectedChapter, setSelectedChapter] = useState(null);
 
   return (
     <div className="flex-1 flex items-center justify-center h-[calc(100vh-80px)] bg-white p-10">
-      <div className="w-full max-w-lg">
+      <div className="w-full max-w-lg animate-in fade-in zoom-in-95 duration-500">
         <div className="text-center mb-10">
           <div className="w-20 h-20 bg-indigo-50 text-indigo-500 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-sm">
             <BookOpen className="w-10 h-10" />
           </div>
           <h2 className="text-3xl font-extrabold text-gray-900 tracking-tight mb-3">Create Worksheet</h2>
-          <p className="text-gray-400 font-medium">Choose a book and chapter to generate a comprehensive worksheet.</p>
+          <p className="text-gray-400 font-medium">Select a book and chapter to generate a comprehensive, standard-aligned worksheet.</p>
         </div>
 
         <div className="space-y-6">
           <div>
-            <label className="text-sm font-bold text-gray-700 mb-2 block">Select Book</label>
+            <label className="text-sm font-bold text-gray-700 mb-2 block pl-1">Knowledge Base</label>
             <Select
               value={selectedBook ? JSON.stringify(selectedBook) : undefined}
               onValueChange={(val) => {
@@ -177,12 +177,12 @@ function NewWorksheetForm({ onGenerate, data }) {
               <SelectTrigger className="w-full h-14 bg-white border-2 border-gray-100 rounded-2xl px-6 text-base font-bold text-gray-700 shadow-sm focus:ring-4 focus:ring-indigo-50 transition-all">
                 <SelectValue placeholder="Choose a book" />
               </SelectTrigger>
-              <SelectContent className="rounded-2xl border-gray-100 shadow-xl p-2">
+              <SelectContent className="rounded-2xl border-gray-100 shadow-xl p-2 font-bold">
                 {data?.map((book, index) => (
                   <SelectItem
                     key={book.id || index}
                     value={JSON.stringify(book)}
-                    className="rounded-xl py-3 font-bold text-gray-600 focus:bg-indigo-50 focus:text-indigo-600"
+                    className="rounded-xl py-3 px-4"
                   >
                     {book.book_name}
                   </SelectItem>
@@ -193,9 +193,9 @@ function NewWorksheetForm({ onGenerate, data }) {
 
           <div className={cn(
             "transition-all duration-300",
-            selectedBook ? "opacity-100" : "opacity-50 pointer-events-none"
+            selectedBook ? "opacity-100" : "opacity-40 pointer-events-none"
           )}>
-            <label className="text-sm font-bold text-gray-700 mb-2 block">Select Chapter</label>
+            <label className="text-sm font-bold text-gray-700 mb-2 block pl-1">Chapter Target</label>
             <Select
               value={selectedChapter || undefined}
               onValueChange={setSelectedChapter}
@@ -204,12 +204,12 @@ function NewWorksheetForm({ onGenerate, data }) {
               <SelectTrigger className="w-full h-14 bg-white border-2 border-gray-100 rounded-2xl px-6 text-base font-bold text-gray-700 shadow-sm focus:ring-4 focus:ring-indigo-50 transition-all">
                 <SelectValue placeholder="Choose a chapter" />
               </SelectTrigger>
-              <SelectContent className="rounded-2xl border-gray-100 shadow-xl p-2">
+              <SelectContent className="rounded-2xl border-gray-100 shadow-xl p-2 font-bold">
                 {(selectedBook?.chapters || []).map((chapter, index) => (
                   <SelectItem
                     key={index}
                     value={chapter}
-                    className="rounded-xl py-3 font-bold text-gray-600 focus:bg-indigo-50 focus:text-indigo-600"
+                    className="rounded-xl py-3 px-4"
                   >
                     {chapter}
                   </SelectItem>
@@ -219,13 +219,34 @@ function NewWorksheetForm({ onGenerate, data }) {
           </div>
 
           <Button
-            disabled={!selectedBook || !selectedChapter}
+            disabled={!selectedBook || !selectedChapter || isLoading}
             onClick={() => onGenerate(selectedBook, selectedChapter)}
-            className="w-full h-14 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl shadow-xl shadow-indigo-100 text-base font-bold gap-3 transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full h-15 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl shadow-xl shadow-indigo-100 text-sm font-black tracking-widest gap-3 transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50"
           >
-            <Sparkles className="w-5 h-5" />
+            {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Sparkles className="w-5 h-5" />}
             Generate Worksheet
           </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// --- Worksheet Display Container ---
+
+function WorksheetDisplay({ item, bookId, isNew, worksheetId, onRegenerate, isRegenerating }) {
+  return (
+    <div className="flex-1 flex flex-col h-[calc(100vh-80px)] bg-white relative">
+      <div className="flex-1 overflow-y-auto px-6 py-8 md:px-10 md:py-10 scrollbar-hide">
+        <div className="max-w-7xl mx-auto w-full animate-in fade-in duration-700">
+          <WorksheetItem
+            item={item}
+            bookId={bookId}
+            isNew={isNew}
+            worksheetId={worksheetId}
+            onRegenerate={onRegenerate}
+            isRegenerating={isRegenerating}
+          />
         </div>
       </div>
     </div>
@@ -261,16 +282,21 @@ export default function WorksheetPage() {
       setIsNewWorksheet(true);
       setWorksheetStatus("success");
       queryClient.invalidateQueries({ queryKey: ["ws", uid] });
+      toast.success("Worksheet crafted successfully!");
     },
-    onError: () => setWorksheetStatus("error"),
+    onError: (err) => {
+      setWorksheetStatus("error");
+      const msg = err.response?.data?.error || err.response?.data?.message || "Failed to generate worksheet.";
+      toast.error(msg);
+    }
   });
 
   const { handleDelete: handleHistoryDelete, deletingId } = useHistoryDelete({
     useMutation: useDeleteWorksheet,
     queryKeyToInvalidate: ['ws', uid],
-    idPropertyName: 'id',
+    idPropertyName: 'worksheet_id',
     onDeleteSuccess: (variables) => {
-      if (selectedWorksheet?.id === variables.id) {
+      if (selectedWorksheet?.id === variables.worksheet_id) {
         setSelectedWorksheet(null);
       }
     }
@@ -289,6 +315,14 @@ export default function WorksheetPage() {
 
     generateWorksheet({
       book_id: book.id,
+      chapter: chapter,
+      uid: uid,
+    });
+  }, [uid, generateWorksheet]);
+
+  const handleRegenerate = useCallback((bookId, chapter) => {
+    generateWorksheet({
+      book_id: bookId,
       chapter: chapter,
       uid: uid,
     });
@@ -314,46 +348,46 @@ export default function WorksheetPage() {
         }}
       />
 
-      <div className="flex-1 flex flex-col h-full bg-white">
+      <div className="flex-1 flex flex-col h-full bg-white transition-all duration-300">
         {isGenerating || (worksheetsLoading && (userWorksheets?.content || []).length === 0) ? (
           <div className="flex-1 flex items-center justify-center">
             <div className="text-center">
-              <div className="relative w-16 h-16 mx-auto mb-6">
-                <div className="absolute inset-0 border-4 border-indigo-100 rounded-full" />
-                <div className="absolute inset-0 border-4 border-indigo-500 rounded-full border-t-transparent animate-spin" />
+              <div className="relative w-20 h-20 mx-auto mb-8">
+                <div className="absolute inset-0 border-8 border-indigo-50 rounded-[2rem]" />
+                <div className="absolute inset-0 border-8 border-indigo-600 rounded-[2rem] border-t-transparent animate-spin" />
               </div>
-              <h3 className="text-xl font-extrabold text-gray-900 tracking-tight">Generating Worksheet...</h3>
-              <p className="text-sm text-gray-400 font-medium">This may take a moment.</p>
+              <h3 className="text-2xl font-black text-gray-900 tracking-tight mb-2">Crafting Worksheet...</h3>
+              <p className="text-sm text-gray-400 font-bold tracking-[0.3em]">Building assessments</p>
             </div>
           </div>
         ) : selectedWorksheet ? (
-          <div className="flex-1 overflow-y-auto px-10 pt-10 pb-10 scrollbar-hide">
-            <div className="max-w-4xl mx-auto w-full">
-              <WorksheetItem
-                item={selectedWorksheet}
-                bookId={selectedWorksheet.book_id}
-                isNew={false}
-                worksheetId={selectedWorksheet.id}
-              />
-            </div>
-          </div>
+          <WorksheetDisplay
+            item={selectedWorksheet}
+            bookId={selectedWorksheet.book_id}
+            isNew={false}
+            worksheetId={selectedWorksheet.id}
+            onRegenerate={handleRegenerate}
+            isRegenerating={isGenerating}
+          />
         ) : worksheetData ? (
-          <div className="flex-1 overflow-y-auto px-10 pt-10 pb-10 scrollbar-hide">
-            <div className="max-w-4xl mx-auto w-full">
-              <WorksheetItem
-                item={worksheetData}
-                bookId={selectedBookId}
-                isNew={true}
-                worksheetId={currentWorksheetId}
-              />
-            </div>
-          </div>
+          <WorksheetDisplay
+            item={worksheetData}
+            bookId={selectedBookId}
+            isNew={true}
+            worksheetId={currentWorksheetId}
+            onRegenerate={handleRegenerate}
+            isRegenerating={isGenerating}
+          />
         ) : bookLoading ? (
-          <div className="flex-1 flex items-center justify-center">
-            <Loader2 className="h-10 w-10 animate-spin text-indigo-500" />
+          <div className="flex-1 flex items-center justify-center font-black text-xs text-gray-300 uppercase tracking-widest">
+            Syncing Library...
           </div>
         ) : (
-          <NewWorksheetForm onGenerate={handleGenerate} data={bookData?.content} />
+          <NewWorksheetForm
+            onGenerate={handleGenerate}
+            data={bookData?.content}
+            isLoading={isGenerating}
+          />
         )}
       </div>
     </div>

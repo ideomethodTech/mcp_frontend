@@ -27,6 +27,7 @@ import {
   deleteChatMessage,
   deleteAnswerKey,
   deleteBook,
+  deleteTestPaper,
 } from "./queryFunctions";
 
 // AI Generation Hooks
@@ -224,6 +225,12 @@ export const useGetTestPaperAnswers = (testPaperId, uid, options = {}) =>
     queryKey: ["test-paper-answers", testPaperId, uid],
     queryFn: () => getTestPaperAnswers(testPaperId, uid),
     enabled: !!testPaperId && !!uid,
+    ...options,
+  });
+
+export const useDeleteTestPaper = (options) =>
+  useMutation({
+    mutationFn: deleteTestPaper,
     ...options,
   });
 

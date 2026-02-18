@@ -78,7 +78,7 @@ const LessonPlanSidebar = ({
         {/* Active Plan Section */}
         {!isNavCollapsed && selectedPlan && (
           <div className="space-y-4">
-            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest px-1">Active Plan</p>
+            <p className="text-[10px] font-bold text-gray-400 tracking-widest px-1">Active Plan</p>
             <div className="bg-indigo-50 rounded-2xl p-4 border border-indigo-100 shadow-sm transition-all animate-in fade-in slide-in-from-left-2">
               <p className="font-bold text-indigo-900 text-sm line-clamp-1">
                 {selectedPlan.title || selectedPlan.chapter || "Lesson Plan"}
@@ -90,7 +90,7 @@ const LessonPlanSidebar = ({
         {/* History Section */}
         <div className="space-y-4">
           <div className="flex items-center justify-between px-1">
-            {!isNavCollapsed && <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">History</p>}
+            {!isNavCollapsed && <p className="text-[10px] font-bold text-gray-400 tracking-widest">History</p>}
             <button className="text-gray-400 hover:text-gray-600">
               <Search className="w-4 h-4" />
             </button>
@@ -145,7 +145,7 @@ const LessonPlanSidebar = ({
             {(userLessonPlans?.content || []).length === 0 && !isNavCollapsed && (
               <div className="text-center py-6 border-2 border-dashed border-gray-100 rounded-2xl">
                 <Clock className="w-5 h-5 text-gray-300 mx-auto mb-2" />
-                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">No history yet</p>
+                <p className="text-[10px] font-bold text-gray-400 tracking-widest">No history yet</p>
               </div>
             )}
           </div>
@@ -167,7 +167,7 @@ function LessonPlanDisplay({ lessonPlan }) {
             <Sparkles className="w-6 h-6 text-indigo-500" />
           </div>
           <div>
-            <h2 className="font-extrabold text-gray-900 tracking-tight uppercase text-sm">
+            <h2 className="font-extrabold text-gray-900 tracking-tight text-sm">
               {lessonPlan.chapter || "Lesson Plan"}
             </h2>
             <p className="text-xs text-gray-400 font-bold italic">{lessonPlan.book || "Generated Plan"}</p>
@@ -187,7 +187,7 @@ function LessonPlanDisplay({ lessonPlan }) {
 
 // --- New Lesson Plan Form Component ---
 
-function NewLessonPlanForm({ onGenerate, data }) {
+function NewLessonPlanForm({ onGenerate, data, isLoading }) {
   const [selectedBook, setSelectedBook] = useState(null);
   const [selectedChapter, setSelectedChapter] = useState(null);
   const weekCount = 2; // Default to 2 weeks
@@ -259,11 +259,11 @@ function NewLessonPlanForm({ onGenerate, data }) {
           </div>
 
           <Button
-            disabled={!selectedBook || !selectedChapter}
+            disabled={!selectedBook || !selectedChapter || isLoading}
             onClick={() => onGenerate(selectedBook, selectedChapter, weekCount)}
-            className="w-full h-14 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl shadow-xl shadow-indigo-100 text-base font-bold gap-3 transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full h-15 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl shadow-xl shadow-indigo-100 text-sm font-black tracking-widest gap-3 transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <Sparkles className="w-5 h-5" />
+            {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Sparkles className="w-5 h-5" />}
             Generate Lesson Plan
           </Button>
         </div>
@@ -295,16 +295,17 @@ export default function LessonPlanPage() {
       queryClient.invalidateQueries({ queryKey: ['lp', uid] });
     },
     onError: (err) => {
-      console.error('Error generating lesson plan:', err);
+      const msg = err.response?.data?.error || err.response?.data?.message || "Failed to generate lesson plan.";
+      toast.error(msg);
     },
   });
 
   const { handleDelete: handleHistoryDelete, deletingId } = useHistoryDelete({
     useMutation: useDeleteLessonPlan,
     queryKeyToInvalidate: ['lp', uid],
-    idPropertyName: 'lessonPlanId',
+    idPropertyName: 'lesson_plan_id',
     onDeleteSuccess: (variables) => {
-      if (selectedPlan?.lesson_plan_id === variables.lessonPlanId) {
+      if (selectedPlan?.lesson_plan_id === variables.lesson_plan_id) {
         setSelectedPlan(null);
       }
     }
@@ -368,7 +369,11 @@ export default function LessonPlanPage() {
             <Loader2 className="h-10 w-10 animate-spin text-indigo-500" />
           </div>
         ) : (
-          <NewLessonPlanForm onGenerate={handleGenerate} data={bookData?.content} />
+          <NewLessonPlanForm
+            onGenerate={handleGenerate}
+            data={bookData?.content}
+            isLoading={isCreateLPPending}
+          />
         )}
       </div>
     </div>

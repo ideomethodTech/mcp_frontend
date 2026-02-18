@@ -321,6 +321,16 @@ export const getTestPaperAnswers = async (testPaperId, uid) => {
   return response.data;
 };
 
+
+export const deleteTestPaper = async ({ uid, paper_id }) => {
+  if (!uid || !paper_id) throw new Error("uid and paper_id are required");
+  const response = await api({
+    url: `${ENDPOINTS.DELETE_TEST_PAPER}/${uid}/${paper_id}`,
+    method: "DELETE",
+  });
+  return response.data;
+};
+
 // Test endpoint to verify test paper routes are working
 export const testTestPaperAPI = async () => {
   const response = await api({

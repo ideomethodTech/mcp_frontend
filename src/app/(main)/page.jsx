@@ -69,8 +69,8 @@ export default function DashboardPage() {
 
             {/* Hero Section */}
             <section className="pt-12 pb-8 px-6 text-center max-w-5xl mx-auto w-full relative z-10">
-                <h1 className="text-5xl md:text-7xl font-bold text-gray-900 tracking-tight mb-4 uppercase drop-shadow-md">
-                    AI SMART LEARN
+                <h1 className="text-5xl md:text-7xl font-bold text-gray-900 tracking-tight mb-4 drop-shadow-md">
+                    AI Smart Learn
                 </h1>
                 <p className="text-gray-500 text-base md:text-lg max-w-2xl mx-auto mb-8 leading-relaxed font-bold">
                     Transform your content with smart tools for today's educators and learners.
@@ -131,7 +131,7 @@ export default function DashboardPage() {
                                     </p>
 
                                     <div className={`mt-auto self-end flex items-center gap-2 transition-colors ${isCentered ? 'text-indigo-600' : 'text-gray-400'}`}>
-                                        <span className="text-[10px] font-bold uppercase tracking-widest">Explore Tool</span>
+                                        <span className="text-[10px] font-bold tracking-widest">Explore Tool</span>
                                         <ArrowRight className="w-3 h-3 group-hover:translate-x-1 transition-transform" />
                                     </div>
                                 </Link>
