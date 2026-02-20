@@ -47,8 +47,9 @@ const LessonPlanSidebar = ({
 }) => {
   return (
     <div className={cn(
-      "flex flex-col border-r border-gray-100 bg-[#F9FAFB] transition-all duration-300 h-[calc(100vh-80px)]",
-      isNavCollapsed ? "w-20" : "w-80"
+      "flex flex-col border-r border-gray-100 bg-[#F9FAFB] transition-all duration-300",
+      "w-full md:h-[calc(100vh-80px)]",
+      isNavCollapsed ? "md:w-20" : "md:w-80"
     )}>
       <div className="p-6 flex items-center justify-between">
         {!isNavCollapsed && <h2 className="font-bold text-gray-700 tracking-tight">Lesson Plans</h2>}
@@ -160,24 +161,24 @@ const LessonPlanSidebar = ({
 
 function LessonPlanDisplay({ lessonPlan }) {
   return (
-    <div className="flex-1 flex flex-col h-[calc(100vh-80px)] bg-white relative">
+    <div className="flex-1 flex flex-col min-h-[500px] md:h-[calc(100vh-80px)] bg-white relative">
       {/* Upper Info Bar */}
-      <div className="px-10 py-6 border-b border-gray-100 flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <div className="w-14 h-14 bg-indigo-50 rounded-xl flex-shrink-0 overflow-hidden shadow-inner flex items-center justify-center">
-            <Sparkles className="w-6 h-6 text-indigo-500" />
+      <div className="px-6 md:px-10 py-4 md:py-6 border-b border-gray-100 flex items-center justify-between sticky top-0 bg-white/80 backdrop-blur-md z-10">
+        <div className="flex items-center gap-3 md:gap-4">
+          <div className="w-10 h-10 md:w-14 md:h-14 bg-indigo-50 rounded-xl flex-shrink-0 overflow-hidden shadow-inner flex items-center justify-center">
+            <Sparkles className="w-5 h-5 md:w-6 md:h-6 text-indigo-500" />
           </div>
           <div>
-            <h2 className="font-extrabold text-gray-900 tracking-tight text-sm">
+            <h2 className="font-extrabold text-gray-900 tracking-tight text-xs md:text-sm">
               {lessonPlan.chapter || "Lesson Plan"}
             </h2>
-            <p className="text-xs text-gray-400 font-bold italic">{lessonPlan.book || "Generated Plan"}</p>
+            <p className="text-[10px] md:text-xs text-gray-400 font-bold italic">{lessonPlan.book || "Generated Plan"}</p>
           </div>
         </div>
       </div>
 
       {/* Content Scroll Area */}
-      <div className="flex-1 overflow-y-auto px-10 pt-10 pb-10 scrollbar-hide">
+      <div className="flex-1 overflow-y-auto px-6 md:px-10 pt-6 md:pt-10 pb-10 scrollbar-hide">
         <div className="max-w-4xl mx-auto w-full">
           <LessonPlanItem item={lessonPlan} isgenrated={false} />
         </div>
@@ -194,7 +195,7 @@ function NewLessonPlanForm({ onGenerate, data, isLoading }) {
   const weekCount = 2; // Default to 2 weeks
 
   return (
-    <div className="flex-1 flex items-center justify-center h-[calc(100vh-80px)] bg-white p-10">
+    <div className="flex-1 flex items-center justify-center min-h-[calc(100vh-400px)] md:h-[calc(100vh-80px)] bg-white p-6 md:p-10">
       <div className="w-full max-w-lg animate-in fade-in zoom-in-95 duration-500">
         <div className="text-center mb-10">
           <div className="w-20 h-20 bg-indigo-50 text-indigo-500 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-sm">
@@ -332,7 +333,7 @@ export default function LessonPlanPage() {
   }, [uid, generateLessonPlan]);
 
   return (
-    <div className="flex bg-white h-[calc(100vh-80px)] overflow-hidden">
+    <div className="flex flex-col md:flex-row bg-white md:h-[calc(100vh-80px)] md:overflow-hidden overflow-y-auto">
       <LessonPlanSidebar
         userLessonPlans={userLP}
         selectedPlan={selectedPlan}

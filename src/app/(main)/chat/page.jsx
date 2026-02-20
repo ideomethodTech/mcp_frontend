@@ -57,8 +57,9 @@ const ChatSidebar = ({
 }) => {
   return (
     <div className={cn(
-      "flex flex-col border-r border-gray-100 bg-[#F9FAFB] transition-all duration-300 h-[calc(100vh-80px)]",
-      isNavCollapsed ? "w-20" : "w-80"
+      "flex flex-col border-r border-gray-100 bg-[#F9FAFB] transition-all duration-300",
+      "w-full md:h-[calc(100vh-80px)]",
+      isNavCollapsed ? "md:w-20" : "md:w-80"
     )}>
       <div className="p-6 flex items-center justify-between">
         {!isNavCollapsed && <h2 className="font-bold text-gray-700 tracking-tight text-lg">Book Chats</h2>}
@@ -172,7 +173,7 @@ function NewChatForm({ onGenerate, data, isLoading }) {
   const [selectedBook, setSelectedBook] = useState(null);
 
   return (
-    <div className="flex-1 flex items-center justify-center h-[calc(100vh-80px)] bg-white p-10">
+    <div className="flex-1 flex items-center justify-center min-h-[calc(100vh-400px)] md:h-[calc(100vh-80px)] bg-white p-6 md:p-10">
       <div className="w-full max-w-lg animate-in fade-in zoom-in-95 duration-500">
         <div className="text-center mb-10">
           <div className="w-20 h-20 bg-indigo-50 text-indigo-500 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-sm">
@@ -253,37 +254,37 @@ function ChatInterface({ chatSession, isGenerating, onSendMessage }) {
   ];
 
   return (
-    <div className="flex-1 flex flex-col h-[calc(100vh-80px)] bg-white relative">
+    <div className="flex-1 flex flex-col min-h-[500px] md:h-[calc(100vh-80px)] bg-white relative">
       {/* Upper Info Bar (Matching Lesson Plan) */}
-      <div className="px-10 py-6 border-b border-gray-100 flex items-center justify-between sticky top-0 bg-white/80 backdrop-blur-md z-10">
-        <div className="flex items-center gap-4">
-          <div className="w-14 h-14 bg-indigo-50 rounded-xl flex-shrink-0 overflow-hidden shadow-inner flex items-center justify-center">
-            <Sparkles className="w-6 h-6 text-indigo-500" />
+      <div className="px-6 md:px-10 py-4 md:py-6 border-b border-gray-100 flex items-center justify-between sticky top-0 bg-white/80 backdrop-blur-md z-10">
+        <div className="flex items-center gap-3 md:gap-4">
+          <div className="w-10 h-10 md:w-14 md:h-14 bg-indigo-50 rounded-xl flex-shrink-0 overflow-hidden shadow-inner flex items-center justify-center">
+            <Sparkles className="w-5 h-5 md:w-6 md:h-6 text-indigo-500" />
           </div>
           <div>
-            <h2 className="font-extrabold text-gray-900 tracking-tight text-sm">
+            <h2 className="font-extrabold text-gray-900 tracking-tight text-xs md:text-sm">
               {chatSession.book_name || chatSession.chat_title || chatSession.title || "Book Chat"}
             </h2>
-            <p className="text-xs text-gray-400 font-bold italic">Interactive Conversation</p>
+            <p className="text-[10px] md:text-xs text-gray-400 font-bold italic">Interactive Conversation</p>
           </div>
         </div>
       </div>
 
       {/* Messages Area */}
-      <div className="flex-1 overflow-y-auto px-10 pt-10 pb-32 scrollbar-hide">
-        <div className="max-w-4xl mx-auto space-y-8">
+      <div className="flex-1 overflow-y-auto px-6 md:px-10 pt-6 md:pt-10 pb-32 scrollbar-hide">
+        <div className="max-w-4xl mx-auto space-y-6 md:space-y-8">
           {(!chatDetails?.messages || chatDetails.messages.length === 0) && !isGenerating && (
-            <div className="text-center py-20 animate-in fade-in duration-700">
-              <div className="w-16 h-16 bg-indigo-50 rounded-2xl flex items-center justify-center mx-auto mb-6 text-indigo-500">
-                <Zap className="w-8 h-8" />
+            <div className="text-center py-10 md:py-20 animate-in fade-in duration-700">
+              <div className="w-12 h-12 md:w-16 md:h-16 bg-indigo-50 rounded-2xl flex items-center justify-center mx-auto mb-4 md:mb-6 text-indigo-500">
+                <Zap className="w-6 h-6 md:w-8 md:h-8" />
               </div>
-              <h3 className="text-2xl font-black text-gray-900 mb-4">How can I help you today?</h3>
-              <div className="flex flex-wrap justify-center gap-3">
+              <h3 className="text-xl md:text-2xl font-black text-gray-900 mb-4">How can I help you today?</h3>
+              <div className="flex flex-wrap justify-center gap-2 md:gap-3">
                 {suggestions.map(s => (
                   <button
                     key={s}
                     onClick={() => onSendMessage(s)}
-                    className="px-6 py-3 rounded-xl border-2 border-gray-100 hover:border-indigo-100 hover:bg-indigo-50 text-sm font-bold text-gray-600 transition-all"
+                    className="px-4 md:px-6 py-2 md:py-3 rounded-xl border-2 border-gray-100 hover:border-indigo-100 hover:bg-indigo-50 text-xs md:text-sm font-bold text-gray-600 transition-all"
                   >
                     {s}
                   </button>
@@ -293,20 +294,20 @@ function ChatInterface({ chatSession, isGenerating, onSendMessage }) {
           )}
 
           {chatDetails?.messages?.map((m, idx) => (
-            <div key={idx} className="space-y-6">
+            <div key={idx} className="space-y-4 md:space-y-6">
               {/* User Message */}
-              <div className="flex justify-end pr-4">
-                <div className="bg-gray-100 rounded-2xl rounded-tr-sm p-4 px-6 max-w-[80%] shadow-sm">
-                  <p className="text-sm font-bold text-gray-700 leading-relaxed whitespace-pre-wrap">{m.prompt}</p>
+              <div className="flex justify-end md:pr-4">
+                <div className="bg-gray-100 rounded-2xl rounded-tr-sm p-3 md:p-4 px-4 md:px-6 max-w-[90%] md:max-w-[80%] shadow-sm">
+                  <p className="text-xs md:text-sm font-bold text-gray-700 leading-relaxed whitespace-pre-wrap">{m.prompt}</p>
                 </div>
               </div>
               {/* AI Response */}
-              <div className="flex gap-4">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#6366f1] to-[#8b5cf6] flex items-center justify-center text-white flex-shrink-0 shadow-lg shadow-indigo-100">
-                  <MessageSquare className="w-5 h-5" />
+              <div className="flex gap-3 md:gap-4">
+                <div className="w-8 h-8 md:w-10 md:h-10 rounded-xl bg-gradient-to-br from-[#6366f1] to-[#8b5cf6] flex items-center justify-center text-white flex-shrink-0 shadow-lg shadow-indigo-100">
+                  <MessageSquare className="w-4 h-4 md:w-5 md:h-5" />
                 </div>
-                <div className="bg-white border border-gray-100 rounded-2xl rounded-tl-sm p-5 px-6 max-w-[80%] shadow-sm">
-                  <div className="prose prose-sm max-w-none text-gray-800 font-medium">
+                <div className="bg-white border border-gray-100 rounded-2xl rounded-tl-sm p-4 md:p-5 px-4 md:px-6 max-w-[90%] md:max-w-[80%] shadow-sm">
+                  <div className="prose prose-sm max-w-none text-gray-800 font-medium text-xs md:text-sm">
                     <ReactMarkdown remarkPlugins={[remarkGfm]}>{m.response}</ReactMarkdown>
                   </div>
                 </div>
@@ -315,15 +316,15 @@ function ChatInterface({ chatSession, isGenerating, onSendMessage }) {
           ))}
 
           {isGenerating && (
-            <div className="flex gap-4 animate-pulse">
-              <div className="w-10 h-10 rounded-xl bg-gray-200 flex items-center justify-center text-gray-400 flex-shrink-0">
-                <Loader2 className="w-5 h-5 animate-spin" />
+            <div className="flex gap-3 md:gap-4 animate-pulse">
+              <div className="w-8 h-8 md:w-10 md:h-10 rounded-xl bg-gray-200 flex items-center justify-center text-gray-400 flex-shrink-0">
+                <Loader2 className="w-4 h-4 md:w-5 md:h-5 animate-spin" />
               </div>
-              <div className="bg-gray-50 border border-gray-100 rounded-2xl rounded-tl-sm p-5 px-6 w-full max-w-[60%]">
+              <div className="bg-gray-50 border border-gray-100 rounded-2xl rounded-tl-sm p-4 md:p-5 px-4 md:px-6 w-full max-w-[70%] md:max-w-[60%]">
                 <div className="space-y-2">
-                  <Skeleton className="h-4 w-full" />
-                  <Skeleton className="h-4 w-[80%]" />
-                  <Skeleton className="h-4 w-[90%]" />
+                  <Skeleton className="h-3 md:h-4 w-full" />
+                  <Skeleton className="h-3 md:h-4 w-[80%]" />
+                  <Skeleton className="h-3 md:h-4 w-[90%]" />
                 </div>
               </div>
             </div>
@@ -333,14 +334,14 @@ function ChatInterface({ chatSession, isGenerating, onSendMessage }) {
       </div>
 
       {/* Input Area */}
-      <div className="absolute bottom-0 left-0 right-0 p-8 pt-0 bg-transparent pointer-events-none">
+      <div className="absolute bottom-0 left-0 right-0 p-4 md:p-8 pt-0 bg-transparent pointer-events-none">
         <div className="max-w-4xl mx-auto pointer-events-auto">
-          <div className="bg-white border-2 border-gray-100 rounded-[2rem] p-4 pl-8 shadow-2xl flex items-center gap-4 transition-all focus-within:border-indigo-100 focus-within:ring-4 focus-within:ring-indigo-50">
+          <div className="bg-white border-2 border-gray-100 rounded-3xl md:rounded-[2rem] p-2 md:p-4 pl-4 md:pl-8 shadow-2xl flex items-center gap-2 md:gap-4 transition-all focus-within:border-indigo-100 focus-within:ring-4 focus-within:ring-indigo-50">
             <Textarea
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder="Ask your book anything..."
-              className="flex-1 bg-transparent border-none focus-visible:ring-0 resize-none py-2 text-base font-bold text-gray-700 min-h-[50px] max-h-[150px] placeholder:text-gray-300"
+              placeholder="Ask anything..."
+              className="flex-1 bg-transparent border-none focus-visible:ring-0 resize-none py-2 text-sm md:text-base font-bold text-gray-700 min-h-[40px] md:min-h-[50px] max-h-[150px] placeholder:text-gray-300"
               rows={1}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && !e.shiftKey) {
@@ -352,9 +353,9 @@ function ChatInterface({ chatSession, isGenerating, onSendMessage }) {
             <Button
               onClick={handleSend}
               disabled={!input.trim() || isGenerating}
-              className="w-14 h-14 rounded-full bg-indigo-600 hover:bg-indigo-700 text-white shadow-xl shadow-indigo-100 flex-shrink-0 transition-transform active:scale-90"
+              className="w-10 h-10 md:w-14 md:h-14 rounded-full bg-indigo-600 hover:bg-indigo-700 text-white shadow-xl shadow-indigo-100 flex-shrink-0 transition-transform active:scale-90 flex items-center justify-center"
             >
-              {isGenerating ? <Loader2 className="w-6 h-6 animate-spin" /> : <Send className="w-6 h-6" />}
+              {isGenerating ? <Loader2 className="w-4 h-4 md:w-6 md:h-6 animate-spin" /> : <Send className="w-4 h-4 md:w-6 md:h-6" />}
             </Button>
           </div>
         </div>
@@ -431,7 +432,7 @@ export default function ChatPage() {
   }, [uid, createChat]);
 
   return (
-    <div className="flex bg-white h-[calc(100vh-80px)] overflow-hidden">
+    <div className="flex flex-col md:flex-row bg-white md:h-[calc(100vh-80px)] md:overflow-hidden overflow-y-auto">
       <ChatSidebar
         userChats={userChats}
         selectedChat={selectedChat}

@@ -151,8 +151,9 @@ const TestPaperSidebar = ({
 }) => {
   return (
     <div className={cn(
-      "flex flex-col border-r border-gray-100 bg-[#F9FAFB] transition-all duration-300 h-[calc(100vh-80px)]",
-      isNavCollapsed ? "w-20" : "w-80"
+      "flex flex-col border-r border-gray-100 bg-[#F9FAFB] transition-all duration-300",
+      "w-full md:h-[calc(100vh-80px)]",
+      isNavCollapsed ? "md:w-20" : "md:w-80"
     )}>
       <div className="p-6 flex items-center justify-between">
         {!isNavCollapsed && <h2 className="font-bold text-gray-700 tracking-tight text-lg">Assessments</h2>}
@@ -267,7 +268,7 @@ function NewTestPaperForm({ onGenerate, data, isLoading }) {
   };
 
   return (
-    <div className="flex-1 flex flex-col items-center justify-center min-h-[calc(100vh-80px)] bg-white p-10 overflow-y-auto scrollbar-hide">
+    <div className="flex-1 flex flex-col items-center justify-center min-h-[calc(100vh-400px)] md:min-h-[calc(100vh-80px)] bg-white p-6 md:p-10 overflow-y-auto scrollbar-hide">
       <div className="w-full max-w-2xl animate-in fade-in zoom-in-95 duration-500">
         <div className="text-center mb-10">
           <div className="w-20 h-20 bg-indigo-50 text-indigo-500 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-sm border border-indigo-100">
@@ -403,7 +404,7 @@ function NewTestPaperForm({ onGenerate, data, isLoading }) {
 
 function TestPaperDisplay({ item, onRegenerate, isRegenerating }) {
   return (
-    <div className="flex-1 flex flex-col h-[calc(100vh-80px)] bg-white relative">
+    <div className="flex-1 flex flex-col min-h-[500px] md:h-[calc(100vh-80px)] bg-white relative">
       {/* Upper Info Bar */}
       <div className="px-12 py-8 border-b border-gray-100 flex items-center justify-between sticky top-0 bg-white/90 backdrop-blur-xl z-20 shadow-sm shadow-gray-50/50">
         <div className="flex items-center gap-5">
@@ -422,7 +423,7 @@ function TestPaperDisplay({ item, onRegenerate, isRegenerating }) {
       </div>
 
       {/* Content Scroll Area */}
-      <div className="flex-1 overflow-y-auto px-12 pt-12 pb-24 scrollbar-hide">
+      <div className="flex-1 overflow-y-auto px-6 md:px-12 pt-10 md:pt-12 pb-24 scrollbar-hide">
         <div className="max-w-5xl mx-auto w-full">
           <TestPaperItem
             item={item}
@@ -496,7 +497,7 @@ export default function TestPaperPage() {
   }, [uid, generateTestPaperMutation]);
 
   return (
-    <div className="flex bg-white h-[calc(100vh-80px)] overflow-hidden">
+    <div className="flex flex-col md:flex-row bg-white md:h-[calc(100vh-80px)] md:overflow-hidden overflow-y-auto">
       <TestPaperSidebar
         userTestPapers={userTestPapers}
         selectedTestPaper={selectedTestPaper}

@@ -67,12 +67,13 @@ const AnswerKeySidebar = ({
   deletingId,
   isNavCollapsed,
   setIsNavCollapsed,
-  onStartNew
+  onStartNew,
 }) => {
   return (
     <div className={cn(
-      "flex flex-col border-r border-gray-100 bg-[#F9FAFB] transition-all duration-300 h-[calc(100vh-80px)]",
-      isNavCollapsed ? "w-20" : "w-80"
+      "flex flex-col border-r border-gray-100 bg-[#F9FAFB] transition-all duration-300",
+      "w-full md:h-[calc(100vh-80px)]",
+      isNavCollapsed ? "md:w-20" : "md:w-80"
     )}>
       <div className="p-6 flex items-center justify-between">
         {!isNavCollapsed && <h2 className="font-black text-gray-700 tracking-tight text-lg">Solutions</h2>}
@@ -200,7 +201,7 @@ function NewAnswerKeyForm({ onGenerate, allWorksheets, booksData, isLoading }) {
   }, [selectedBookId, allWorksheets]);
 
   return (
-    <div className="flex-1 flex items-center justify-center h-[calc(100vh-80px)] bg-white p-10">
+    <div className="flex-1 flex items-center justify-center min-h-[calc(100vh-400px)] md:h-[calc(100vh-80px)] bg-white p-6 md:p-10">
       <div className="w-full max-w-lg animate-in fade-in zoom-in-95 duration-500">
         <div className="text-center mb-10">
           <div className="w-20 h-20 bg-indigo-50 text-indigo-500 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-sm">
@@ -283,9 +284,9 @@ function AnswerKeyItem({ item }) {
   return (
     <div className="space-y-10 animate-in fade-in duration-700">
       {/* Premium Header Card */}
-      <div className="rounded-[2.5rem] border-2 border-gray-100 bg-white shadow-sm overflow-hidden p-10 flex items-start justify-between">
-        <div className="space-y-6 flex-1">
-          <h2 className="text-3xl font-extrabold text-gray-900 tracking-tight leading-none">
+      <div className="rounded-[1.5rem] md:rounded-[2.5rem] border-2 border-gray-100 bg-white shadow-sm overflow-hidden p-4 md:p-10 flex flex-col md:flex-row items-start justify-between gap-4 md:gap-6">
+        <div className="space-y-3 md:space-y-6 flex-1">
+          <h2 className="text-lg md:text-3xl font-extrabold text-gray-900 tracking-tight leading-tight">
             {data.worksheet_title || "Official Answer Key"}
           </h2>
           <div className="flex flex-wrap gap-3">
@@ -298,25 +299,25 @@ function AnswerKeyItem({ item }) {
           variant="outline"
           size="lg"
           onClick={() => window.print()}
-          className="rounded-[1.5rem] border-2 font-black uppercase text-xs tracking-widest gap-2 px-8 py-7 hover:bg-gray-50 print:hidden transition-all active:scale-95 shadow-sm"
+          className="w-full md:w-auto rounded-[1.2rem] md:rounded-[1.5rem] border-2 font-black uppercase text-[10px] md:text-xs tracking-widest gap-2 px-6 md:px-8 py-5 md:py-7 hover:bg-gray-50 print:hidden transition-all active:scale-95 shadow-sm"
         >
-          <Printer className="w-5 h-5" />
+          <Printer className="w-4 h-4 md:w-5 md:h-5" />
           Print Solutions
         </Button>
       </div>
 
       {/* Solutions Body */}
-      <div className="rounded-[2.5rem] border border-gray-100 bg-white p-12 shadow-sm space-y-16">
+      <div className="rounded-[1.5rem] md:rounded-[2.5rem] border border-gray-100 bg-white p-4 md:p-12 shadow-sm space-y-10 md:space-y-16">
         {data.answers?.map((q, idx) => (
-          <div key={idx} className="group relative pl-20 last:border-0 border-b border-gray-50 pb-16 last:pb-0">
+          <div key={idx} className="group relative md:pl-20 last:border-0 border-b border-gray-50 pb-10 md:pb-16 last:pb-0">
             {/* Number Badge */}
-            <div className="absolute left-0 top-0 w-14 h-14 rounded-3xl bg-indigo-50 border-2 border-indigo-100 flex items-center justify-center text-[#6366f1] font-black text-xl shadow-sm transition-all group-hover:bg-indigo-600 group-hover:text-white group-hover:scale-110">
+            <div className="mb-3 md:absolute md:left-0 md:top-0 w-8 h-8 md:w-14 md:h-14 rounded-xl md:rounded-3xl bg-indigo-50 border-2 border-indigo-100 flex items-center justify-center text-[#6366f1] font-black text-sm md:text-xl shadow-sm transition-all group-hover:bg-indigo-600 group-hover:text-white group-hover:scale-110">
               {q.question_number || idx + 1}
             </div>
 
-            <div className="space-y-10">
+            <div className="space-y-4 md:space-y-10">
               {/* Question Text */}
-              <div className="prose prose-slate max-w-none text-2xl text-gray-900 leading-tight">
+              <div className="prose prose-slate max-w-none text-base md:text-2xl text-gray-900 font-bold leading-tight">
                 <ReactMarkdown remarkPlugins={[remarkGfm]}>{q.question}</ReactMarkdown>
               </div>
 
@@ -329,31 +330,31 @@ function AnswerKeyItem({ item }) {
 
               {/* MCQ Options Display */}
               {q.options && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-8">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2 md:gap-4 mt-4 md:mt-8">
                   {Object.entries(q.options).map(([key, value]) => (
-                    <div key={key} className="flex items-center gap-4 bg-gray-50/50 p-5 rounded-[1.5rem] border-2 border-transparent transition-all hover:bg-white hover:border-indigo-100 group/opt">
-                      <span className="w-10 h-10 rounded-xl bg-white border-2 border-gray-100 flex items-center justify-center text-xs font-black text-gray-300 group-hover/opt:text-indigo-600 group-hover/opt:border-indigo-100">{key}</span>
-                      <span className="text-base font-bold text-gray-600 group-hover/opt:text-gray-900">{value}</span>
+                    <div key={key} className="flex items-center gap-2 md:gap-4 bg-gray-50/50 p-3 md:p-5 rounded-lg md:rounded-[1.5rem] border-2 border-transparent transition-all hover:bg-white hover:border-indigo-100 group/opt">
+                      <span className="w-7 h-7 md:w-10 md:h-10 rounded-md md:rounded-xl bg-white border-2 border-gray-100 flex items-center justify-center text-[9px] md:text-xs font-black text-gray-300 group-hover/opt:text-indigo-600 group-hover/opt:border-indigo-100">{key}</span>
+                      <span className="text-xs md:text-base font-bold text-gray-600 group-hover/opt:text-gray-900">{value}</span>
                     </div>
                   ))}
                 </div>
               )}
 
               {/* Correct Answer Premium Box */}
-              <div className="bg-indigo-50 rounded-[2rem] p-10 border-2 border-indigo-100/50 relative overflow-hidden group/ans transition-all hover:shadow-xl hover:shadow-indigo-100 self-start">
-                <div className="absolute top-0 right-0 p-6 opacity-5 group-hover/ans:opacity-10 transition-opacity">
-                  <Sparkles className="w-20 h-20 text-indigo-600" />
+              <div className="bg-indigo-50 rounded-xl md:rounded-[2rem] p-4 md:p-10 border-2 border-indigo-100/50 relative overflow-hidden group/ans transition-all hover:shadow-xl hover:shadow-indigo-100 self-start">
+                <div className="absolute top-0 right-0 p-3 md:p-6 opacity-5 group-hover/ans:opacity-10 transition-opacity">
+                  <Sparkles className="w-10 h-10 md:w-20 md:h-20 text-indigo-600" />
                 </div>
-                <div className="flex items-center gap-3 mb-6">
-                  <Zap className="w-5 h-5 text-indigo-600 fill-indigo-600" />
-                  <span className="text-[10px] font-black text-indigo-600 tracking-[0.3em]">Verified Solution</span>
+                <div className="flex items-center gap-2 md:gap-3 mb-3 md:mb-6">
+                  <Zap className="w-3 h-3 md:w-5 md:h-5 text-indigo-600 fill-indigo-600" />
+                  <span className="text-[8px] md:text-[10px] font-black text-indigo-600 tracking-[0.2em] md:tracking-[0.3em]">Verified Solution</span>
                 </div>
-                <div className="text-2xl font-black text-indigo-900 mb-6 leading-relaxed">
+                <div className="text-lg md:text-2xl font-black text-indigo-900 mb-3 md:mb-6 leading-relaxed">
                   {typeof q.correct_answer === 'object' ? JSON.stringify(q.correct_answer) : String(q.correct_answer)}
                 </div>
 
                 {q.explanation && (
-                  <div className="prose prose-sm max-w-none text-indigo-900/70 font-bold italic border-t-2 border-indigo-100/50 pt-6">
+                  <div className="prose prose-sm max-w-none text-indigo-900/70 font-bold italic border-t-2 border-indigo-100/50 pt-3 md:pt-6 text-[10px] md:text-sm">
                     <ReactMarkdown remarkPlugins={[remarkGfm]}>{q.explanation}</ReactMarkdown>
                   </div>
                 )}
@@ -409,7 +410,7 @@ function AnswerKeyItem({ item }) {
 
 function AnswerKeyDisplay({ item }) {
   return (
-    <div className="flex-1 flex flex-col h-[calc(100vh-80px)] bg-white relative">
+    <div className="flex-1 flex flex-col min-h-[500px] md:h-[calc(100vh-80px)] bg-white relative">
       <div className="px-12 py-8 border-b border-gray-100 flex items-center justify-between sticky top-0 bg-white/90 backdrop-blur-xl z-20 shadow-sm shadow-gray-50/50">
         <div className="flex items-center gap-5">
           <div className="w-16 h-16 bg-gradient-to-br from-indigo-50 to-indigo-100/50 rounded-[1.5rem] flex-shrink-0 flex items-center justify-center border-2 border-indigo-100 shadow-inner">
@@ -426,7 +427,7 @@ function AnswerKeyDisplay({ item }) {
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-12 pt-12 pb-24 scrollbar-hide">
+      <div className="flex-1 overflow-y-auto px-6 md:px-12 pt-10 md:pt-12 pb-24 scrollbar-hide">
         <div className="max-w-5xl mx-auto w-full">
           <AnswerKeyItem item={item} />
         </div>
@@ -512,7 +513,7 @@ export default function AnswerKeyPage() {
   };
 
   return (
-    <div className="flex bg-white h-[calc(100vh-80px)] overflow-hidden">
+    <div className="flex flex-col md:flex-row bg-white md:h-[calc(100vh-80px)] md:overflow-hidden overflow-y-auto">
       <AnswerKeySidebar
         historyData={historyData}
         selectedItem={selectedItem}

@@ -37,8 +37,9 @@ const WorksheetSidebar = ({
 }) => {
   return (
     <div className={cn(
-      "flex flex-col border-r border-gray-100 bg-[#F9FAFB] transition-all duration-300 h-[calc(100vh-80px)]",
-      isNavCollapsed ? "w-20" : "w-80"
+      "flex flex-col border-r border-gray-100 bg-[#F9FAFB] transition-all duration-300",
+      "w-full md:h-[calc(100vh-80px)]",
+      isNavCollapsed ? "md:w-20" : "md:w-80"
     )}>
       <div className="p-6 flex items-center justify-between">
         {!isNavCollapsed && <h2 className="font-bold text-gray-700 tracking-tight">Worksheets</h2>}
@@ -153,7 +154,7 @@ function NewWorksheetForm({ onGenerate, data, isLoading }) {
   const [selectedChapter, setSelectedChapter] = useState(null);
 
   return (
-    <div className="flex-1 flex items-center justify-center h-[calc(100vh-80px)] bg-white p-10">
+    <div className="flex-1 flex items-center justify-center min-h-[calc(100vh-400px)] md:h-[calc(100vh-80px)] bg-white p-6 md:p-10">
       <div className="w-full max-w-lg animate-in fade-in zoom-in-95 duration-500">
         <div className="text-center mb-10">
           <div className="w-20 h-20 bg-indigo-50 text-indigo-500 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-sm">
@@ -236,7 +237,7 @@ function NewWorksheetForm({ onGenerate, data, isLoading }) {
 
 function WorksheetDisplay({ item, bookId, isNew, worksheetId, onRegenerate, isRegenerating }) {
   return (
-    <div className="flex-1 flex flex-col h-[calc(100vh-80px)] bg-white relative">
+    <div className="flex-1 flex flex-col min-h-[500px] md:h-[calc(100vh-80px)] bg-white relative">
       <div className="flex-1 overflow-y-auto px-6 py-8 md:px-10 md:py-10 scrollbar-hide">
         <div className="max-w-7xl mx-auto w-full animate-in fade-in duration-700">
           <WorksheetItem
@@ -329,7 +330,7 @@ export default function WorksheetPage() {
   }, [uid, generateWorksheet]);
 
   return (
-    <div className="flex bg-white h-[calc(100vh-80px)] overflow-hidden">
+    <div className="flex flex-col md:flex-row bg-white md:h-[calc(100vh-80px)] md:overflow-hidden overflow-y-auto">
       <WorksheetSidebar
         userWorksheets={userWorksheets}
         selectedWorksheet={selectedWorksheet}
