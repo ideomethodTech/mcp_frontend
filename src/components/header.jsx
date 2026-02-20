@@ -17,10 +17,12 @@ import { NAV_ITEMS, ADMIN_NAV_ITEM } from "@/lib/constants.jsx";
 import React from "react";
 import { usePathname } from "next/navigation";
 import { Logo } from "./icons";
+import { useUserInitials } from "@/hooks/use-user-initials";
 
 export function Header() {
   const { user, signOut } = useAuth();
   const pathname = usePathname();
+  const userInitials = useUserInitials(user);
 
   const handleLogout = async () => {
     try {
@@ -29,14 +31,6 @@ export function Header() {
       console.error("Error logging out:", error);
     }
   };
-
-  const userInitials = user
-    ? user?.user.username
-      .split(" ")
-      .map((n) => n[0])
-      .join("")
-      .toUpperCase()
-    : user?.user.email[0]?.toUpperCase() || "U";
 
   return (
     <header className="flex h-20 items-center justify-between bg-white px-12 border-none">
