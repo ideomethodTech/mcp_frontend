@@ -33,7 +33,7 @@ import {
 // AI Generation Hooks
 export const useGenerateContent = (options) =>
   useMutation({
-    mutationFn: ({ chat_id, uid, prompt, book_id }) => generateContent({ chat_id, uid, prompt, book_id }),
+    mutationFn: ({ uid, prompt, book_id, chat_id }) => generateContent({ uid, prompt, book_id, chat_id }),
     ...options,
   });
 
@@ -52,7 +52,7 @@ export const useGenerateAnswerKey = (options) =>
 // Book Management Hooks
 export const useUploadBook = (options) =>
   useMutation({
-    mutationFn: uploadBook,
+    mutationFn: ({ formData, onUploadProgress }) => uploadBook(formData, onUploadProgress),
     ...options,
   });
 
@@ -62,10 +62,10 @@ export const useDeleteBook = (options) =>
     ...options,
   });
 
-export const useGetBook = (options = {}) =>
+export const useGetBook = (uid, options = {}) =>
   useQuery({
-    queryKey: ["books"],
-    queryFn: () => getBooks(),
+    queryKey: ["books", uid],
+    queryFn: () => getBooks(uid),
     enabled: true,
 
     ...options,
@@ -238,5 +238,10 @@ export const useTestPaperAPITest = (options = {}) =>
   useQuery({
     queryKey: ["test-paper-api-test"],
     queryFn: testTestPaperAPI,
+    ...options,
+  });
+export const useDeleteTestPaper = (options) =>
+  useMutation({
+    mutationFn: deleteTestPaper,
     ...options,
   });

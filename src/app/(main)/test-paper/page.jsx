@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useMemo, useCallback } from "react";
+import { useSearchParams } from "next/navigation";
 import {
   FileText,
   Loader2,
@@ -10,134 +11,23 @@ import {
   Clock,
   Trash2,
   Sparkles,
-  ChevronDown,
   Printer,
   Download,
   BookOpen,
   GraduationCap,
-  Zap
+  Zap,
 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useQueryClient } from "@tanstack/react-query";
-import { useGenerateTestPaper, useGetBook, useUserTestPapers } from "@/lib/api/queries";
+import { useGenerateTestPaper, useGetBook, useUserTestPapers, useDeleteTestPaper, useGetTestPaperAnswers } from "@/lib/api/queries";
 import { useAuth } from "@/contexts/auth-context";
 import useApiStore from "@/store/useApiStore";
+import { useHistoryDelete } from "@/hooks/use-history-delete";
 import { toast } from "react-toastify";
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
 import { cn } from "@/lib/utils";
-
-// --- UI Components ---
-
-const Tag = ({ children, icon: Icon, color = "indigo" }) => {
-  const colorClasses = {
-    indigo: "bg-indigo-50 text-indigo-600 border-indigo-100",
-    purple: "bg-purple-50 text-purple-600 border-purple-100",
-    blue: "bg-blue-50 text-blue-600 border-blue-100",
-    emerald: "bg-emerald-50 text-emerald-600 border-emerald-100",
-  };
-
-  return (
-    <span className={cn("px-3 py-1 rounded-full border text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 shadow-sm", colorClasses[color])}>
-      {Icon && <Icon className="w-3 h-3" />}
-      {children}
-    </span>
-  );
-};
-
-// --- Test Paper Item Component ---
-
-const TestPaperItem = ({ item, onRegenerate, isRegenerating }) => {
-  if (!item) return null;
-
-  const handlePrint = () => {
-    window.print();
-  };
-
-  return (
-    <div className="space-y-8 animate-in fade-in duration-500">
-      {/* Premium Header Card */}
-      <div className="rounded-[2rem] border-2 border-gray-100 bg-white shadow-sm overflow-hidden">
-        <div className="p-8 flex items-start justify-between">
-          <div className="space-y-4">
-            <h2 className="text-3xl font-extrabold text-gray-900 tracking-tight leading-tight">
-              {item.title || "Standard Assessment"}
-            </h2>
-
-            <div className="flex flex-wrap gap-3">
-              <Tag icon={GraduationCap} color="indigo">Class {item.class}</Tag>
-              <Tag icon={BookOpen} color="purple">{item.subject}</Tag>
-              <Tag icon={Zap} color="blue">{item.total_marks} Marks</Tag>
-              <Tag icon={Clock} color="emerald">{item.duration}</Tag>
-            </div>
-          </div>
-
-          <div className="flex gap-3 print:hidden">
-            <Button
-              variant="outline"
-              size="lg"
-              onClick={() => onRegenerate && onRegenerate(item)}
-              disabled={isRegenerating}
-              className="rounded-xl border-2 font-bold gap-2 px-6 py-7 hover:bg-gray-50 shadow-sm"
-            >
-              {isRegenerating ? <Loader2 className="w-5 h-5 animate-spin" /> : <Sparkles className="w-5 h-5" />}
-              Regenerate
-            </Button>
-            <Button
-              variant="outline"
-              size="lg"
-              onClick={handlePrint}
-              className="rounded-xl border-2 font-bold gap-2 px-6 py-7 hover:bg-gray-50 shadow-sm"
-            >
-              <Download className="w-5 h-5" />
-              Download PDF
-            </Button>
-          </div>
-        </div>
-      </div>
-
-      {/* Questions Section */}
-      <div className="rounded-[2rem] border border-gray-100 bg-white p-10 shadow-sm space-y-12">
-        {item.questions?.map((question, index) => (
-          <div key={index} className="group relative pl-16 last:border-0 border-b border-gray-50 pb-12 last:pb-0">
-            {/* Question Badge */}
-            <div className="absolute left-0 top-0 w-12 h-12 rounded-2xl bg-indigo-50 border-2 border-indigo-100 flex items-center justify-center text-[#6366f1] font-black text-lg shadow-sm transition-all group-hover:bg-indigo-600 group-hover:text-white group-hover:border-indigo-600 group-hover:scale-110">
-              {index + 1}
-            </div>
-
-            <div className="flex-1">
-              <div className="prose prose-sm max-w-none text-gray-900 font-bold text-xl leading-relaxed mb-8">
-                <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                  {question.question}
-                </ReactMarkdown>
-              </div>
-
-              {question.options && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {question.options.map((option, optIndex) => (
-                    <div key={optIndex} className="flex gap-4 p-5 rounded-2xl bg-gray-50 border-2 border-transparent hover:border-indigo-100 hover:bg-white transition-all shadow-sm hover:shadow-md group/opt">
-                      <span className="flex-shrink-0 w-10 h-10 rounded-xl bg-white border-2 border-gray-100 flex items-center justify-center text-sm font-black text-gray-400 group-hover/opt:text-indigo-600 group-hover/opt:border-indigo-100 group-hover/opt:shadow-sm">
-                        {String.fromCharCode(65 + optIndex)}
-                      </span>
-                      <p className="text-base font-bold text-gray-600 group-hover/opt:text-gray-900 transition-colors py-2">{option}</p>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              <div className="mt-8 flex items-center gap-3 px-4 py-2 rounded-xl bg-indigo-50/50 w-fit border border-indigo-100/50">
-                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-500">Allocation</span>
-                <span className="text-base font-black text-indigo-900">{question.marks || "1"} Mark</span>
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-};
+import TestPaperItem from "./TestPaperItem";
 
 // --- Test Paper Sidebar ---
 
@@ -145,10 +35,14 @@ const TestPaperSidebar = ({
   userTestPapers,
   selectedTestPaper,
   setSelectedTestPaper,
+  onDeleteTestPaper,
+  deletingId,
   isNavCollapsed,
   setIsNavCollapsed,
   onStartNew
 }) => {
+  const testPapers = userTestPapers?.content || [];
+
   return (
     <div className={cn(
       "flex flex-col border-r border-gray-100 bg-[#F9FAFB] transition-all duration-300",
@@ -185,11 +79,11 @@ const TestPaperSidebar = ({
             <p className="text-[10px] font-black text-gray-400 tracking-widest px-1">Selected Draft</p>
             <div className="bg-white rounded-2xl p-5 border-2 border-indigo-100 shadow-sm animate-in fade-in slide-in-from-left-2 transition-all">
               <p className="font-bold text-indigo-900 text-sm line-clamp-2">
-                {selectedTestPaper.title || "Standard Test Paper"}
+                {selectedTestPaper.title || selectedTestPaper.paper?.title || "Standard Test Paper"}
               </p>
               <div className="mt-2 flex items-center gap-2">
                 <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse" />
-                <span className="text-[10px] font-black text-indigo-600 tracking-tight">Active View</span>
+                <span className="text-[9px] font-black text-indigo-600 tracking-tight">Active View</span>
               </div>
             </div>
           </div>
@@ -204,41 +98,59 @@ const TestPaperSidebar = ({
             </button>
           </div>
           <div className="space-y-3">
-            {(userTestPapers?.content || []).map((tp, index) => (
-              <div key={tp.id || index} className="group relative flex items-center gap-2">
-                <button
-                  onClick={() => setSelectedTestPaper(tp)}
-                  className={cn(
-                    "flex-1 text-left p-3.5 rounded-2xl transition-all flex items-center gap-3 border-2",
-                    selectedTestPaper?.id === tp.id
-                      ? "bg-white border-indigo-100 shadow-md translate-x-1"
-                      : "bg-transparent border-transparent hover:bg-gray-100/50"
-                  )}
-                >
-                  <div className={cn(
-                    "w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 transition-colors shadow-sm",
-                    selectedTestPaper?.id === tp.id ? "bg-indigo-600 text-white" : "bg-gray-200 text-gray-500"
-                  )}>
-                    <FileText className="w-5 h-5" />
-                  </div>
-                  {!isNavCollapsed && (
-                    <div className="flex-1 min-w-0">
-                      <p className="font-bold text-gray-800 text-xs truncate mb-0.5">
-                        {tp.title || "Test Paper"}
-                      </p>
-                      <div className="flex items-center justify-between text-[9px] text-gray-400 font-black uppercase tracking-tighter">
-                        <span className="truncate max-w-[80px]">{tp.subject || "Subject"}</span>
-                        <span className="bg-gray-100 px-2 rounded-lg py-0.5 whitespace-nowrap ml-1 font-bold">
-                          {tp.created_at ? new Date(tp.created_at).toLocaleDateString() : "Draft"}
-                        </span>
-                      </div>
-                    </div>
-                  )}
-                </button>
-              </div>
-            ))}
+            {testPapers.map((tp, index) => {
+              const tpId = tp.id || tp.paper_id || tp.test_paper_id;
+              const selectedId = selectedTestPaper?.id || selectedTestPaper?.paper_id || selectedTestPaper?.test_paper_id;
+              const isActive = selectedId === tpId;
 
-            {(userTestPapers?.content || []).length === 0 && !isNavCollapsed && (
+              return (
+                <div key={tpId || `tp-${index}`} className="group relative flex items-center gap-2">
+                  <button
+                    onClick={() => setSelectedTestPaper(tp)}
+                    className={cn(
+                      "flex-1 text-left p-3.5 rounded-2xl transition-all flex items-center gap-3 border-2",
+                      isActive
+                        ? "bg-white border-indigo-100 shadow-md translate-x-1"
+                        : "bg-transparent border-transparent hover:bg-gray-100/50"
+                    )}
+                  >
+                    <div className={cn(
+                      "w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 transition-colors shadow-sm",
+                      isActive ? "bg-indigo-600 text-white" : "bg-gray-200 text-gray-500"
+                    )}>
+                      <FileText className="w-5 h-5" />
+                    </div>
+                    {!isNavCollapsed && (
+                      <div className="flex-1 min-w-0">
+                        <p className="font-bold text-gray-800 text-xs truncate mb-0.5">
+                          {tp.title || tp.paper?.title || "Test Paper"}
+                        </p>
+                        <div className="flex items-center justify-between text-[9px] text-gray-400 font-black uppercase tracking-tighter">
+                          <span className="truncate max-w-[80px]">{tp.subject || tp.paper?.subject || "Subject"}</span>
+                          <span className="bg-gray-100 px-2 rounded-lg py-0.5 whitespace-nowrap ml-1 font-bold">
+                            {tp.created_at ? new Date(tp.created_at).toLocaleDateString() : "Draft"}
+                          </span>
+                        </div>
+                      </div>
+                    )}
+                  </button>
+                  {!isNavCollapsed && isActive && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onDeleteTestPaper(tp);
+                      }}
+                      disabled={deletingId === tpId}
+                      className="p-2 text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      {deletingId === tpId ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+
+            {testPapers.length === 0 && !isNavCollapsed && (
               <div className="text-center py-10 border-4 border-dashed border-gray-100 rounded-[2rem]">
                 <Clock className="w-8 h-8 text-gray-200 mx-auto mb-3" />
                 <p className="text-[10px] font-black text-gray-400 tracking-widest">No history logs</p>
@@ -258,7 +170,7 @@ function NewTestPaperForm({ onGenerate, data, isLoading }) {
   const [selectedChapter, setSelectedChapter] = useState(null);
   const [formData, setFormData] = useState({
     class: "10",
-    subject: "Science",
+    subject: "English",
     total_marks: "50",
     duration: "1 hour"
   });
@@ -289,6 +201,17 @@ function NewTestPaperForm({ onGenerate, data, isLoading }) {
                   const book = JSON.parse(val);
                   setSelectedBook(book);
                   setSelectedChapter(null);
+
+                  // Dynamically infer subject from book name if possible
+                  if (book.book_name) {
+                    const subjects = ["Science", "Mathematics", "Maths", "Physics", "Chemistry", "Biology", "English", "History", "Geography"];
+                    const matchedSubject = subjects.find(s =>
+                      book.book_name.toLowerCase().includes(s.toLowerCase())
+                    );
+                    if (matchedSubject) {
+                      setFormData(prev => ({ ...prev, subject: matchedSubject === "Maths" ? "Mathematics" : matchedSubject }));
+                    }
+                  }
                 }}
               >
                 <SelectTrigger className="w-full h-14 bg-white border-2 border-gray-100 rounded-2xl px-6 text-base font-bold text-gray-700 shadow-sm focus:ring-4 focus:ring-indigo-50 transition-all">
@@ -342,23 +265,6 @@ function NewTestPaperForm({ onGenerate, data, isLoading }) {
               </Select>
             </div>
 
-            {/* Subject Input (Selective) */}
-            <div className="space-y-2">
-              <label className="text-[10px] font-black text-gray-400 tracking-[0.2em] mb-2 block pl-1">Major Subject</label>
-              <Select value={formData.subject} onValueChange={(v) => handleInputChange("subject", v)}>
-                <SelectTrigger className="w-full h-14 bg-white border-2 border-gray-100 rounded-2xl px-6 text-base font-bold text-gray-700 shadow-sm focus:ring-4 focus:ring-indigo-50 transition-all">
-                  <SelectValue placeholder="Subject" />
-                </SelectTrigger>
-                <SelectContent className="rounded-2xl border-gray-100 shadow-xl p-2 font-bold">
-                  {["Science", "Mathematics", "Physics", "Chemistry", "Biology", "English", "History", "Geography"].map(sub => (
-                    <SelectItem key={sub} value={sub} className="rounded-xl py-3 font-bold text-gray-600 focus:bg-indigo-50 focus:text-indigo-600">{sub}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             {/* Marks */}
             <div className="space-y-2">
               <label className="text-[10px] font-black text-gray-400 tracking-[0.2em] mb-2 block pl-1">Total Marks</label>
@@ -369,7 +275,9 @@ function NewTestPaperForm({ onGenerate, data, isLoading }) {
                 className="h-14 bg-white border-2 border-gray-100 rounded-2xl px-6 text-base font-bold text-gray-700 shadow-sm focus-visible:ring-4 focus-visible:ring-indigo-50 transition-all"
               />
             </div>
+          </div>
 
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             {/* Duration */}
             <div className="space-y-2">
               <label className="text-[10px] font-black text-gray-400 tracking-[0.2em] mb-2 block pl-1">Duration</label>
@@ -402,33 +310,56 @@ function NewTestPaperForm({ onGenerate, data, isLoading }) {
 
 // --- Test Paper Display ---
 
-function TestPaperDisplay({ item, onRegenerate, isRegenerating }) {
+function TestPaperDisplay({ item, onRegenerate, isRegenerating, toggleAnswerKey, showAnswers, answersData, isFetchingAnswers }) {
+  const paperData = item.paper || item.content?.paper || item;
+
   return (
     <div className="flex-1 flex flex-col min-h-[500px] md:h-[calc(100vh-80px)] bg-white relative">
       {/* Upper Info Bar */}
-      <div className="px-12 py-8 border-b border-gray-100 flex items-center justify-between sticky top-0 bg-white/90 backdrop-blur-xl z-20 shadow-sm shadow-gray-50/50">
+      <div className="px-6 md:px-12 py-6 md:py-8 border-b border-gray-100 flex items-center justify-between sticky top-0 bg-white/90 backdrop-blur-xl z-20 shadow-sm shadow-gray-50/50">
         <div className="flex items-center gap-5">
-          <div className="w-16 h-16 bg-gradient-to-br from-indigo-50 to-indigo-100/50 rounded-[1.5rem] flex-shrink-0 flex items-center justify-center border-2 border-indigo-100 shadow-inner">
-            <Sparkles className="w-7 h-7 text-indigo-500" />
+          <div className="w-12 h-12 md:w-16 md:h-16 bg-gradient-to-br from-indigo-50 to-indigo-100/50 rounded-xl md:rounded-[1.5rem] flex-shrink-0 flex items-center justify-center border-2 border-indigo-100 shadow-inner">
+            <Sparkles className="w-6 h-6 md:w-7 md:h-7 text-indigo-500" />
           </div>
           <div>
-            <h2 className="font-extrabold text-gray-900 tracking-tight text-sm">
-              {item.title || "Generated Assessment"}
+            <h2 className="font-extrabold text-gray-900 tracking-tight text-xs md:text-sm">
+              {paperData.title || item.title || "Generated Assessment"}
             </h2>
             <p className="text-[10px] text-indigo-500 font-black uppercase tracking-[0.3em] flex items-center gap-1.5 mt-1">
-              <Zap className="w-3 h-3" /> Educational Standard Verified • Class {item.class}
+              <Zap className="w-3 h-3" /> Educational Standard Verified • Class {paperData.class || item.class || "N/A"}
             </p>
           </div>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <Button
+            variant="outline"
+            className="rounded-xl border-2 font-black uppercase text-[10px] tracking-widest h-10 px-4 gap-2"
+            onClick={toggleAnswerKey}
+            disabled={isFetchingAnswers}
+          >
+            {isFetchingAnswers ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+            {showAnswers ? "Show Questions" : "Answer Key"}
+          </Button>
+          <Button
+            variant="outline"
+            className="rounded-xl border-2 font-black uppercase text-[10px] tracking-widest h-10 px-4"
+            onClick={() => window.print()}
+          >
+            <Printer className="w-4 h-4" />
+          </Button>
         </div>
       </div>
 
       {/* Content Scroll Area */}
-      <div className="flex-1 overflow-y-auto px-6 md:px-12 pt-10 md:pt-12 pb-24 scrollbar-hide">
-        <div className="max-w-5xl mx-auto w-full">
+      <div className="flex-1 overflow-y-auto px-6 md:px-12 pt-8 md:pt-12 pb-24 scrollbar-hide">
+        <div className="max-w-6xl mx-auto w-full">
           <TestPaperItem
             item={item}
             onRegenerate={onRegenerate}
             isRegenerating={isRegenerating}
+            showAnswers={showAnswers}
+            answersData={answersData}
           />
         </div>
       </div>
@@ -442,41 +373,116 @@ export default function TestPaperPage() {
   const { user } = useAuth();
   const uid = user?.user?.uid;
   const queryClient = useQueryClient();
+  const searchParams = useSearchParams();
+  const urlParamId = searchParams.get("test_paper_id");
   const { setTestPaperStatus } = useApiStore();
 
   const [selectedTestPaper, setSelectedTestPaper] = useState(null);
   const [testPaperData, setTestPaperData] = useState(null);
   const [isNavCollapsed, setIsNavCollapsed] = useState(false);
+  const [showAnswers, setShowAnswers] = useState(false);
 
-  const { data: userTestPapers, isLoading: testPapersLoading } = useUserTestPapers(uid);
+  const { data: userTestPapers, isLoading: testPapersLoading } = useUserTestPapers(uid, {
+    enabled: !!uid,
+  });
   const { data: bookData, isLoading: bookLoading } = useGetBook();
+
+  // Answer Key Fetching (Stage Branch Logic)
+  const currentPaperIdForAnswers = useMemo(() => {
+    const item = selectedTestPaper || testPaperData;
+    return item?.id || item?.paper_id || item?.test_paper_id;
+  }, [selectedTestPaper, testPaperData]);
+
+  const { data: answersData, isLoading: isFetchingAnswers } = useGetTestPaperAnswers(currentPaperIdForAnswers, uid, {
+    enabled: showAnswers && !!currentPaperIdForAnswers && !!uid,
+  });
+
+  const toggleAnswerKey = useCallback(() => {
+    setShowAnswers(prev => !prev);
+  }, []);
+
+  // URL Param Sync Logic (Stage Branch)
+  useEffect(() => {
+    if (urlParamId && userTestPapers?.content && !testPaperData && !selectedTestPaper) {
+      const foundPaper = userTestPapers.content.find((tp) => (tp.id === urlParamId || tp.test_paper_id === urlParamId));
+      if (foundPaper) {
+        setSelectedTestPaper(foundPaper);
+      }
+    }
+  }, [urlParamId, userTestPapers, testPaperData, selectedTestPaper]);
 
   const { mutate: generateTestPaperMutation, isPending: generatingTestPaper } = useGenerateTestPaper({
     onMutate: () => setTestPaperStatus("loading"),
     onSuccess: (data) => {
-      setTestPaperData(data.test_paper || data);
+      // API might return data differently (nested or direct)
+      const testPaperContent = data.test_paper || data.content || data;
+      setTestPaperData(testPaperContent);
       setSelectedTestPaper(null);
       setTestPaperStatus("success");
-      queryClient.invalidateQueries({ queryKey: ["test-papers", uid] });
+      setShowAnswers(false);
+      if (uid) {
+        // Optimistically update the history sidebar
+        queryClient.setQueryData(["test-papers", uid], (oldData) => {
+          if (!oldData) return { content: [testPaperContent] };
+          return {
+            ...oldData,
+            content: [testPaperContent, ...(oldData.content || [])]
+          };
+        });
+
+        queryClient.invalidateQueries({
+          queryKey: ["test-papers", uid],
+          refetchType: 'all',
+        });
+      }
       toast.success("Test paper generated successfully!");
     },
     onError: (err) => {
       setTestPaperStatus("error");
-      const msg = err.response?.data?.error || err.response?.data?.message || "Failed to generate test paper.";
+      const msg = err.response?.data?.error || err.response?.data?.message || "Failed to generate.";
       toast.error(msg);
     },
   });
+
+  const { handleDelete: handleHistoryDelete, deletingId } = useHistoryDelete({
+    useMutation: useDeleteTestPaper,
+    queryKeyToInvalidate: ["test-papers", uid],
+    idPropertyName: "test_paper_id", // Stage Branch uses test_paper_id
+    onDeleteSuccess: (variables) => {
+      setTestPaperStatus("success");
+      const deletedId = variables.test_paper_id || variables.paper_id;
+      if (selectedTestPaper && (selectedTestPaper.id === deletedId || selectedTestPaper.test_paper_id === deletedId || selectedTestPaper.paper_id === deletedId)) {
+        setSelectedTestPaper(null);
+      }
+      if (uid) {
+        queryClient.invalidateQueries({
+          queryKey: ["test-papers", uid],
+          refetchType: 'all'
+        });
+      }
+    },
+  });
+
+  const handleDeleteTestPaper = useCallback((item) => {
+    const id = item.test_paper_id || item.paper_id || item.id;
+    handleHistoryDelete({ ...item, test_paper_id: id }, { uid });
+  }, [uid, handleHistoryDelete]);
 
   const handleGenerate = (book, formData) => {
     if (!book || !formData) return;
     setTestPaperData(null);
     setSelectedTestPaper(null);
+    setShowAnswers(false);
+
+    // Robust ID resolution
+    const bookId = book.id || book.book_id || book._id;
+
     generateTestPaperMutation({
       uid: uid,
-      book_id: book.id,
+      book_id: bookId,
       chapter: formData.chapter,
       class: formData.class,
-      subject: formData.subject,
+      subject: formData.subject || "English",
       total_marks: parseInt(formData.total_marks),
       duration: formData.duration,
     });
@@ -484,15 +490,19 @@ export default function TestPaperPage() {
 
   const handleRegenerate = useCallback((item) => {
     if (!item) return;
+    const paperData = item.paper || item.content?.paper || item;
     setTestPaperData(null);
+    setShowAnswers(false);
+    const bookId = item.book_id || paperData.book_id;
+
     generateTestPaperMutation({
       uid: uid,
-      book_id: item.book_id,
-      chapter: item.chapter,
-      class: item.class,
-      subject: item.subject,
-      total_marks: parseInt(item.total_marks),
-      duration: item.duration,
+      book_id: bookId,
+      chapter: item.chapter || paperData.chapter,
+      class: item.class || paperData.class,
+      subject: item.subject || paperData.subject,
+      total_marks: parseInt(item.total_marks || paperData.total_marks || 50),
+      duration: item.duration || paperData.duration || "1 hour",
     });
   }, [uid, generateTestPaperMutation]);
 
@@ -504,12 +514,16 @@ export default function TestPaperPage() {
         setSelectedTestPaper={(tp) => {
           setSelectedTestPaper(tp);
           setTestPaperData(null);
+          setShowAnswers(false);
         }}
+        onDeleteTestPaper={handleDeleteTestPaper}
+        deletingId={deletingId}
         isNavCollapsed={isNavCollapsed}
         setIsNavCollapsed={setIsNavCollapsed}
         onStartNew={() => {
           setSelectedTestPaper(null);
           setTestPaperData(null);
+          setShowAnswers(false);
         }}
       />
 
@@ -530,8 +544,12 @@ export default function TestPaperPage() {
             item={selectedTestPaper || testPaperData}
             onRegenerate={handleRegenerate}
             isRegenerating={generatingTestPaper}
+            toggleAnswerKey={toggleAnswerKey}
+            showAnswers={showAnswers}
+            answersData={answersData}
+            isFetchingAnswers={isFetchingAnswers}
           />
-        ) : bookLoading ? (
+        ) : bookLoading || testPapersLoading ? (
           <div className="flex-1 flex items-center justify-center font-black text-xs text-gray-300 uppercase tracking-widest">
             Fetching Library...
           </div>
@@ -544,5 +562,5 @@ export default function TestPaperPage() {
         )}
       </div>
     </div>
-  );
+  )
 }

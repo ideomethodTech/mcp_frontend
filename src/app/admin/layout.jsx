@@ -13,7 +13,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useAuth } from '@/contexts/auth-context';
-import { LogOut, Home, Shield, LayoutDashboard, Menu, X, Settings, HelpCircle } from 'lucide-react';
+import { LogOut, Home, LayoutDashboard, Menu, X, Shield } from 'lucide-react';
 import { NAV_ITEMS } from '@/lib/constants.jsx';
 
 export default function AdminLayout({ children }) {
@@ -22,7 +22,11 @@ export default function AdminLayout({ children }) {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const handleLogout = async () => {
-    try { await signOut(); } catch (error) { console.error("Error logging out:", error); }
+    try {
+      await signOut();
+    } catch (error) {
+      console.error("Error logging out:", error);
+    }
   };
 
   const userInitials = user?.user?.username
@@ -38,7 +42,6 @@ export default function AdminLayout({ children }) {
     <div className="min-h-screen flex flex-col bg-gray-50/50">
       <header className="sticky top-0 z-50 w-full bg-white/90 backdrop-blur-md border-b border-gray-100">
         <div className="max-w-[1440px] mx-auto flex h-20 items-center justify-between px-4 md:px-10">
-
           <div className="flex items-center gap-3 md:gap-4">
             {/* Hamburger — mobile only */}
             <button

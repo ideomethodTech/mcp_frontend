@@ -17,7 +17,8 @@ import {
   Sparkles,
   Zap,
   Printer,
-  Airplay
+  Airplay,
+  ImageIcon
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -25,6 +26,7 @@ import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { toast } from 'react-toastify';
 import { useGetBook } from "@/lib/api/queries";
+import { useAuth } from "@/contexts/auth-context";
 
 // --- UI Components ---
 
@@ -167,12 +169,29 @@ const PptSidebar = ({
   );
 };
 
-// --- PPT Details ---
+// --- PPT Details Component ---
 
 function PptDetails({ item }) {
+  if (!item) return null;
+
   const handleDownload = () => {
-    toast.success("Presentation ready for download!");
-    window.print();
+    toast.info("Preparing your presentation...");
+
+    // Create a dummy blob to simulate a real download
+    const dummyContent = "This is a placeholder for the generated PowerPoint presentation.";
+    const blob = new Blob([dummyContent], { type: 'application/vnd.openxmlformats-officedocument.presentationml.presentation' });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = item.details?.filename || "presentation.pptx";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+
+    setTimeout(() => {
+      toast.success("Presentation ready for download!");
+    }, 1500);
   };
 
   return (
@@ -345,6 +364,7 @@ function NewPptForm({ onGenerate, isLoading }) {
 // --- Main Page Component ---
 
 export default function PptGeneratorPage() {
+  const { user } = useAuth();
   const [selectedPpt, setSelectedPpt] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [deletingId, setDeletingId] = useState(null);
@@ -376,7 +396,7 @@ export default function PptGeneratorPage() {
     setTimeout(() => {
       const newPpt = {
         id: Math.random().toString(36).substr(2, 9),
-        title: `${chapter} Deck`,
+        title: `${chapter} Presentation`,
         slides: Math.floor(Math.random() * 8) + 10,
         created_at: new Date().toISOString(),
         book_name: book,

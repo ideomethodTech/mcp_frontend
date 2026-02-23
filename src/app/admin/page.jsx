@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -13,13 +13,9 @@ import {
   BookOpen,
   User,
   Settings,
-  Search,
-  MoreHorizontal,
   Edit2,
   Clock,
-  ChevronRight,
   Plus,
-  X,
   FileText,
   Image as ImageIcon
 } from "lucide-react";
@@ -27,7 +23,6 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -38,7 +33,6 @@ import { useToast } from "@/hooks/use-toast";
 import { useUploadBook, useGetBook, useDeleteBook } from "@/lib/api/queries";
 import { useAuth } from "@/contexts/auth-context";
 import { useQueryClient } from "@tanstack/react-query";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 
 export default function AdminDashboardPage() {
@@ -47,11 +41,19 @@ export default function AdminDashboardPage() {
   const { user } = useAuth();
 
   const [bookName, setBookName] = useState("");
-  const [bookAuthor, setBookAuthor] = useState(""); // Added author
+  const [bookAuthor, setBookAuthor] = useState("");
   const [bookFile, setBookFile] = useState(null);
-  const [coverImage, setCoverImage] = useState(null); // Added cover image
+  const [coverImage, setCoverImage] = useState(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [deletingBookId, setDeletingBookId] = useState(null);
+
+  const resetForm = () => {
+    setBookName("");
+    setBookAuthor("");
+    setBookFile(null);
+    setCoverImage(null);
+  };
 
   const uploadMutation = useUploadBook({
     onSuccess: () => {
@@ -66,14 +68,21 @@ export default function AdminDashboardPage() {
     onError: (error) => {
       toast({
         title: "Upload failed",
-        description: error.response?.data?.message || "Failed to upload book",
+        description: error.response?.data?.message || "Failed to upload book.",
         variant: "destructive",
       });
     },
+    onSettled: () => {
+      setIsUploading(false);
+    },
   });
 
-  const booksQuery = useGetBook();
+  const booksQuery = useGetBook(user?.user?.uid || user?.uid);
+
   const deleteMutation = useDeleteBook({
+    onMutate: (variables) => {
+      setDeletingBookId(variables.book_id);
+    },
     onSuccess: () => {
       toast({
         title: "Book deleted",
@@ -88,14 +97,10 @@ export default function AdminDashboardPage() {
         variant: "destructive",
       });
     },
+    onSettled: () => {
+      setDeletingBookId(null);
+    },
   });
-
-  const resetForm = () => {
-    setBookName("");
-    setBookAuthor("");
-    setBookFile(null);
-    setCoverImage(null);
-  };
 
   const handleFileChange = (e, type) => {
     const file = e.target.files?.[0];
@@ -125,15 +130,12 @@ export default function AdminDashboardPage() {
     try {
       const formData = new FormData();
       formData.append("title", bookName);
+      formData.append("author", bookAuthor);
       formData.append("uid", uid);
       formData.append("file", bookFile);
       if (coverImage) formData.append("cover", coverImage);
-      // Note: Backend might need to be updated to handle author/cover if they don't yet
 
-      uploadMutation.mutate(formData, {
-        onSuccess: () => setIsUploading(false),
-        onError: () => setIsUploading(false),
-      });
+      uploadMutation.mutate(formData);
     } catch (error) {
       setIsUploading(false);
       toast({ title: "Upload failed", description: "An error occurred during upload", variant: "destructive" });
@@ -142,11 +144,16 @@ export default function AdminDashboardPage() {
 
   const handleDeleteBook = (book) => {
     const currentUid = user?.user?.uid || user?.uid;
+    const bookId = book.id || book.book_id;
+
     if (!currentUid) return;
-    const targetUid = book.uid || book.user_id || currentUid;
+    if (!bookId) {
+      toast({ title: "Error", description: "Book ID not found", variant: "destructive" });
+      return;
+    }
 
     if (window.confirm(`Are you sure you want to delete "${book.book_name}"?`)) {
-      deleteMutation.mutate({ uid: targetUid, book_id: book.id });
+      deleteMutation.mutate({ uid: currentUid, book_id: bookId });
     }
   };
 
@@ -222,6 +229,7 @@ export default function AdminDashboardPage() {
                               className="bg-gray-50 border-none rounded-xl h-11 md:h-12 text-sm"
                               value={bookName}
                               onChange={(e) => setBookName(e.target.value)}
+                              disabled={isUploading || uploadMutation.isPending}
                             />
                           </div>
                           <div className="space-y-2">
@@ -383,9 +391,9 @@ export default function AdminDashboardPage() {
                                   size="icon"
                                   className="h-8 w-8 md:h-9 md:w-9 rounded-lg text-gray-400 hover:text-red-600 hover:bg-white shadow-sm transition-all active:scale-95"
                                   onClick={() => handleDeleteBook(book)}
-                                  disabled={deleteMutation.isPending}
+                                  disabled={deletingBookId !== null}
                                 >
-                                  {deleteMutation.isPending ? <Loader2 className="w-3.5 h-3.5 md:w-4 md:h-4 animate-spin" /> : <Trash2 className="w-3.5 h-3.5 md:w-4 md:h-4" />}
+                                  {deletingBookId === (book.id || book.book_id) ? <Loader2 className="w-3.5 h-3.5 md:w-4 md:h-4 animate-spin" /> : <Trash2 className="w-3.5 h-3.5 md:w-4 md:h-4" />}
                                 </Button>
                               </div>
                             </TableCell>

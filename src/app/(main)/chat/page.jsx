@@ -43,6 +43,44 @@ import {
 } from '@/components/ui/select';
 import { toast } from 'react-toastify';
 
+// --- Global UI Components ---
+
+const ChatMessage = ({ isUser, content, isLoading }) => {
+  return (
+    <div
+      className={cn(
+        'flex items-start gap-3 transition-all duration-200 mb-4',
+        isUser ? 'justify-end' : 'justify-start'
+      )}
+    >
+      {!isUser && (
+        <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-[#6366f1] to-[#8b5cf6] flex items-center justify-center text-white flex-shrink-0 shadow-lg shadow-indigo-100">
+          <MessageSquare className="w-4 h-4" />
+        </div>
+      )}
+      <div className={cn(
+        'rounded-2xl p-4 md:px-6 max-w-[90%] md:max-w-[80%] shadow-sm',
+        isUser
+          ? 'bg-gray-100 rounded-tr-sm text-gray-700'
+          : 'bg-white border border-gray-100 rounded-tl-sm text-gray-800'
+      )}>
+        {isLoading ? (
+          <div className="space-y-2">
+            <Skeleton className="h-4 w-40" />
+            <Skeleton className="h-4 w-32" />
+          </div>
+        ) : (
+          <div className="prose prose-sm max-w-none font-medium leading-relaxed">
+            <ReactMarkdown remarkPlugins={[remarkGfm]}>
+              {content || ''}
+            </ReactMarkdown>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
 // --- Sidebar Component (Matching Lesson Plan) ---
 
 const ChatSidebar = ({
@@ -167,7 +205,7 @@ const ChatSidebar = ({
   );
 };
 
-// --- Chat Form Component (Matching Lesson Plan) ---
+// --- Chat Form Component ---
 
 function NewChatForm({ onGenerate, data, isLoading }) {
   const [selectedBook, setSelectedBook] = useState(null);
@@ -226,7 +264,7 @@ function NewChatForm({ onGenerate, data, isLoading }) {
 
 // --- Chat Interface Component ---
 
-function ChatInterface({ chatSession, isGenerating, onSendMessage }) {
+function ChatInterface({ chatSession, isGenerating, onSendMessage, messages = [], onDeleteMessage, deletingMessageId }) {
   const [input, setInput] = useState('');
   const messagesEndRef = useRef(null);
   const { user } = useAuth();
@@ -239,7 +277,7 @@ function ChatInterface({ chatSession, isGenerating, onSendMessage }) {
 
   useEffect(() => {
     scrollToBottom();
-  }, [chatDetails?.messages, isGenerating]);
+  }, [messages, isGenerating, chatDetails?.messages]);
 
   const handleSend = () => {
     if (!input.trim() || isGenerating) return;
@@ -253,9 +291,14 @@ function ChatInterface({ chatSession, isGenerating, onSendMessage }) {
     "Explain the key characters"
   ];
 
+  const displayMessages = useMemo(() => {
+    if (messages && messages.length > 0) return messages;
+    return chatDetails?.messages || [];
+  }, [messages, chatDetails?.messages]);
+
   return (
     <div className="flex-1 flex flex-col min-h-[500px] md:h-[calc(100vh-80px)] bg-white relative">
-      {/* Upper Info Bar (Matching Lesson Plan) */}
+      {/* Upper Info Bar */}
       <div className="px-6 md:px-10 py-4 md:py-6 border-b border-gray-100 flex items-center justify-between sticky top-0 bg-white/80 backdrop-blur-md z-10">
         <div className="flex items-center gap-3 md:gap-4">
           <div className="w-10 h-10 md:w-14 md:h-14 bg-indigo-50 rounded-xl flex-shrink-0 overflow-hidden shadow-inner flex items-center justify-center">
@@ -273,7 +316,7 @@ function ChatInterface({ chatSession, isGenerating, onSendMessage }) {
       {/* Messages Area */}
       <div className="flex-1 overflow-y-auto px-6 md:px-10 pt-6 md:pt-10 pb-32 scrollbar-hide">
         <div className="max-w-4xl mx-auto space-y-6 md:space-y-8">
-          {(!chatDetails?.messages || chatDetails.messages.length === 0) && !isGenerating && (
+          {displayMessages.length === 0 && !isGenerating && (
             <div className="text-center py-10 md:py-20 animate-in fade-in duration-700">
               <div className="w-12 h-12 md:w-16 md:h-16 bg-indigo-50 rounded-2xl flex items-center justify-center mx-auto mb-4 md:mb-6 text-indigo-500">
                 <Zap className="w-6 h-6 md:w-8 md:h-8" />
@@ -293,42 +336,33 @@ function ChatInterface({ chatSession, isGenerating, onSendMessage }) {
             </div>
           )}
 
-          {chatDetails?.messages?.map((m, idx) => (
-            <div key={idx} className="space-y-4 md:space-y-6">
-              {/* User Message */}
-              <div className="flex justify-end md:pr-4">
-                <div className="bg-gray-100 rounded-2xl rounded-tr-sm p-3 md:p-4 px-4 md:px-6 max-w-[90%] md:max-w-[80%] shadow-sm">
-                  <p className="text-xs md:text-sm font-bold text-gray-700 leading-relaxed whitespace-pre-wrap">{m.prompt}</p>
-                </div>
-              </div>
-              {/* AI Response */}
-              <div className="flex gap-3 md:gap-4">
-                <div className="w-8 h-8 md:w-10 md:h-10 rounded-xl bg-gradient-to-br from-[#6366f1] to-[#8b5cf6] flex items-center justify-center text-white flex-shrink-0 shadow-lg shadow-indigo-100">
-                  <MessageSquare className="w-4 h-4 md:w-5 md:h-5" />
-                </div>
-                <div className="bg-white border border-gray-100 rounded-2xl rounded-tl-sm p-4 md:p-5 px-4 md:px-6 max-w-[90%] md:max-w-[80%] shadow-sm">
-                  <div className="prose prose-sm max-w-none text-gray-800 font-medium text-xs md:text-sm">
-                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{m.response}</ReactMarkdown>
+          {displayMessages.map((msg, idx) => (
+            <div key={idx} className="group relative">
+              <ChatMessage isUser content={msg.prompt} />
+              {msg.response === '__LOADING__' ? (
+                <ChatMessage isLoading />
+              ) : (
+                <div className="flex items-start gap-2">
+                  <div className="flex-1">
+                    <ChatMessage content={msg.response} />
                   </div>
+                  {msg.id && (
+                    <button
+                      onClick={() => onDeleteMessage(msg.id)}
+                      disabled={deletingMessageId === msg.id}
+                      className="p-2 text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      {deletingMessageId === msg.id ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Trash2 className="h-4 w-4" />
+                      )}
+                    </button>
+                  )}
                 </div>
-              </div>
+              )}
             </div>
           ))}
-
-          {isGenerating && (
-            <div className="flex gap-3 md:gap-4 animate-pulse">
-              <div className="w-8 h-8 md:w-10 md:h-10 rounded-xl bg-gray-200 flex items-center justify-center text-gray-400 flex-shrink-0">
-                <Loader2 className="w-4 h-4 md:w-5 md:h-5 animate-spin" />
-              </div>
-              <div className="bg-gray-50 border border-gray-100 rounded-2xl rounded-tl-sm p-4 md:p-5 px-4 md:px-6 w-full max-w-[70%] md:max-w-[60%]">
-                <div className="space-y-2">
-                  <Skeleton className="h-3 md:h-4 w-full" />
-                  <Skeleton className="h-3 md:h-4 w-[80%]" />
-                  <Skeleton className="h-3 md:h-4 w-[90%]" />
-                </div>
-              </div>
-            </div>
-          )}
           <div ref={messagesEndRef} />
         </div>
       </div>
@@ -371,12 +405,24 @@ export default function ChatPage() {
   const uid = user?.user?.uid;
   const [selectedChat, setSelectedChat] = useState(null);
   const [isNavCollapsed, setIsNavCollapsed] = useState(false);
+  const [messages, setMessages] = useState([]);
+  const [deletingMessageId, setDeletingMessageId] = useState(null);
   const queryClient = useQueryClient();
   const { setChatStatus } = useApiStore();
 
   // API Hooks
   const { data: userChats, isLoading: chatsLoading } = useUserChats(uid);
   const { data: bookData, isLoading: bookLoading } = useGetBook();
+
+  const { data: chatDetails } = useChatDetails(uid, selectedChat?.id || selectedChat?.chat_id);
+
+  useEffect(() => {
+    if (chatDetails?.messages) {
+      setMessages(chatDetails.messages);
+    } else {
+      setMessages([]);
+    }
+  }, [chatDetails]);
 
   const { mutate: createChat, isPending: creatingChat } = useCreateChat({
     onSuccess: (data) => {
@@ -398,13 +444,34 @@ export default function ChatPage() {
   });
 
   const { mutate: sendMessageMutation, isPending: isGenerating } = useGenerateContent({
-    onSuccess: () => {
+    onMutate: ({ prompt }) => {
+      setChatStatus('loading');
+      setMessages(prev => [...prev, { prompt, response: '__LOADING__' }]);
+    },
+    onSuccess: (data) => {
+      setMessages(prev => prev.map((m, idx) =>
+        idx === prev.length - 1 ? { ...m, response: data?.response || data || 'No response', id: data?.id } : m
+      ));
       queryClient.invalidateQueries({ queryKey: ['chatDetails', uid, selectedChat?.id || selectedChat?.chat_id] });
       setChatStatus('success');
     },
     onError: (err) => {
+      setChatStatus('error');
       const msg = err.response?.data?.error || err.response?.data?.message || "Failed to send message.";
       toast.error(msg);
+      setMessages(prev => prev.filter(m => m.response !== '__LOADING__'));
+    }
+  });
+
+  const { mutate: deleteChatMessageMutation } = useDeleteChatMessage({
+    onSuccess: () => {
+      setDeletingMessageId(null);
+      queryClient.invalidateQueries({ queryKey: ['chatDetails', uid, selectedChat?.id || selectedChat?.chat_id] });
+      toast.success("Message deleted.");
+    },
+    onError: () => {
+      setDeletingMessageId(null);
+      toast.error("Failed to delete message.");
     }
   });
 
@@ -426,6 +493,12 @@ export default function ChatPage() {
       book_id: selectedChat.book_id,
     });
   }, [selectedChat, uid, sendMessageMutation]);
+
+  const handleDeleteMessage = useCallback((messageId) => {
+    if (!selectedChat?.id || !messageId) return;
+    setDeletingMessageId(messageId);
+    deleteChatMessageMutation({ uid, message_id: messageId });
+  }, [selectedChat, uid, deleteChatMessageMutation]);
 
   const handleNewChat = useCallback((book) => {
     createChat({ uid, chat_title: book.book_name, book_id: book.id });
@@ -450,6 +523,9 @@ export default function ChatPage() {
             chatSession={selectedChat}
             isGenerating={isGenerating}
             onSendMessage={handleSendMessage}
+            messages={messages}
+            onDeleteMessage={handleDeleteMessage}
+            deletingMessageId={deletingMessageId}
           />
         ) : (chatsLoading && (!userChats?.chats && !userChats?.content)) ? (
           <div className="flex-1 flex items-center justify-center">

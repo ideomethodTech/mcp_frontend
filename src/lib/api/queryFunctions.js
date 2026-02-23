@@ -3,11 +3,13 @@ import api from "./index";
 import ENDPOINTS from "./endpoints";
 
 // AI Generation Functions
-export const generateContent = async ({ chat_id, uid, prompt, book_id }) => {
+export const generateContent = async ({ uid, prompt, book_id, chat_id }) => {
+  console.log("SENDING CHAT REQUEST:", { uid, prompt, book_id, chat_id });
   const response = await api({
     url: ENDPOINTS.GENERATE,
     method: "POST",
-    data: { chat_id, uid, prompt, book_id },
+    data: { uid, prompt, book_id, chat_id },
+    timeout: 300000,
   });
   return response.data;
 };
@@ -17,7 +19,12 @@ export const generateWorksheet = async (data) => {
   const response = await api({
     url: ENDPOINTS.GENERATE_WORKSHEET,
     method: "POST",
-    data: data,
+    data: {
+      book_id: data.book_id,
+      uid: data.uid,
+      prompt: data.chapter
+    },
+    timeout: 300000,
   });
   return response.data;
 };
@@ -26,13 +33,14 @@ export const generateAnswerKey = async ({ worksheet_id, book_id, uid, chapter })
   const response = await api({
     url: ENDPOINTS.GENERATE_ANSWER_KEY,
     method: "POST",
-    data: { worksheet_id, book_id, uid, chapter },
+    data: { worksheet_id, book_id, uid, prompt: chapter },
+    timeout: 300000,
   });
   return response.data;
 };
 
 // Book Management Functions
-export const uploadBook = async (formData) => {
+export const uploadBook = async (formData, onUploadProgress) => {
   console.log("--- Uploading Book Debug ---");
   for (let [key, value] of formData.entries()) {
     console.log(`${key}:`, value instanceof File ? `File(${value.name})` : value);
@@ -50,6 +58,7 @@ export const uploadBook = async (formData) => {
       Authorization: token ? `Bearer ${token}` : "",
       // Do NOT set Content-Type, let axios/browser handle it
     },
+    onUploadProgress,
   });
 
   console.log("Upload Response:", response.data);
@@ -68,7 +77,7 @@ export const getBooks = async (uid = null) => {
 export const deleteBook = async ({ uid, book_id }) => {
   if (!uid || !book_id) throw new Error("uid and book_id are required");
   const response = await api({
-    url: `${ENDPOINTS.DELETE_BOOK}/${uid}/${book_id}`,
+    url: `${ENDPOINTS.DELETE_BOOK}${uid}/${book_id}`,
     method: "DELETE",
   });
   return response.data;
@@ -81,9 +90,10 @@ export const createWorksheet = async (data) => {
     method: "POST",
     data: {
       book_id: data.book_id,
-      chapter: data.chapter,
+      prompt: data.chapter,
       uid: data.uid,
     },
+    timeout: 300000,
   });
   return response.data;
 };
@@ -103,7 +113,7 @@ export const getWorksheet = async (uid) => {
 export const deleteWorksheet = async ({ uid, worksheet_id }) => {
   if (!uid || !worksheet_id) throw new Error("uid and worksheet_id are required");
   const response = await api({
-    url: `${ENDPOINTS.DELETE_WORKSHEET}/${uid}/${worksheet_id}`,
+    url: `${ENDPOINTS.DELETE_WORKSHEET}${uid}/${worksheet_id}`,
     method: "DELETE",
   });
   return response.data;
@@ -138,15 +148,17 @@ export const getAllAnswerKeys = async (uid) => {
 
 // lesson plan
 export const createLessonPlan = async (data) => {
+  console.log("API createLessonPlan Payload:", data);
   const response = await api({
     url: ENDPOINTS.GENERATE_LESSON_PLAN,
     method: "POST",
     data: {
       book_id: data.book_id,
-      chapter: data.chapter,
+      prompt: data.chapter,
       uid: data.uid,
       weeks: data.weeks,
     },
+    timeout: 300000,
   });
   return response.data;
 };
@@ -163,10 +175,31 @@ export const getLessonPlan = async (uid) => {
   return response.data;
 };
 
-export const deleteLessonPlan = async ({ uid, lesson_plan_id }) => {
-  if (!uid || !lesson_plan_id) throw new Error("uid and lesson_plan_id are required");
+export const deleteLessonPlan = async ({ uid, lesson_plan_id, lessonPlanId }) => {
+  const actualLessonPlanId = lesson_plan_id || lessonPlanId;
+  let actualUid = uid;
+
+  if (!actualUid && typeof window !== 'undefined') {
+    try {
+      const storedUser = localStorage.getItem("user");
+      if (storedUser) {
+        const parsed = JSON.parse(storedUser);
+        actualUid = parsed?.user?.uid || parsed?.uid;
+      }
+    } catch (e) {
+      console.error("Error retrieving uid from localStorage", e);
+    }
+  }
+
+  if (!actualUid || !actualLessonPlanId) throw new Error("uid and lesson_plan_id are required");
+
+  // Remove trailing slash to prevent CORS issues if endpoint has one (failsafe)
+  const endpoint = ENDPOINTS.DELETE_LESSON_PLAN.endsWith('/')
+    ? ENDPOINTS.DELETE_LESSON_PLAN.slice(0, -1)
+    : ENDPOINTS.DELETE_LESSON_PLAN;
+
   const response = await api({
-    url: `${ENDPOINTS.DELETE_LESSON_PLAN}/${uid}/${lesson_plan_id}`,
+    url: `${endpoint}/${actualUid}/${actualLessonPlanId}`,
     method: "DELETE",
   });
   return response.data;
@@ -189,7 +222,7 @@ export const createChat = async (data) => {
 export const getUserChats = async (uid) => {
   if (!uid) throw new Error("User ID is required");
   const response = await api({
-    url: `${ENDPOINTS.GET_USER_CHATS}/${uid}`,
+    url: `${ENDPOINTS.GET_USER_CHATS}${uid}`,
     method: "GET",
   });
   return response.data;
@@ -198,7 +231,7 @@ export const getUserChats = async (uid) => {
 export const getChatDetails = async (uid, chatId) => {
   // if (!uid || !chatId) throw new Error("User ID and Chat ID are required");
   const response = await api({
-    url: `${ENDPOINTS.GET_CHAT_DETAILS}/${uid}/${chatId}`,
+    url: `${ENDPOINTS.GET_CHAT_DETAILS}${uid}/${chatId}`,
     method: "GET",
   });
   return response.data;
@@ -207,7 +240,7 @@ export const getChatDetails = async (uid, chatId) => {
 export const deleteChat = async ({ uid, chatId }) => {
   if (!uid || !chatId) throw new Error("User ID and Chat ID are required");
   const response = await api({
-    url: `${ENDPOINTS.DELETE_CHAT}/${uid}/${chatId}`,
+    url: `${ENDPOINTS.DELETE_CHAT}${uid}/${chatId}`,
     method: "DELETE",
   });
   return response.data;
@@ -216,7 +249,7 @@ export const deleteChat = async ({ uid, chatId }) => {
 export const deleteChatMessage = async ({ uid, message_id }) => {
   if (!uid || !message_id) throw new Error("uid and message_id are required");
   const response = await api({
-    url: `${ENDPOINTS.DELETE_CHAT_MESSAGE}/${uid}/${message_id}`,
+    url: `${ENDPOINTS.DELETE_CHAT_MESSAGE}${uid}/${message_id}`,
     method: "DELETE",
   });
   return response.data;
@@ -225,7 +258,7 @@ export const deleteChatMessage = async ({ uid, message_id }) => {
 export const deleteAnswerKey = async ({ uid, answer_key_id }) => {
   if (!uid || !answer_key_id) throw new Error("uid and answer_key_id are required");
   const response = await api({
-    url: `${ENDPOINTS.DELETE_ANSWER_KEY}/${uid}/${answer_key_id}`,
+    url: `${ENDPOINTS.DELETE_ANSWER_KEY}${uid}/${answer_key_id}`,
     method: "DELETE",
   });
   return response.data;
@@ -266,6 +299,16 @@ export const registerUser = async (data) => {
 };
 
 export const generateTestPaper = async (data) => {
+  console.log("🚀 OUTGOING TEST PAPER PAYLOAD:", {
+    uid: data.uid,
+    book_id: data.book_id,
+    chapter: data.chapter,
+    class: data.class,
+    subject: data.subject,
+    total_marks: data.total_marks,
+    duration: data.duration
+  });
+
   const response = await api({
     url: ENDPOINTS.GENERATE_TEST_PAPER,
     method: "POST",
@@ -273,12 +316,16 @@ export const generateTestPaper = async (data) => {
       uid: data.uid,
       book_id: data.book_id,
       chapter: data.chapter,
+      prompt: data.chapter,
       class: data.class,
-      subject: data.subject,
-      total_marks: data.total_marks,
+      subject: data.subject || data.chapter, // Fallback to chapter name to force specific context
+      total_marks: parseInt(data.total_marks || 50),
       duration: data.duration,
     },
+    timeout: 300000,
   });
+
+  console.log("📥 TEST PAPER API RESPONSE:", response.data);
   return response.data;
 };
 
@@ -321,11 +368,11 @@ export const getTestPaperAnswers = async (testPaperId, uid) => {
   return response.data;
 };
 
-
-export const deleteTestPaper = async ({ uid, paper_id }) => {
-  if (!uid || !paper_id) throw new Error("uid and paper_id are required");
+export const deleteTestPaper = async ({ uid, paper_id, test_paper_id }) => {
+  const idToDelete = paper_id || test_paper_id;
+  if (!uid || !idToDelete) throw new Error("uid and paper_id are required");
   const response = await api({
-    url: `${ENDPOINTS.DELETE_TEST_PAPER}/${uid}/${paper_id}`,
+    url: `${ENDPOINTS.DELETE_TEST_PAPER}${uid}/${idToDelete}`,
     method: "DELETE",
   });
   return response.data;

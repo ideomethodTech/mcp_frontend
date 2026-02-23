@@ -1,25 +1,17 @@
 "use client";
 
 import { useEffect, useState, useMemo, useCallback } from "react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
 import {
-  FileText, Loader2, BookOpen, Search, Zap, SlidersHorizontal,
-  ArrowLeft, Plus, ChevronDown, CheckCircle2, ChevronRight, Minus, FileBox, LayoutList, GripVertical, ChevronsLeft, Trash2, Clock, Sparkles
+  FileText, Loader2, BookOpen, Search, Plus, Trash2, Clock, Sparkles, ChevronsLeft
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Slider } from "@/components/ui/slider";
 import WorksheetItem from "./WorksheetItem";
 import { useQueryClient } from "@tanstack/react-query";
 import { useUserWorksheet, useGetBook, useGenerateWorksheet, useDeleteWorksheet } from "@/lib/api/queries";
 import { useAuth } from "@/contexts/auth-context";
 import useApiStore from "@/store/useApiStore";
 import { toast } from "react-toastify";
-import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { useHistoryDelete } from '@/hooks/use-history-delete';
 
@@ -35,6 +27,8 @@ const WorksheetSidebar = ({
   setIsNavCollapsed,
   onStartNew
 }) => {
+  const worksheets = userWorksheets?.content || [];
+
   return (
     <div className={cn(
       "flex flex-col border-r border-gray-100 bg-[#F9FAFB] transition-all duration-300",
@@ -71,7 +65,7 @@ const WorksheetSidebar = ({
         {!isNavCollapsed && selectedWorksheet && (
           <div className="space-y-4">
             <p className="text-[10px] font-bold text-gray-400 tracking-widest px-1">Active Item</p>
-            <div className="bg-indigo-50 rounded-2xl p-4 border border-indigo-100 shadow-sm transition-all animate-in fade-in slide-in-from-left-2 transition-all">
+            <div className="bg-indigo-50 rounded-2xl p-4 border border-indigo-100 shadow-sm transition-all animate-in fade-in slide-in-from-left-2">
               <p className="font-bold text-indigo-900 text-sm line-clamp-1">
                 {selectedWorksheet.title || selectedWorksheet.chapter || "Worksheet"}
               </p>
@@ -88,53 +82,59 @@ const WorksheetSidebar = ({
             </button>
           </div>
           <div className="space-y-3">
-            {(userWorksheets?.content || []).map((ws, index) => (
-              <div key={ws.id || `worksheet-${index}`} className="group relative flex items-center gap-2">
-                <button
-                  onClick={() => setSelectedWorksheet(ws)}
-                  className={cn(
-                    "flex-1 text-left p-3 rounded-xl transition-all flex items-center gap-3",
-                    selectedWorksheet?.id === ws.id
-                      ? "bg-white border border-gray-100 shadow-sm"
-                      : "hover:bg-gray-100/50"
-                  )}
-                >
-                  <div className={cn(
-                    "w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0",
-                    selectedWorksheet?.id === ws.id ? "bg-indigo-50 text-indigo-600" : "bg-gray-200 text-gray-500"
-                  )}>
-                    <FileText className="w-4 h-4" />
-                  </div>
-                  {!isNavCollapsed && (
-                    <div className="flex-1 min-w-0">
-                      <p className="font-bold text-gray-700 text-xs truncate mb-0.5">
-                        {ws.title || ws.chapter || "Worksheet"}
-                      </p>
-                      <div className="flex items-center justify-between text-[9px] text-gray-400 font-medium">
-                        <span className="truncate max-w-[100px]">{ws.book || "Book"}</span>
-                        <span className="bg-gray-100 px-1.5 rounded-full py-0.5 uppercase tracking-tighter whitespace-nowrap ml-1 font-bold">
-                          {new Date(ws.created_at).toLocaleDateString() || "Recent"}
-                        </span>
-                      </div>
-                    </div>
-                  )}
-                </button>
-                {!isNavCollapsed && selectedWorksheet?.id === ws.id && (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onDeleteWorksheet(ws);
-                    }}
-                    disabled={deletingId === ws.id}
-                    className="p-2 text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
-                  >
-                    {deletingId === ws.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
-                  </button>
-                )}
-              </div>
-            ))}
+            {worksheets.map((ws, index) => {
+              const wsId = ws.worksheet_id || ws.id;
+              const selectedId = selectedWorksheet?.worksheet_id || selectedWorksheet?.id;
+              const isActive = selectedId === wsId;
 
-            {(userWorksheets?.content || []).length === 0 && !isNavCollapsed && (
+              return (
+                <div key={wsId || `worksheet-${index}`} className="group relative flex items-center gap-2">
+                  <button
+                    onClick={() => setSelectedWorksheet(ws)}
+                    className={cn(
+                      "flex-1 text-left p-3 rounded-xl transition-all flex items-center gap-3",
+                      isActive
+                        ? "bg-white border border-gray-100 shadow-sm"
+                        : "hover:bg-gray-100/50"
+                    )}
+                  >
+                    <div className={cn(
+                      "w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0",
+                      isActive ? "bg-indigo-50 text-indigo-600" : "bg-gray-200 text-gray-500"
+                    )}>
+                      <FileText className="w-4 h-4" />
+                    </div>
+                    {!isNavCollapsed && (
+                      <div className="flex-1 min-w-0">
+                        <p className="font-bold text-gray-700 text-xs truncate mb-0.5">
+                          {ws.title || ws.chapter || "Worksheet"}
+                        </p>
+                        <div className="flex items-center justify-between text-[9px] text-gray-400 font-medium">
+                          <span className="truncate max-w-[100px]">{ws.book || "Book"}</span>
+                          <span className="bg-gray-100 px-1.5 rounded-full py-0.5 uppercase tracking-tighter whitespace-nowrap ml-1 font-bold">
+                            {ws.created_at ? new Date(ws.created_at).toLocaleDateString() : "Recent"}
+                          </span>
+                        </div>
+                      </div>
+                    )}
+                  </button>
+                  {!isNavCollapsed && isActive && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onDeleteWorksheet(ws);
+                      }}
+                      disabled={deletingId === wsId}
+                      className="p-2 text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      {deletingId === wsId ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+
+            {worksheets.length === 0 && !isNavCollapsed && (
               <div className="text-center py-6 border-2 border-dashed border-gray-100 rounded-2xl">
                 <Clock className="w-5 h-5 text-gray-300 mx-auto mb-2" />
                 <p className="text-[10px] font-bold text-gray-400 tracking-widest">No history yet</p>
@@ -270,7 +270,9 @@ export default function WorksheetPage() {
   const [currentWorksheetId, setCurrentWorksheetId] = useState(null);
 
   // API Queries
-  const { data: userWorksheets, isLoading: worksheetsLoading } = useUserWorksheet(uid);
+  const { data: userWorksheets, isLoading: worksheetsLoading } = useUserWorksheet(uid, {
+    enabled: !!uid,
+  });
   const { data: bookData, isLoading: bookLoading } = useGetBook();
 
   // Mutations
@@ -282,14 +284,18 @@ export default function WorksheetPage() {
       setSelectedWorksheet(null);
       setIsNewWorksheet(true);
       setWorksheetStatus("success");
-      queryClient.invalidateQueries({ queryKey: ["ws", uid] });
+      if (uid) {
+        queryClient.invalidateQueries({ queryKey: ["ws", uid] });
+        // Force immediate background refetch
+        queryClient.refetchQueries({ queryKey: ["ws", uid] });
+      }
       toast.success("Worksheet crafted successfully!");
     },
     onError: (err) => {
       setWorksheetStatus("error");
       const msg = err.response?.data?.error || err.response?.data?.message || "Failed to generate worksheet.";
       toast.error(msg);
-    }
+    },
   });
 
   const { handleDelete: handleHistoryDelete, deletingId } = useHistoryDelete({
@@ -297,10 +303,14 @@ export default function WorksheetPage() {
     queryKeyToInvalidate: ['ws', uid],
     idPropertyName: 'worksheet_id',
     onDeleteSuccess: (variables) => {
-      if (selectedWorksheet?.id === variables.worksheet_id) {
+      const deletedId = variables.worksheet_id;
+      if ((selectedWorksheet?.worksheet_id || selectedWorksheet?.id) === deletedId) {
         setSelectedWorksheet(null);
       }
-    }
+      if (uid) {
+        queryClient.invalidateQueries({ queryKey: ["ws", uid] });
+      }
+    },
   });
 
   const handleDeleteWS = useCallback((item) => {
@@ -308,7 +318,10 @@ export default function WorksheetPage() {
   }, [uid, handleHistoryDelete]);
 
   const handleGenerate = useCallback((book, chapter) => {
-    if (!book) return;
+    if (!book || !book.id) {
+      toast.error("Invalid book selected.");
+      return;
+    }
 
     setSelectedWorksheet(null);
     setWorksheetData(null);
@@ -338,6 +351,9 @@ export default function WorksheetPage() {
           setSelectedWorksheet(ws);
           setWorksheetData(null);
           setIsNewWorksheet(false);
+          // Set current worksheet ID for regenerate to use the same one if needed
+          setCurrentWorksheetId(ws.worksheet_id || ws.id);
+          setSelectedBookId(ws.book_id);
         }}
         onDeleteWorksheet={handleDeleteWS}
         deletingId={deletingId}
@@ -346,6 +362,7 @@ export default function WorksheetPage() {
         onStartNew={() => {
           setSelectedWorksheet(null);
           setWorksheetData(null);
+          setIsNewWorksheet(false);
         }}
       />
 
@@ -366,7 +383,7 @@ export default function WorksheetPage() {
             item={selectedWorksheet}
             bookId={selectedWorksheet.book_id}
             isNew={false}
-            worksheetId={selectedWorksheet.id}
+            worksheetId={selectedWorksheet.worksheet_id || selectedWorksheet.id}
             onRegenerate={handleRegenerate}
             isRegenerating={isGenerating}
           />

@@ -473,7 +473,7 @@ export default function AnswerKeyPage() {
     },
     onError: (err) => {
       console.error("Failed to generate answer key", err);
-      const errorMessage = err.response?.data?.error || err.response?.data?.message || "Failed to generate answer key.";
+      const errorMessage = err.response?.data?.error || err.response?.data?.message || "Failed to generate answer key. Please try again.";
       toast.error(errorMessage);
     },
   });

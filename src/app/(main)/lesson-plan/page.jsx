@@ -6,16 +6,19 @@ import {
   Plus,
   Loader2,
   FileText,
-  ChevronsLeft,
-  Search,
-  ChevronDown,
-  Trash2,
   Clock,
-  Sparkles
+  Sparkles,
+  Search,
+  ChevronsLeft,
+  Trash2,
+  Zap,
+  Layers,
+  Palette,
+  FileType
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Select,
   SelectContent,
@@ -23,17 +26,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { cn } from '@/lib/utils';
 import { useCreateLessonPlan, useDeleteLessonPlan, useGetBook, useUserLessonPlan } from '@/lib/api/queries';
 import { useAuth } from '@/contexts/auth-context';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'react-toastify';
 import { useHistoryDelete } from '@/hooks/use-history-delete';
 import LessonPlanItem from './components/LessonPlanItem';
+import { usePathname } from "next/navigation";
+import { getNavItemByUrl } from "@/app/utils";
 
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
-
-// --- Sidebar Component ---
+// --- Lesson Plan Sidebar ---
 
 const LessonPlanSidebar = ({
   userLessonPlans,
@@ -160,6 +163,7 @@ const LessonPlanSidebar = ({
 // --- Lesson Plan Display Component ---
 
 function LessonPlanDisplay({ lessonPlan }) {
+  if (!lessonPlan) return null;
   return (
     <div className="flex-1 flex flex-col min-h-[500px] md:h-[calc(100vh-80px)] bg-white relative">
       {/* Upper Info Bar */}
@@ -192,7 +196,9 @@ function LessonPlanDisplay({ lessonPlan }) {
 function NewLessonPlanForm({ onGenerate, data, isLoading }) {
   const [selectedBook, setSelectedBook] = useState(null);
   const [selectedChapter, setSelectedChapter] = useState(null);
-  const weekCount = 2; // Default to 2 weeks
+  const weekCount = 2;
+
+  const currentBook = data?.find(b => b.book_name === (selectedBook?.book_name || selectedBook));
 
   return (
     <div className="flex-1 flex items-center justify-center min-h-[calc(100vh-400px)] md:h-[calc(100vh-80px)] bg-white p-6 md:p-10">
@@ -205,13 +211,12 @@ function NewLessonPlanForm({ onGenerate, data, isLoading }) {
           <p className="text-gray-400 font-medium">Choose a book and chapter to generate a comprehensive lesson plan.</p>
         </div>
 
-        <div className="space-y-6">
+        <div className="space-y-8">
           <div>
             <label className="text-sm font-bold text-gray-700 mb-2 block">Select Book</label>
             <Select
-              value={selectedBook ? JSON.stringify(selectedBook) : undefined}
               onValueChange={(val) => {
-                const book = JSON.parse(val);
+                const book = data.find(b => b.book_name === val);
                 setSelectedBook(book);
                 setSelectedChapter(null);
               }}
@@ -221,11 +226,7 @@ function NewLessonPlanForm({ onGenerate, data, isLoading }) {
               </SelectTrigger>
               <SelectContent className="rounded-2xl border-gray-100 shadow-xl p-2">
                 {data?.map((book, index) => (
-                  <SelectItem
-                    key={book.id || index}
-                    value={JSON.stringify(book)}
-                    className="rounded-xl py-3 font-bold text-gray-600 focus:bg-indigo-50 focus:text-indigo-600"
-                  >
+                  <SelectItem key={book.id || index} value={book.book_name} className="rounded-xl py-3 font-bold text-gray-600 focus:bg-indigo-50 focus:text-indigo-600">
                     {book.book_name}
                   </SelectItem>
                 ))}
@@ -286,7 +287,9 @@ export default function LessonPlanPage() {
   const [isNavCollapsed, setIsNavCollapsed] = useState(false);
 
   // API Queries
-  const { data: userLP, isLoading: LPloading, isFetching: LPfetching } = useUserLessonPlan(uid);
+  const { data: userLP, isLoading: LPloading } = useUserLessonPlan(uid, {
+    enabled: !!uid,
+  });
   const { data: bookData, isLoading: bookLoading } = useGetBook();
 
   // Mutations
@@ -294,10 +297,12 @@ export default function LessonPlanPage() {
     onSuccess: (data) => {
       setLessonPlanData(data);
       setSelectedPlan(null);
-      queryClient.invalidateQueries({ queryKey: ['lp', uid] });
+      if (uid) {
+        queryClient.invalidateQueries({ queryKey: ['lp', uid] });
+      }
+      toast.success("Lesson plan generated successfully!");
     },
     onError: (err) => {
-      console.error('Error generating lesson plan:', err);
       const errorMessage = err.response?.data?.error || err.response?.data?.message || "Failed to generate lesson plan.";
       toast.error(errorMessage);
     },
@@ -308,7 +313,7 @@ export default function LessonPlanPage() {
     queryKeyToInvalidate: ['lp', uid],
     idPropertyName: 'lesson_plan_id',
     onDeleteSuccess: (variables) => {
-      if (selectedPlan?.lesson_plan_id === variables.lesson_plan_id) {
+      if (selectedPlan && selectedPlan.lesson_plan_id === variables.lessonPlanId) {
         setSelectedPlan(null);
       }
     }
@@ -319,7 +324,10 @@ export default function LessonPlanPage() {
   }, [uid, handleHistoryDelete]);
 
   const handleGenerate = useCallback((book, chapter, weekCount = 2) => {
-    if (!book) return;
+    if (!book || !book.id) {
+      toast.error("Invalid book selection.");
+      return;
+    }
 
     setSelectedPlan(null);
     setLessonPlanData(null);
@@ -367,15 +375,11 @@ export default function LessonPlanPage() {
           <LessonPlanDisplay lessonPlan={selectedPlan} />
         ) : lessonPlanData ? (
           <LessonPlanDisplay lessonPlan={lessonPlanData} />
-        ) : bookLoading ? (
-          <div className="flex-1 flex items-center justify-center">
-            <Loader2 className="h-10 w-10 animate-spin text-indigo-500" />
-          </div>
         ) : (
           <NewLessonPlanForm
             onGenerate={handleGenerate}
             data={bookData?.content}
-            isLoading={isCreateLPPending}
+            isLoading={isCreateLPPending || bookLoading}
           />
         )}
       </div>
