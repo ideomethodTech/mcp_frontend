@@ -23,7 +23,7 @@ import { cn } from "@/lib/utils";
 
 const WorksheetItem = ({ item, bookId, isNew, worksheetId, onRegenerate, isRegenerating }) => {
   const router = useRouter();
-  const currentWorksheetId = worksheetId || item.id;
+  const currentWorksheetId = worksheetId || item.worksheet_id || item.id;
   const { user } = useAuth();
 
   // ✅ Get all answer keys and find existing one for this worksheet
