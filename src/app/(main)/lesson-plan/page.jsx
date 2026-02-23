@@ -7,12 +7,18 @@ import {
   Loader2,
   FileText,
   Clock,
-  Sparkles
+  Sparkles,
+  Search,
+  ChevronsLeft,
+  Trash2,
+  Zap,
+  Layers,
+  Palette,
+  FileType
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import {
   Select,
   SelectContent,
@@ -20,159 +26,249 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
-import { ToolPageLayout } from "@/app/componentsV2/ui/tool-page-layout";
+import { cn } from '@/lib/utils';
 import { useCreateLessonPlan, useDeleteLessonPlan, useGetBook, useUserLessonPlan } from '@/lib/api/queries';
 import { useAuth } from '@/contexts/auth-context';
 import { useQueryClient } from '@tanstack/react-query';
+import { toast } from 'react-toastify';
 import { useHistoryDelete } from '@/hooks/use-history-delete';
 import LessonPlanItem from './components/LessonPlanItem';
-import useApiStore from "@/store/useApiStore";
 import { usePathname } from "next/navigation";
 import { getNavItemByUrl } from "@/app/utils";
-import { toast } from "react-toastify";
 
-const formSchema = z.object({
-  book: z.string().nonempty("Please select a book."),
-  chapter: z.string().nonempty("Please select a chapter."),
-});
+// --- Lesson Plan Sidebar ---
 
-// --- Lesson Plan Details Component ---
-
-const LessonPlanDetails = ({ item, isNew }) => {
-  if (!item) return null;
-
+const LessonPlanSidebar = ({
+  userLessonPlans,
+  selectedPlan,
+  setSelectedPlan,
+  onDeletePlan,
+  deletingId,
+  isNavCollapsed,
+  setIsNavCollapsed,
+  onStartNew
+}) => {
   return (
-    <div className="lg:col-span-3">
-      <LessonPlanItem item={item} isgenrated={isNew} />
+    <div className={cn(
+      "flex flex-col border-r border-gray-100 bg-[#F9FAFB] transition-all duration-300",
+      "w-full md:h-[calc(100vh-80px)]",
+      isNavCollapsed ? "md:w-20" : "md:w-80"
+    )}>
+      <div className="p-6 flex items-center justify-between">
+        {!isNavCollapsed && <h2 className="font-bold text-gray-700 tracking-tight">Lesson Plans</h2>}
+        <button
+          onClick={() => setIsNavCollapsed(!isNavCollapsed)}
+          className="p-1.5 hover:bg-gray-200 rounded-lg text-gray-400 transition-colors"
+        >
+          {isNavCollapsed ? <Search className="w-5 h-5" /> : <ChevronsLeft className="w-5 h-5" />}
+        </button>
+      </div>
+
+      <div className="px-6 pb-6">
+        <Button
+          onClick={onStartNew}
+          className={cn(
+            "w-full bg-gradient-to-r from-[#6366f1] to-[#8b5cf6] hover:opacity-90 text-white rounded-xl py-6 shadow-lg shadow-indigo-100 transition-all font-bold gap-3",
+            isNavCollapsed && "px-0 justify-center"
+          )}
+        >
+          <div className="bg-white/20 rounded-full p-1 flex items-center justify-center">
+            <Plus className="w-4 h-4" />
+          </div>
+          {!isNavCollapsed && "Create New Plan"}
+        </Button>
+      </div>
+
+      <div className="flex-1 overflow-y-auto px-6 space-y-8 scrollbar-hide pb-8 mt-4">
+        {/* Active Plan Section */}
+        {!isNavCollapsed && selectedPlan && (
+          <div className="space-y-4">
+            <p className="text-[10px] font-bold text-gray-400 tracking-widest px-1">Active Plan</p>
+            <div className="bg-indigo-50 rounded-2xl p-4 border border-indigo-100 shadow-sm transition-all animate-in fade-in slide-in-from-left-2">
+              <p className="font-bold text-indigo-900 text-sm line-clamp-1">
+                {selectedPlan.title || selectedPlan.chapter || "Lesson Plan"}
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* History Section */}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between px-1">
+            {!isNavCollapsed && <p className="text-[10px] font-bold text-gray-400 tracking-widest">History</p>}
+            <button className="text-gray-400 hover:text-gray-600">
+              <Search className="w-4 h-4" />
+            </button>
+          </div>
+          <div className="space-y-3">
+            {(userLessonPlans?.content || []).map((plan, index) => (
+              <div key={plan.lesson_plan_id || `lesson-plan-${index}`} className="group relative flex items-center gap-2">
+                <button
+                  onClick={() => setSelectedPlan(plan)}
+                  className={cn(
+                    "flex-1 text-left p-3 rounded-xl transition-all flex items-center gap-3",
+                    selectedPlan?.lesson_plan_id === plan.lesson_plan_id
+                      ? "bg-white border border-gray-100 shadow-sm"
+                      : "hover:bg-gray-100/50"
+                  )}
+                >
+                  <div className={cn(
+                    "w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0",
+                    selectedPlan?.lesson_plan_id === plan.lesson_plan_id ? "bg-indigo-50 text-indigo-600" : "bg-gray-200 text-gray-500"
+                  )}>
+                    <FileText className="w-4 h-4" />
+                  </div>
+                  {!isNavCollapsed && (
+                    <div className="flex-1 min-w-0">
+                      <p className="font-bold text-gray-700 text-xs truncate mb-0.5">
+                        {plan.title || plan.chapter || "Lesson Plan"}
+                      </p>
+                      <div className="flex items-center justify-between text-[9px] text-gray-400 font-medium">
+                        <span className="truncate max-w-[100px]">{plan.book || "Book"}</span>
+                        <span className="bg-gray-100 px-1.5 rounded-full py-0.5 uppercase tracking-tighter whitespace-nowrap ml-1">
+                          {plan.created_at || "Recent"}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                </button>
+                {!isNavCollapsed && selectedPlan?.lesson_plan_id === plan.lesson_plan_id && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onDeletePlan(plan);
+                    }}
+                    disabled={deletingId === plan.lesson_plan_id}
+                    className="p-2 text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                  >
+                    {deletingId === plan.lesson_plan_id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
+                  </button>
+                )}
+              </div>
+            ))}
+
+            {(userLessonPlans?.content || []).length === 0 && !isNavCollapsed && (
+              <div className="text-center py-6 border-2 border-dashed border-gray-100 rounded-2xl">
+                <Clock className="w-5 h-5 text-gray-300 mx-auto mb-2" />
+                <p className="text-[10px] font-bold text-gray-400 tracking-widest">No history yet</p>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
     </div>
   );
 };
 
+// --- Lesson Plan Display Component ---
+
+function LessonPlanDisplay({ lessonPlan }) {
+  if (!lessonPlan) return null;
+  return (
+    <div className="flex-1 flex flex-col min-h-[500px] md:h-[calc(100vh-80px)] bg-white relative">
+      {/* Upper Info Bar */}
+      <div className="px-6 md:px-10 py-4 md:py-6 border-b border-gray-100 flex items-center justify-between sticky top-0 bg-white/80 backdrop-blur-md z-10">
+        <div className="flex items-center gap-3 md:gap-4">
+          <div className="w-10 h-10 md:w-14 md:h-14 bg-indigo-50 rounded-xl flex-shrink-0 overflow-hidden shadow-inner flex items-center justify-center">
+            <Sparkles className="w-5 h-5 md:w-6 md:h-6 text-indigo-500" />
+          </div>
+          <div>
+            <h2 className="font-extrabold text-gray-900 tracking-tight text-xs md:text-sm">
+              {lessonPlan.chapter || "Lesson Plan"}
+            </h2>
+            <p className="text-[10px] md:text-xs text-gray-400 font-bold italic">{lessonPlan.book || "Generated Plan"}</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Content Scroll Area */}
+      <div className="flex-1 overflow-y-auto px-6 md:px-10 pt-6 md:pt-10 pb-10 scrollbar-hide">
+        <div className="max-w-4xl mx-auto w-full">
+          <LessonPlanItem item={lessonPlan} isgenrated={false} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // --- New Lesson Plan Form Component ---
 
-function NewLessonPlanForm({ onGenerate, data, bookLoading }) {
+function NewLessonPlanForm({ onGenerate, data, isLoading }) {
   const [selectedBook, setSelectedBook] = useState(null);
   const [selectedChapter, setSelectedChapter] = useState(null);
-  const weekCount = 2; // Default to 2 weeks
+  const weekCount = 2;
 
-  const form = useForm({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      book: "",
-      chapter: "",
-    },
-  });
+  const currentBook = data?.find(b => b.book_name === (selectedBook?.book_name || selectedBook));
 
   return (
-    <div className="lg:col-span-3">
-      <div className="flex flex-col items-center justify-center min-h-[500px]">
-        <div className="w-full max-w-2xl">
-          <Card>
-            <CardHeader>
-              <div className="flex items-center gap-3 mb-2">
-                <BookOpen className="w-6 h-6 text-muted-foreground" />
-                <CardTitle className="font-headline text-xl">Lesson Plan Generation</CardTitle>
-              </div>
-              <CardDescription>Select a book and chapter to generate a comprehensive lesson plan.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Form {...form}>
-                <form
-                  onSubmit={form.handleSubmit(() => {
-                    onGenerate(selectedBook, selectedChapter, weekCount);
-                  })}
-                  className="space-y-6"
-                >
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <FormField
-                      control={form.control}
-                      name="book"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Select Book</FormLabel>
-                          <Select
-                            disabled={bookLoading}
-                            onValueChange={(val) => {
-                              if (bookLoading) {
-                                toast.info("Books are still loading, please wait...");
-                                return;
-                              }
-                              const parsed = JSON.parse(val);
-                              setSelectedBook(parsed);
-                              form.setValue("book", parsed.book_name);
-                              setSelectedChapter(null);
-                              form.setValue("chapter", "");
-                            }}
-                            value={selectedBook ? JSON.stringify(selectedBook) : ""}
-                          >
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder={bookLoading ? "Fetching books..." : "Select a book"} />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              {data?.map((book, index) => (
-                                <SelectItem key={book.id || index} value={JSON.stringify(book)}>
-                                  {book.book_name}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+    <div className="flex-1 flex items-center justify-center min-h-[calc(100vh-400px)] md:h-[calc(100vh-80px)] bg-white p-6 md:p-10">
+      <div className="w-full max-w-lg animate-in fade-in zoom-in-95 duration-500">
+        <div className="text-center mb-10">
+          <div className="w-20 h-20 bg-indigo-50 text-indigo-500 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-sm">
+            <BookOpen className="w-10 h-10" />
+          </div>
+          <h2 className="text-3xl font-extrabold text-gray-900 tracking-tight mb-3">Create Lesson Plan</h2>
+          <p className="text-gray-400 font-medium">Choose a book and chapter to generate a comprehensive lesson plan.</p>
+        </div>
 
-                    <FormField
-                      control={form.control}
-                      name="chapter"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Select Chapter</FormLabel>
-                          <Select
-                            onValueChange={(val) => {
-                              const parsed = JSON.parse(val);
-                              setSelectedChapter(parsed);
-                              form.setValue("chapter", parsed);
-                            }}
-                            value={selectedChapter ? JSON.stringify(selectedChapter) : ""}
-                            disabled={!selectedBook}
-                          >
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select a chapter" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              {selectedBook?.chapters?.map((chapter, index) => (
-                                <SelectItem key={index} value={JSON.stringify(chapter)}>
-                                  {chapter}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
+        <div className="space-y-8">
+          <div>
+            <label className="text-sm font-bold text-gray-700 mb-2 block">Select Book</label>
+            <Select
+              onValueChange={(val) => {
+                const book = data.find(b => b.book_name === val);
+                setSelectedBook(book);
+                setSelectedChapter(null);
+              }}
+            >
+              <SelectTrigger className="w-full h-14 bg-white border-2 border-gray-100 rounded-2xl px-6 text-base font-bold text-gray-700 shadow-sm focus:ring-4 focus:ring-indigo-50 transition-all">
+                <SelectValue placeholder="Choose a book" />
+              </SelectTrigger>
+              <SelectContent className="rounded-2xl border-gray-100 shadow-xl p-2">
+                {data?.map((book, index) => (
+                  <SelectItem key={book.id || index} value={book.book_name} className="rounded-xl py-3 font-bold text-gray-600 focus:bg-indigo-50 focus:text-indigo-600">
+                    {book.book_name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
 
-                  <Button
-                    type="submit"
-                    className="w-full !mt-8 bg-gradient-to-r from-primary to-accent hover:opacity-90 transition-opacity"
-                    size="lg"
-                    disabled={!selectedBook || !selectedChapter || bookLoading}
+          <div className={cn(
+            "transition-all duration-300",
+            selectedBook ? "opacity-100" : "opacity-50 pointer-events-none"
+          )}>
+            <label className="text-sm font-bold text-gray-700 mb-2 block">Select Chapter</label>
+            <Select
+              value={selectedChapter || undefined}
+              onValueChange={setSelectedChapter}
+              disabled={!selectedBook}
+            >
+              <SelectTrigger className="w-full h-14 bg-white border-2 border-gray-100 rounded-2xl px-6 text-base font-bold text-gray-700 shadow-sm focus:ring-4 focus:ring-indigo-50 transition-all">
+                <SelectValue placeholder="Choose a chapter" />
+              </SelectTrigger>
+              <SelectContent className="rounded-2xl border-gray-100 shadow-xl p-2">
+                {(selectedBook?.chapters || []).map((chapter, index) => (
+                  <SelectItem
+                    key={index}
+                    value={chapter}
+                    className="rounded-xl py-3 font-bold text-gray-600 focus:bg-indigo-50 focus:text-indigo-600"
                   >
-                    <Sparkles className="w-5 h-5 mr-2" />
-                    {bookLoading ? "Loading Books..." : "Generate Lesson Plan"}
-                  </Button>
-                </form>
-              </Form>
-            </CardContent>
-          </Card>
+                    {chapter}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <Button
+            disabled={!selectedBook || !selectedChapter || isLoading}
+            onClick={() => onGenerate(selectedBook, selectedChapter, weekCount)}
+            className="w-full h-15 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl shadow-xl shadow-indigo-100 text-sm font-black tracking-widest gap-3 transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Sparkles className="w-5 h-5" />}
+            Generate Lesson Plan
+          </Button>
         </div>
       </div>
     </div>
@@ -184,47 +280,29 @@ function NewLessonPlanForm({ onGenerate, data, bookLoading }) {
 export default function LessonPlanPage() {
   const { user } = useAuth();
   const uid = user?.user?.uid;
-  const pathname = usePathname();
-  const navItem = useMemo(() => getNavItemByUrl(pathname), [pathname]);
   const queryClient = useQueryClient();
-  const { lessonPlanStatus, setLessonPlanStatus } = useApiStore();
 
   const [selectedPlan, setSelectedPlan] = useState(null);
   const [lessonPlanData, setLessonPlanData] = useState(null);
-  const [isNewPlan, setIsNewPlan] = useState(false);
+  const [isNavCollapsed, setIsNavCollapsed] = useState(false);
 
   // API Queries
-  const { data: userLP, isLoading: LPloading, isFetching: LPFetching } = useUserLessonPlan(uid, {
+  const { data: userLP, isLoading: LPloading } = useUserLessonPlan(uid, {
     enabled: !!uid,
-    onSuccess: () => setLessonPlanStatus("success"),
-    onError: () => setLessonPlanStatus("error"),
   });
   const { data: bookData, isLoading: bookLoading } = useGetBook();
 
-  useEffect(() => {
-    if (!uid) return;
-    if (LPloading) {
-      setLessonPlanStatus("loading");
-    }
-  }, [LPloading, uid, setLessonPlanStatus]);
-
   // Mutations
   const { mutate: generateLessonPlan, isPending: isCreateLPPending } = useCreateLessonPlan({
-    onMutate: () => {
-      setLessonPlanStatus("loading");
-    },
     onSuccess: (data) => {
-      console.log("Successfully generated lesson plan:", data);
       setLessonPlanData(data);
       setSelectedPlan(null);
-      setLessonPlanStatus("success");
       if (uid) {
         queryClient.invalidateQueries({ queryKey: ['lp', uid] });
       }
+      toast.success("Lesson plan generated successfully!");
     },
     onError: (err) => {
-      console.error('Error generating lesson plan:', err);
-      setLessonPlanStatus("error");
       const errorMessage = err.response?.data?.error || err.response?.data?.message || "Failed to generate lesson plan.";
       toast.error(errorMessage);
     },
@@ -233,18 +311,10 @@ export default function LessonPlanPage() {
   const { handleDelete: handleHistoryDelete, deletingId } = useHistoryDelete({
     useMutation: useDeleteLessonPlan,
     queryKeyToInvalidate: ['lp', uid],
-    idPropertyName: 'lessonPlanId',
+    idPropertyName: 'lesson_plan_id',
     onDeleteSuccess: (variables) => {
-      setLessonPlanStatus("success");
       if (selectedPlan && selectedPlan.lesson_plan_id === variables.lessonPlanId) {
         setSelectedPlan(null);
-      }
-      // Force immediate background refetch of history to update sidebar
-      if (uid) {
-        queryClient.invalidateQueries({
-          queryKey: ['lp', uid],
-          refetchType: 'all',
-        });
       }
     }
   });
@@ -254,26 +324,11 @@ export default function LessonPlanPage() {
   }, [uid, handleHistoryDelete]);
 
   const handleGenerate = useCallback((book, chapter, weekCount = 2) => {
-    console.log("handleGenerate called with:", {
-      bookName: book?.book_name,
-      bookId: book?.id,
-      chapter,
-      weekCount
-    });
-
-    if (!book) {
-      console.warn("handleGenerate: No book selected");
+    if (!book || !book.id) {
+      toast.error("Invalid book selection.");
       return;
     }
 
-    // Validate ID
-    if (!book.id) {
-      console.error("handleGenerate: Book object is missing 'id' property:", book);
-      toast.error("Selected book has no ID. Please try another book.");
-      return;
-    }
-
-    setIsNewPlan(true);
     setSelectedPlan(null);
     setLessonPlanData(null);
 
@@ -286,37 +341,48 @@ export default function LessonPlanPage() {
   }, [uid, generateLessonPlan]);
 
   return (
-    <ToolPageLayout
-      historyData={userLP?.content || []}
-      selectedItem={selectedPlan}
-      setSelectedItem={(item) => {
-        setSelectedPlan(item);
-        setIsNewPlan(false);
-        setLessonPlanData(null);
-      }}
-      onDelete={handleDeleteLP}
-      isHistoryLoading={LPloading || LPFetching}
-      deletingId={deletingId}
-      isProcessing={isCreateLPPending}
-      processingText={`Generating ${navItem?.title || 'Lesson Plan'}...`}
-    >
-      {selectedPlan ? (
-        <LessonPlanDetails
-          item={selectedPlan}
-          isNew={false}
-        />
-      ) : lessonPlanData ? (
-        <LessonPlanDetails
-          item={lessonPlanData}
-          isNew={isNewPlan}
-        />
-      ) : (
-        <NewLessonPlanForm
-          onGenerate={handleGenerate}
-          data={bookData?.content}
-          bookLoading={bookLoading}
-        />
-      )}
-    </ToolPageLayout>
+    <div className="flex flex-col md:flex-row bg-white md:h-[calc(100vh-80px)] md:overflow-hidden overflow-y-auto">
+      <LessonPlanSidebar
+        userLessonPlans={userLP}
+        selectedPlan={selectedPlan}
+        setSelectedPlan={(plan) => {
+          setSelectedPlan(plan);
+          setLessonPlanData(null);
+        }}
+        onDeletePlan={handleDeleteLP}
+        deletingId={deletingId}
+        isNavCollapsed={isNavCollapsed}
+        setIsNavCollapsed={setIsNavCollapsed}
+        onStartNew={() => {
+          setSelectedPlan(null);
+          setLessonPlanData(null);
+        }}
+      />
+
+      <div className="flex-1 flex flex-col h-full bg-white">
+        {isCreateLPPending || (LPloading && (userLP?.content || []).length === 0) ? (
+          <div className="flex-1 flex items-center justify-center">
+            <div className="text-center">
+              <div className="relative w-16 h-16 mx-auto mb-6">
+                <div className="absolute inset-0 border-4 border-indigo-100 rounded-full" />
+                <div className="absolute inset-0 border-4 border-indigo-500 rounded-full border-t-transparent animate-spin" />
+              </div>
+              <h3 className="text-xl font-extrabold text-gray-900 tracking-tight">Crafting Your Plan...</h3>
+              <p className="text-sm text-gray-400 font-medium">This may take a moment.</p>
+            </div>
+          </div>
+        ) : selectedPlan ? (
+          <LessonPlanDisplay lessonPlan={selectedPlan} />
+        ) : lessonPlanData ? (
+          <LessonPlanDisplay lessonPlan={lessonPlanData} />
+        ) : (
+          <NewLessonPlanForm
+            onGenerate={handleGenerate}
+            data={bookData?.content}
+            isLoading={isCreateLPPending || bookLoading}
+          />
+        )}
+      </div>
+    </div>
   );
 }

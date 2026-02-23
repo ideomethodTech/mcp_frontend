@@ -14,11 +14,16 @@ export const generateContent = async ({ uid, prompt, book_id, chat_id }) => {
   return response.data;
 };
 
-export const generateWorksheet = async ({ book_id, uid, chapter }) => {
+export const generateWorksheet = async (data) => {
+  console.log("🚀 Sending Worksheet Generation Request:", JSON.stringify(data, null, 2));
   const response = await api({
     url: ENDPOINTS.GENERATE_WORKSHEET,
     method: "POST",
-    data: { book_id, uid, prompt: chapter },
+    data: {
+      book_id: data.book_id,
+      uid: data.uid,
+      prompt: data.chapter
+    },
     timeout: 300000,
   });
   return response.data;
@@ -294,6 +299,16 @@ export const registerUser = async (data) => {
 };
 
 export const generateTestPaper = async (data) => {
+  console.log("🚀 OUTGOING TEST PAPER PAYLOAD:", {
+    uid: data.uid,
+    book_id: data.book_id,
+    chapter: data.chapter,
+    class: data.class,
+    subject: data.subject,
+    total_marks: data.total_marks,
+    duration: data.duration
+  });
+
   const response = await api({
     url: ENDPOINTS.GENERATE_TEST_PAPER,
     method: "POST",
@@ -301,14 +316,16 @@ export const generateTestPaper = async (data) => {
       uid: data.uid,
       book_id: data.book_id,
       chapter: data.chapter,
-      prompt: `Generate a ${data.subject} test paper based on chapter: ${data.chapter}. Ensure questions are specific to this subject and chapter context.`, // More explicit prompt for RAG
+      prompt: data.chapter,
       class: data.class,
-      subject: data.subject,
-      total_marks: data.total_marks,
+      subject: data.subject || data.chapter, // Fallback to chapter name to force specific context
+      total_marks: parseInt(data.total_marks || 50),
       duration: data.duration,
     },
     timeout: 300000,
   });
+
+  console.log("📥 TEST PAPER API RESPONSE:", response.data);
   return response.data;
 };
 
@@ -351,10 +368,11 @@ export const getTestPaperAnswers = async (testPaperId, uid) => {
   return response.data;
 };
 
-export const deleteTestPaper = async ({ uid, test_paper_id }) => {
-  if (!uid || !test_paper_id) throw new Error("uid and test_paper_id are required");
+export const deleteTestPaper = async ({ uid, paper_id, test_paper_id }) => {
+  const idToDelete = paper_id || test_paper_id;
+  if (!uid || !idToDelete) throw new Error("uid and paper_id are required");
   const response = await api({
-    url: `${ENDPOINTS.DELETE_TEST_PAPER}${uid}/${test_paper_id}`,
+    url: `${ENDPOINTS.DELETE_TEST_PAPER}${uid}/${idToDelete}`,
     method: "DELETE",
   });
   return response.data;

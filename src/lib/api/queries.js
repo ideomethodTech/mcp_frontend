@@ -39,7 +39,7 @@ export const useGenerateContent = (options) =>
 
 export const useGenerateWorksheet = (options) =>
   useMutation({
-    mutationFn: ({ book_id, uid, chapter }) => generateWorksheet({ book_id, uid, chapter }),
+    mutationFn: (data) => generateWorksheet(data),
     ...options,
   });
 
@@ -88,9 +88,9 @@ export const useUserWorksheet = (uid, options = {}) =>
   useQuery({
     queryKey: ["ws", uid],
     queryFn: () => getWorksheet(uid),
-    enabled: true,
-    ...options,
+    enabled: !!uid,
     staleTime: 0,
+    ...options,
   });
 
 export const useGetAnswerKeyById = (answerKeyId, uid, options = {}) =>
@@ -126,9 +126,9 @@ export const useUserLessonPlan = (uid, options = {}) =>
   useQuery({
     queryKey: ["lp", uid],
     queryFn: () => getLessonPlan(uid),
-    enabled: true,
-    ...options,
+    enabled: !!uid,
     staleTime: 0,
+    ...options,
   });
 
 // Chat Management Hooks
@@ -228,14 +228,15 @@ export const useGetTestPaperAnswers = (testPaperId, uid, options = {}) =>
     ...options,
   });
 
+export const useDeleteTestPaper = (options) =>
+  useMutation({
+    mutationFn: deleteTestPaper,
+    ...options,
+  });
+
 export const useTestPaperAPITest = (options = {}) =>
   useQuery({
     queryKey: ["test-paper-api-test"],
     queryFn: testTestPaperAPI,
-    ...options,
-  });
-export const useDeleteTestPaper = (options) =>
-  useMutation({
-    mutationFn: deleteTestPaper,
     ...options,
   });

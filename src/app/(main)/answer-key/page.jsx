@@ -1,327 +1,461 @@
 "use client";
 
 import { useEffect, useState, useMemo, useCallback } from "react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
-import { KeyRound, Loader2, BookOpen, FileText, Key } from "lucide-react";
-import { PageHeader } from "@/components/page-header";
+import {
+  KeyRound,
+  Loader2,
+  BookOpen,
+  Search,
+  Zap,
+  ChevronsLeft,
+  Trash2,
+  Clock,
+  Sparkles,
+  Key,
+  FileText,
+  Printer,
+  Lightbulb,
+  Plus,
+  ChevronDown,
+  Layers,
+  CheckCircle2,
+  ListChecks
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import History from "@/app/componentsV2/ui/history";
-import { ToolPageLayout } from "@/app/componentsV2/ui/tool-page-layout";
-import { usePathname, useSearchParams } from "next/navigation";
-import { getNavItemByUrl } from "@/app/utils";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   useGetAllAnswerKeys,
-  useGetAnswerKeyById,
   useGetBook,
   useGenerateAnswerKey,
   useUserWorksheet,
   useDeleteAnswerKey,
 } from "@/lib/api/queries";
 import { useAuth } from "@/contexts/auth-context";
-import { useToast } from "@/hooks/use-toast";
-import React from "react";
-import { useQueryClient } from "@tanstack/react-query";
-import { useHistoryDelete } from "@/hooks/use-history-delete";
 import useApiStore from "@/store/useApiStore";
-
-const formSchema = z.object({
-  book: z.string().nonempty("Please select a book."),
-  chapter: z.string().nonempty("Please select a chapter."),
-});
-
+import { toast } from "react-toastify";
+import { cn } from "@/lib/utils";
+import { useHistoryDelete } from '@/hooks/use-history-delete';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
-function AnswerKeyDetails({ item }) {
-  const data = item.content?.answers ? item.content : (item.answers ? item : item.content);
-  if (!data || (!data.answers && !data.worksheet_title)) return (
-    <div className="lg:col-span-3 card p-8 text-center text-muted-foreground">
-      No data available for this answer key.
-    </div>
-  );
+// --- UI Components ---
+
+const Tag = ({ children, icon: Icon, color = "indigo" }) => {
+  const colorClasses = {
+    indigo: "bg-indigo-50 text-indigo-600 border-indigo-100",
+    purple: "bg-purple-50 text-purple-600 border-purple-100",
+    blue: "bg-blue-50 text-blue-600 border-blue-100",
+    emerald: "bg-emerald-50 text-emerald-600 border-emerald-100",
+  };
 
   return (
-    <div className="lg:col-span-3">
-      <div className="rounded-2xl border border-border bg-card p-8 shadow-[var(--shadow-md)]">
-        {/* Header */}
-        <div className="flex items-start gap-3 mb-8">
-          <Key className="h-7 w-7 text-primary mt-1" />
-          <div>
-            <h2 className="text-3xl font-bold text-foreground">{data.worksheet_title}</h2>
-            <p className="text-muted-foreground text-sm mt-1">
-              Chapter: {data.chapter} • {data.total_questions} Questions
-            </p>
-          </div>
-        </div>
+    <span className={cn("px-3 py-1 rounded-full border text-[10px] font-black uppercase tracking-wider flex items-center gap-1.5 shadow-sm", colorClasses[color])}>
+      {Icon && <Icon className="w-3 h-3" />}
+      {children}
+    </span>
+  );
+};
 
-        {/* Info Box */}
-        <div className="rounded-xl bg-gradient-to-br from-primary/5 to-accent/5 p-6 mb-10 border border-primary/10">
-          <p className="text-foreground text-lg font-medium">AI-Generated Answer Key</p>
-          <p className="text-muted-foreground text-sm mt-1">
-            Below is the detailed answer explanation for each question.
-          </p>
-        </div>
+// --- Answer Key Sidebar ---
 
-        {/* All Questions */}
-        <div className="space-y-10">
-          {data?.answers?.map((q, idx) => (
-            <div key={q.question_number || idx} className="rounded-xl border bg-muted/20 p-6 shadow-sm border-border">
-              {/* Question Number */}
-              <div className="flex items-start gap-4">
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-white font-bold text-lg flex-shrink-0">
-                  {q.question_number}
-                </div>
+const AnswerKeySidebar = ({
+  historyData,
+  selectedItem,
+  setSelectedItem,
+  onDelete,
+  deletingId,
+  isNavCollapsed,
+  setIsNavCollapsed,
+  onStartNew,
+}) => {
+  return (
+    <div className={cn(
+      "flex flex-col border-r border-gray-100 bg-[#F9FAFB] transition-all duration-300",
+      "w-full md:h-[calc(100vh-80px)]",
+      isNavCollapsed ? "md:w-20" : "md:w-80"
+    )}>
+      <div className="p-6 flex items-center justify-between">
+        {!isNavCollapsed && <h2 className="font-black text-gray-700 tracking-tight text-lg">Solutions</h2>}
+        <button
+          onClick={() => setIsNavCollapsed(!isNavCollapsed)}
+          className="p-1.5 hover:bg-gray-200 rounded-lg text-gray-400 transition-colors"
+        >
+          {isNavCollapsed ? <Search className="w-5 h-5" /> : <ChevronsLeft className="w-5 h-5" />}
+        </button>
+      </div>
 
-                <div className="flex-1">
-                  {/* Question Text */}
-                  <div className="prose prose-sm max-w-none font-semibold text-lg text-foreground leading-tight mb-2">
-                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{q.question}</ReactMarkdown>
-                  </div>
+      <div className="px-6 pb-6">
+        <Button
+          onClick={onStartNew}
+          className={cn(
+            "w-full bg-gradient-to-r from-[#6366f1] to-[#8b5cf6] hover:opacity-90 text-white rounded-xl py-7 shadow-xl shadow-indigo-100 transition-all font-black gap-3 uppercase text-xs tracking-widest",
+            isNavCollapsed && "px-0 justify-center"
+          )}
+        >
+          <Plus className="w-5 h-5" />
+          {!isNavCollapsed && "New Answer Key"}
+        </Button>
+      </div>
 
-                  {/* Type */}
-                  <p className="text-xs text-muted-foreground mt-1 uppercase tracking-wide">
-                    {q.question_type?.replace("_", " ")}
-                  </p>
-
-                  {/* For MCQ */}
-                  {q.options && (
-                    <div className="mt-4 border-l-2 border-primary pl-4 space-y-1">
-                      {Object.entries(q.options).map(([key, value]) => (
-                        <p key={key} className="text-sm text-muted-foreground">
-                          <span className="font-semibold text-primary">{key}.</span> {value}
-                        </p>
-                      ))}
-                    </div>
-                  )}
-
-                  {/* For Key Points / Variations */}
-                  {/* Correct Answer */}
-                  <div className="mt-5">
-                    <p className="font-semibold text-primary text-sm flex gap-2">
-                      Correct Answer: <span className="text-foreground font-bold">
-                        {typeof q.correct_answer === 'object' ? JSON.stringify(q.correct_answer) : String(q.correct_answer)}
-                      </span>
-                    </p>
-                  </div>
-
-                  {/* Explanation */}
-                  <div className="mt-3 prose prose-sm max-w-none text-muted-foreground italic">
-                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{q.explanation}</ReactMarkdown>
-                  </div>
-
-                  {/* Common Mistakes */}
-                  {q.common_mistakes?.length > 0 && (
-                    <div className="mt-5 bg-red-50 dark:bg-red-950/20 border border-red-300 dark:border-red-900 rounded-lg p-4">
-                      <p className="font-semibold text-red-700 dark:text-red-400 mb-2">Common Mistakes:</p>
-                      <ul className="list-disc pl-5 text-sm text-red-800 dark:text-red-300 space-y-1">
-                        {q.common_mistakes.map((m, i) => (
-                          <li key={i}>{m}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-
-                  {/* Acceptable Variations */}
-                  {q.acceptable_variations?.length > 0 && (
-                    <div className="mt-5 bg-blue-50 dark:bg-blue-950/20 border border-blue-300 dark:border-blue-900 rounded-lg p-4">
-                      <p className="font-semibold text-blue-700 dark:text-blue-400 mb-2">Acceptable Variations:</p>
-                      <ul className="list-disc pl-5 text-sm text-blue-800 dark:text-blue-300 space-y-1">
-                        {q.acceptable_variations.map((v, i) => (
-                          <li key={i}>{v}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-
-                  {/* Key Points */}
-                  {q.key_points?.length > 0 && (
-                    <div className="mt-5 bg-green-50 dark:bg-green-950/20 border border-green-300 dark:border-green-900 rounded-lg p-4">
-                      <p className="font-semibold text-green-700 dark:text-green-400 mb-2">Key Points:</p>
-                      <ul className="list-disc pl-5 text-sm text-green-800 dark:text-green-300 space-y-1">
-                        {q.key_points.map((p, i) => (
-                          <li key={i}>{p}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-
-                  {/* Correction for False (True/False) */}
-                  {q.correction_for_false && (
-                    <div className="mt-5 bg-yellow-50 dark:bg-yellow-950/20 border border-yellow-300 dark:border-yellow-900 rounded-lg p-4">
-                      <p className="font-semibold text-yellow-700 dark:text-yellow-400">Correction:</p>
-                      <p className="text-sm text-yellow-800 dark:text-yellow-300 mt-1">{q.correction_for_false}</p>
-                    </div>
-                  )}
-
-                  {/* Scoring Guidance */}
-                  {q.scoring_guidance && (
-                    <div className="mt-5 bg-purple-50 dark:bg-purple-950/20 border border-purple-300 dark:border-purple-900 rounded-lg p-4">
-                      <p className="font-semibold text-purple-700 dark:text-purple-400">Scoring Guidance:</p>
-                      <p className="text-sm text-purple-800 dark:text-purple-300 mt-1">{q.scoring_guidance}</p>
-                    </div>
-                  )}
-
-                  {/* Learning Point */}
-                  <div className="mt-6 border-t pt-4">
-                    <p className="text-sm text-primary font-semibold">Learning Point:</p>
-                    <div className="prose prose-sm max-w-none text-muted-foreground mt-1">
-                      <ReactMarkdown remarkPlugins={[remarkGfm]}>{q.learning_point}</ReactMarkdown>
-                    </div>
-                  </div>
-                </div>
+      <div className="flex-1 overflow-y-auto px-6 space-y-8 scrollbar-hide pb-8 mt-4">
+        {!isNavCollapsed && selectedItem && (
+          <div className="space-y-4">
+            <p className="text-[10px] font-black text-gray-400 tracking-widest px-1">Active Key</p>
+            <div className="bg-white rounded-2xl p-5 border-2 border-indigo-100 shadow-sm animate-in fade-in slide-in-from-left-2 transition-all">
+              <p className="font-bold text-indigo-900 text-sm line-clamp-2">
+                {selectedItem.worksheet_title || selectedItem.chapter || "Answer Key"}
+              </p>
+              <div className="mt-2 flex items-center gap-2">
+                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                <span className="text-[9px] font-black text-emerald-600 tracking-tight">Verified Solution</span>
               </div>
             </div>
-          ))}
+          </div>
+        )}
+
+        <div className="space-y-4">
+          <div className="flex items-center justify-between px-1">
+            {!isNavCollapsed && <p className="text-[10px] font-black text-gray-400 tracking-widest">History</p>}
+            <button className="text-gray-400 hover:text-gray-600">
+              <Search className="w-4 h-4" />
+            </button>
+          </div>
+          <div className="space-y-3">
+            {historyData.map((item, index) => (
+              <div key={item.id || `ak-${index}`} className="group relative flex items-center gap-2">
+                <button
+                  onClick={() => setSelectedItem(item)}
+                  className={cn(
+                    "flex-1 text-left p-3.5 rounded-2xl transition-all flex items-center gap-3 border-2",
+                    selectedItem?.id === item.id
+                      ? "bg-white border-indigo-100 shadow-md translate-x-1"
+                      : "bg-transparent border-transparent hover:bg-gray-100/50"
+                  )}
+                >
+                  <div className={cn(
+                    "w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 transition-colors shadow-sm",
+                    selectedItem?.id === item.id ? "bg-indigo-600 text-white" : "bg-gray-200 text-gray-500"
+                  )}>
+                    <Key className="w-4 h-4" />
+                  </div>
+                  {!isNavCollapsed && (
+                    <div className="flex-1 min-w-0">
+                      <p className="font-bold text-gray-800 text-xs truncate mb-0.5">
+                        {item.worksheet_title || item.chapter || "Answer Key"}
+                      </p>
+                      <div className="flex items-center justify-between text-[9px] text-gray-400 font-black tracking-tighter">
+                        <span className="truncate max-w-[80px]">{item.book_name || "Book"}</span>
+                        <span className="bg-gray-100 px-2 rounded-lg py-0.5 whitespace-nowrap ml-1 font-bold">
+                          {item.created_at ? new Date(item.created_at).toLocaleDateString() : "Recent"}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                </button>
+                {!isNavCollapsed && selectedItem?.id === item.id && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onDelete(item);
+                    }}
+                    disabled={deletingId === item.id}
+                    className="p-2 text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                  >
+                    {deletingId === item.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                  </button>
+                )}
+              </div>
+            ))}
+
+            {historyData.length === 0 && !isNavCollapsed && (
+              <div className="text-center py-10 border-4 border-dashed border-gray-100 rounded-[2rem]">
+                <Clock className="w-8 h-8 text-gray-200 mx-auto mb-3" />
+                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">No keys generated</p>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>
   );
-}
+};
 
-function NewAnswerKeyForm({ onGenerate, allWorksheets }) {
-  const form = useForm({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      book: "",
-      chapter: "",
-    },
-  });
+// --- New Answer Key Form ---
 
-  const { data: booksData } = useGetBook();
+function NewAnswerKeyForm({ onGenerate, allWorksheets, booksData, isLoading }) {
+  const [selectedBookId, setSelectedBookId] = useState(null);
+  const [selectedChapter, setSelectedChapter] = useState(null);
 
-  // ✅ Filter books to only show those with worksheets
-  const booksWithWorksheets = React.useMemo(() => {
+  const booksWithWorksheets = useMemo(() => {
     if (!booksData?.content || !allWorksheets?.content) return [];
-
     const worksheetBookIds = [...new Set(allWorksheets.content.map((ws) => String(ws.book_id)))];
     return booksData.content.filter((book) => worksheetBookIds.includes(String(book.id)));
   }, [booksData, allWorksheets]);
 
-  const selectedBookId = form.watch("book");
-  const selectedBook = booksWithWorksheets?.find((b) => b.id === selectedBookId);
-
-  // ✅ Get available chapters for selected book
-  const availableChapters = React.useMemo(() => {
+  const availableChapters = useMemo(() => {
     if (!selectedBookId || !allWorksheets?.content) return [];
-
     return [...new Set(allWorksheets.content
       .filter((ws) => String(ws.book_id) === String(selectedBookId))
       .map((ws) => ws.chapter))];
   }, [selectedBookId, allWorksheets]);
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-[500px] lg:col-span-3">
-      <div className="w-full max-w-2xl">
-        <PageHeader
-          title="Answer Key Generator"
-          description="Generate answer keys for your existing worksheets."
-          icon={KeyRound}
-        />
-        <Card>
-          <CardHeader>
-            <div className="flex items-center gap-3 mb-2">
-              <BookOpen className="w-6 h-6 text-muted-foreground" />
-              <CardTitle className="font-headline text-xl">Select Worksheet</CardTitle>
-            </div>
-            <CardDescription>Choose from your existing worksheets to generate an answer key.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(onGenerate)} className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <FormField
-                    control={form.control}
-                    name="book"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Select Book</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select a book" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {booksWithWorksheets?.map((book) => (
-                              <SelectItem key={book.id} value={book.id}>
-                                {book.book_name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="chapter"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Select Chapter</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value} disabled={!selectedBook}>
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select a chapter" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {availableChapters?.map((chapter, index) => (
-                              <SelectItem key={index} value={chapter}>
-                                {chapter}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-                <Button type="submit" className="w-full !mt-8" size="lg">
-                  Generate Answer Key
-                </Button>
-              </form>
-            </Form>
-          </CardContent>
-        </Card>
+    <div className="flex-1 flex items-center justify-center min-h-[calc(100vh-400px)] md:h-[calc(100vh-80px)] bg-white p-6 md:p-10">
+      <div className="w-full max-w-lg animate-in fade-in zoom-in-95 duration-500">
+        <div className="text-center mb-10">
+          <div className="w-20 h-20 bg-indigo-50 text-indigo-500 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-sm">
+            <KeyRound className="w-10 h-10" />
+          </div>
+          <h2 className="text-3xl font-extrabold text-gray-900 tracking-tight mb-3">Generate Answer Key</h2>
+          <p className="text-gray-400 font-bold text-sm tracking-tight">Select a processed book to generate verified answer keys for your worksheets.</p>
+        </div>
+
+        <div className="space-y-8">
+          <div>
+            <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-3 block pl-1">Source Repository</label>
+            <Select
+              value={selectedBookId || undefined}
+              onValueChange={(val) => {
+                setSelectedBookId(val);
+                setSelectedChapter(null);
+              }}
+            >
+              <SelectTrigger className="w-full h-14 bg-white border-2 border-gray-100 rounded-2xl px-6 text-base font-bold text-gray-700 shadow-sm focus:ring-4 focus:ring-indigo-50 transition-all">
+                <SelectValue placeholder="Choose a book" />
+              </SelectTrigger>
+              <SelectContent className="rounded-2xl border-gray-100 shadow-xl p-2 font-bold">
+                {booksWithWorksheets?.map((book, index) => (
+                  <SelectItem key={book.id || index} value={book.id} className="rounded-xl py-3 font-bold text-gray-600 focus:bg-indigo-50 focus:text-indigo-600">
+                    {book.book_name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className={cn(
+            "transition-all duration-300",
+            selectedBookId ? "opacity-100" : "opacity-40 pointer-events-none"
+          )}>
+            <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-3 block pl-1">Target Chapter</label>
+            <Select
+              value={selectedChapter || undefined}
+              onValueChange={setSelectedChapter}
+              disabled={!selectedBookId}
+            >
+              <SelectTrigger className="w-full h-14 bg-white border-2 border-gray-100 rounded-2xl px-6 text-base font-bold text-gray-700 shadow-sm focus:ring-4 focus:ring-indigo-50 transition-all">
+                <SelectValue placeholder="Choose a chapter" />
+              </SelectTrigger>
+              <SelectContent className="rounded-2xl border-gray-100 shadow-xl p-2 font-bold">
+                {availableChapters?.map((chapter, index) => (
+                  <SelectItem key={index} value={chapter} className="rounded-xl py-3 font-bold text-gray-600 focus:bg-indigo-50 focus:text-indigo-600">
+                    {chapter}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <Button
+            disabled={!selectedBookId || !selectedChapter || isLoading}
+            onClick={() => onGenerate({ book: selectedBookId, chapter: selectedChapter })}
+            className="w-full h-15 bg-gradient-to-r from-indigo-600 to-indigo-700 text-white rounded-2xl shadow-xl shadow-indigo-100 text-sm font-black tracking-widest gap-3 transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50"
+          >
+            {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Sparkles className="w-5 h-5" />}
+            Generate Official Key
+          </Button>
+        </div>
       </div>
     </div>
   );
 }
 
+// --- Answer Key Item (Display) ---
+
+function AnswerKeyItem({ item }) {
+  const data = item.content?.answers ? item.content : (item.answers ? item : item.content);
+  if (!data || (!data.answers && !data.worksheet_title)) return (
+    <div className="p-16 text-center text-gray-300 font-black uppercase tracking-[0.3em] bg-gray-50 rounded-[3rem] border-4 border-dashed border-gray-100 animate-pulse">
+      No data packet available.
+    </div>
+  );
+
+  return (
+    <div className="space-y-10 animate-in fade-in duration-700">
+      {/* Premium Header Card */}
+      <div className="rounded-[1.5rem] md:rounded-[2.5rem] border-2 border-gray-100 bg-white shadow-sm overflow-hidden p-4 md:p-10 flex flex-col md:flex-row items-start justify-between gap-4 md:gap-6">
+        <div className="space-y-3 md:space-y-6 flex-1">
+          <h2 className="text-lg md:text-3xl font-extrabold text-gray-900 tracking-tight leading-tight">
+            {data.worksheet_title || "Official Answer Key"}
+          </h2>
+          <div className="flex flex-wrap gap-3">
+            <Tag icon={BookOpen} color="indigo">{data.chapter}</Tag>
+            <Tag icon={Layers} color="purple">{data.total_questions || data.answers?.length} Questions</Tag>
+            <Tag icon={CheckCircle2} color="emerald">Quality Verified</Tag>
+          </div>
+        </div>
+        <Button
+          variant="outline"
+          size="lg"
+          onClick={() => window.print()}
+          className="w-full md:w-auto rounded-[1.2rem] md:rounded-[1.5rem] border-2 font-black uppercase text-[10px] md:text-xs tracking-widest gap-2 px-6 md:px-8 py-5 md:py-7 hover:bg-gray-50 print:hidden transition-all active:scale-95 shadow-sm"
+        >
+          <Printer className="w-4 h-4 md:w-5 md:h-5" />
+          Print Solutions
+        </Button>
+      </div>
+
+      {/* Solutions Body */}
+      <div className="rounded-[1.5rem] md:rounded-[2.5rem] border border-gray-100 bg-white p-4 md:p-12 shadow-sm space-y-10 md:space-y-16">
+        {data.answers?.map((q, idx) => (
+          <div key={idx} className="group relative md:pl-20 last:border-0 border-b border-gray-50 pb-10 md:pb-16 last:pb-0">
+            {/* Number Badge */}
+            <div className="mb-3 md:absolute md:left-0 md:top-0 w-8 h-8 md:w-14 md:h-14 rounded-xl md:rounded-3xl bg-indigo-50 border-2 border-indigo-100 flex items-center justify-center text-[#6366f1] font-black text-sm md:text-xl shadow-sm transition-all group-hover:bg-indigo-600 group-hover:text-white group-hover:scale-110">
+              {q.question_number || idx + 1}
+            </div>
+
+            <div className="space-y-4 md:space-y-10">
+              {/* Question Text */}
+              <div className="prose prose-slate max-w-none text-base md:text-2xl text-gray-900 font-bold leading-tight">
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>{q.question}</ReactMarkdown>
+              </div>
+
+              {/* Sub-Metadata */}
+              <div className="flex items-center gap-4">
+                <span className="px-4 py-1.5 rounded-full bg-gray-100 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] border border-gray-200">
+                  {q.question_type?.replace("_", " ") || "Evaluation"}
+                </span>
+              </div>
+
+              {/* MCQ Options Display */}
+              {q.options && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2 md:gap-4 mt-4 md:mt-8">
+                  {Object.entries(q.options).map(([key, value]) => (
+                    <div key={key} className="flex items-center gap-2 md:gap-4 bg-gray-50/50 p-3 md:p-5 rounded-lg md:rounded-[1.5rem] border-2 border-transparent transition-all hover:bg-white hover:border-indigo-100 group/opt">
+                      <span className="w-7 h-7 md:w-10 md:h-10 rounded-md md:rounded-xl bg-white border-2 border-gray-100 flex items-center justify-center text-[9px] md:text-xs font-black text-gray-300 group-hover/opt:text-indigo-600 group-hover/opt:border-indigo-100">{key}</span>
+                      <span className="text-xs md:text-base font-bold text-gray-600 group-hover/opt:text-gray-900">{value}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Correct Answer Premium Box */}
+              <div className="bg-indigo-50 rounded-xl md:rounded-[2rem] p-4 md:p-10 border-2 border-indigo-100/50 relative overflow-hidden group/ans transition-all hover:shadow-xl hover:shadow-indigo-100 self-start">
+                <div className="absolute top-0 right-0 p-3 md:p-6 opacity-5 group-hover/ans:opacity-10 transition-opacity">
+                  <Sparkles className="w-10 h-10 md:w-20 md:h-20 text-indigo-600" />
+                </div>
+                <div className="flex items-center gap-2 md:gap-3 mb-3 md:mb-6">
+                  <Zap className="w-3 h-3 md:w-5 md:h-5 text-indigo-600 fill-indigo-600" />
+                  <span className="text-[8px] md:text-[10px] font-black text-indigo-600 tracking-[0.2em] md:tracking-[0.3em]">Verified Solution</span>
+                </div>
+                <div className="text-lg md:text-2xl font-black text-indigo-900 mb-3 md:mb-6 leading-relaxed">
+                  {typeof q.correct_answer === 'object' ? JSON.stringify(q.correct_answer) : String(q.correct_answer)}
+                </div>
+
+                {q.explanation && (
+                  <div className="prose prose-sm max-w-none text-indigo-900/70 font-bold italic border-t-2 border-indigo-100/50 pt-3 md:pt-6 text-[10px] md:text-sm">
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{q.explanation}</ReactMarkdown>
+                  </div>
+                )}
+              </div>
+
+              {/* Additional Insight Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {q.common_mistakes?.length > 0 && (
+                  <div className="bg-rose-50/50 border-2 border-rose-100 rounded-[1.5rem] p-6 transition-all hover:shadow-lg">
+                    <p className="text-[10px] font-black text-rose-500 tracking-[0.2em] mb-4">Common Pitfalls</p>
+                    <ul className="space-y-3">
+                      {q.common_mistakes.map((m, i) => (
+                        <li key={i} className="flex gap-3 text-sm text-rose-800 font-bold leading-relaxed">
+                          <span className="text-rose-300">•</span> {m}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                {q.key_points?.length > 0 && (
+                  <div className="bg-emerald-50/50 border-2 border-emerald-100 rounded-[1.5rem] p-6 transition-all hover:shadow-lg">
+                    <p className="text-[10px] font-black text-emerald-500 tracking-[0.2em] mb-4">Key Concepts</p>
+                    <ul className="space-y-3">
+                      {q.key_points.map((p, i) => (
+                        <li key={i} className="flex gap-3 text-sm text-emerald-800 font-bold leading-relaxed">
+                          <span className="text-emerald-300">•</span> {p}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+
+              {/* Scoring Logic */}
+              {q.scoring_guidance && (
+                <div className="bg-amber-50/30 border-2 border-amber-100 rounded-[1.5rem] p-6">
+                  <div className="flex items-center gap-2 mb-3">
+                    <ListChecks className="w-4 h-4 text-amber-500" />
+                    <span className="text-[10px] font-black uppercase text-amber-600 tracking-widest">Scoring Guidance</span>
+                  </div>
+                  <p className="text-sm font-bold text-amber-900/80 italic">{q.scoring_guidance}</p>
+                </div>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// --- Answer Key Display Container ---
+
+function AnswerKeyDisplay({ item }) {
+  return (
+    <div className="flex-1 flex flex-col min-h-[500px] md:h-[calc(100vh-80px)] bg-white relative">
+      <div className="px-12 py-8 border-b border-gray-100 flex items-center justify-between sticky top-0 bg-white/90 backdrop-blur-xl z-20 shadow-sm shadow-gray-50/50">
+        <div className="flex items-center gap-5">
+          <div className="w-16 h-16 bg-gradient-to-br from-indigo-50 to-indigo-100/50 rounded-[1.5rem] flex-shrink-0 flex items-center justify-center border-2 border-indigo-100 shadow-inner">
+            <Key className="w-7 h-7 text-indigo-500" />
+          </div>
+          <div>
+            <h2 className="font-extrabold text-gray-900 tracking-tight text-sm">
+              {item.worksheet_title || "Verified Key"}
+            </h2>
+            <p className="text-[10px] text-indigo-500 font-black tracking-[0.3em] flex items-center gap-1.5 mt-1">
+              <Zap className="w-3 h-3" /> Educational Standard AI-Verified
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div className="flex-1 overflow-y-auto px-6 md:px-12 pt-10 md:pt-12 pb-24 scrollbar-hide">
+        <div className="max-w-5xl mx-auto w-full">
+          <AnswerKeyItem item={item} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// --- Main Page Component ---
+
 export default function AnswerKeyPage() {
   const queryClient = useQueryClient();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
-  const answerKeyId = searchParams.get("answer_key_id");
-  const [selectedItem, setSelectedItem] = useState(null);
-  const navItem = useMemo(() => getNavItemByUrl(pathname), [pathname]);
-  const { setAnswerKeyStatus } = useApiStore(); // We might not have this specifically, but let's check
   const { user } = useAuth();
   const uid = user?.user?.uid;
-  const { toast } = useToast();
 
-  const { data: allAnswerKeys, isLoading: isLoadingHistory, isFetching: isFetchingHistory } = useGetAllAnswerKeys(uid);
-  const { data: allWorksheets } = useUserWorksheet(uid, {
-    enabled: !!uid,
-  });
+  const [selectedItem, setSelectedItem] = useState(null);
+  const [isNavCollapsed, setIsNavCollapsed] = useState(false);
 
-  const { data: answerKeyData, isLoading: isLoadingSingle } = useGetAnswerKeyById(answerKeyId, uid, {
-    enabled: !!answerKeyId && !!uid,
-  });
+  const { data: allAnswerKeys, isLoading: isLoadingHistory } = useGetAllAnswerKeys(uid);
+  const { data: allWorksheets } = useUserWorksheet(uid, { enabled: !!uid });
+  const { data: booksData, isLoading: bookLoading } = useGetBook();
 
   const { handleDelete: handleHistoryDelete, deletingId } = useHistoryDelete({
     useMutation: useDeleteAnswerKey,
     queryKeyToInvalidate: ["all-answer-keys", uid],
     idPropertyName: "answer_key_id",
     onDeleteSuccess: (variables) => {
-      if (selectedItem && selectedItem.id === variables.answer_key_id) {
+      if (selectedItem?.id === variables.answer_key_id) {
         setSelectedItem(null);
       }
     },
@@ -333,110 +467,42 @@ export default function AnswerKeyPage() {
 
   const { mutate: generateAnswerKey, isPending: isGenerating } = useGenerateAnswerKey({
     onSuccess: (data) => {
-      console.log("Answer key generated:", data);
-      // If the API returns the full object, use it; otherwise, we might need to refetch
       setSelectedItem(data.answer_key || data);
       queryClient.invalidateQueries({ queryKey: ["all-answer-keys", uid] });
-      queryClient.invalidateQueries({ queryKey: ["ws", uid] });
-
-      toast({
-        title: "Success",
-        description: "Answer key generated successfully.",
-      });
+      toast.success("Answer key generated and verified.");
     },
     onError: (err) => {
       console.error("Failed to generate answer key", err);
       const errorMessage = err.response?.data?.error || err.response?.data?.message || "Failed to generate answer key. Please try again.";
-      toast({
-        title: "Error",
-        description: errorMessage,
-        variant: "destructive",
-      });
+      toast.error(errorMessage);
     },
   });
 
-  const historyData = React.useMemo(() => {
+  const historyData = useMemo(() => {
     const allKeys = allAnswerKeys?.content || [];
-    const uniqueByWorksheet = allKeys.reduce((acc, current) => {
+    return allKeys.reduce((acc, current) => {
       const exists = acc.find((item) => item.worksheet_id === current.worksheet_id);
-      if (!exists) {
-        acc.push(current);
-      }
+      if (!exists) acc.push(current);
       return acc;
     }, []);
-    return uniqueByWorksheet;
   }, [allAnswerKeys]);
 
-  console.log(historyData);
-
-  useEffect(() => {
-    if (answerKeyId && answerKeyData) {
-      let itemToSelect;
-
-      if (Array.isArray(answerKeyData?.content)) {
-        itemToSelect = answerKeyData.content.find((item) => item.id === answerKeyId);
-      } else {
-        itemToSelect = answerKeyData;
-      }
-
-      if (itemToSelect) {
-        setSelectedItem(itemToSelect);
-      }
-    }
-  }, [answerKeyId, answerKeyData]);
-
   const handleGenerate = (values) => {
-    if (!uid) {
-      toast({
-        title: "Authentication Error",
-        description: "Please log in to generate answer keys.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (!values.book || !values.chapter) {
-      toast({
-        title: "Missing Information",
-        description: "Please select both a book and a chapter.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    // ✅ CHECK if worksheet exists for this book + chapter
-    console.log("All Worksheets:", allWorksheets?.content);
-    console.log("Looking for:", { book_id: values.book, chapter: values.chapter });
-
-    const worksheetExists = allWorksheets?.content?.find((ws) => {
-      // Use loose equality (==) or convert both to same type to be safe
-      const bookMatch = String(ws.book_id) === String(values.book);
-      const chapterMatch = String(ws.chapter).trim().toLowerCase() === String(values.chapter).trim().toLowerCase();
-
-      console.log(`Checking ws ${ws.id}:`, { bookMatch, chapterMatch, ws_book: ws.book_id, ws_chapter: ws.chapter });
-      return bookMatch && chapterMatch;
-    });
+    if (!uid) return;
+    const worksheetExists = allWorksheets?.content?.find((ws) =>
+      String(ws.book_id) === String(values.book) &&
+      String(ws.chapter).trim().toLowerCase() === String(values.chapter).trim().toLowerCase()
+    );
 
     if (!worksheetExists) {
-      console.warn("No matching worksheet found in:", allWorksheets?.content);
-      toast({
-        title: "No Worksheet Available",
-        description: `Please generate a worksheet for "${values.chapter}" first before creating an answer key.`,
-        variant: "destructive",
-      });
+      toast.error(`A generated worksheet is required for "${values.chapter}".`);
       return;
     }
 
-    // ✅ Check if answer key already exists for this worksheet
     const existingAnswerKey = allAnswerKeys?.content?.find((key) => key.worksheet_id === worksheetExists.id);
-
-    console.log("existingAnswerKey:", existingAnswerKey);
-
     if (existingAnswerKey) {
-      console.log("Using existing answer key:", existingAnswerKey);
       setSelectedItem(existingAnswerKey);
     } else {
-      console.log("Generating new answer key for worksheet:", worksheetExists.id);
       generateAnswerKey({
         worksheet_id: worksheetExists.id,
         book_id: values.book,
@@ -445,34 +511,47 @@ export default function AnswerKeyPage() {
       });
     }
   };
-  const isLoading = isLoadingHistory || isLoadingSingle;
-
-  const handleHistorySelect = useCallback((item) => {
-    setSelectedItem(item);
-    if (item?.id) {
-      const params = new URLSearchParams(searchParams.toString());
-      params.set("answer_key_id", item.id);
-      window.history.replaceState(null, "", `?${params.toString()}`);
-    }
-  }, [searchParams]);
-
 
   return (
-    <ToolPageLayout
-      historyData={historyData}
-      selectedItem={selectedItem}
-      setSelectedItem={handleHistorySelect}
-      onDelete={handleDeleteAnswerKey}
-      isHistoryLoading={isLoadingHistory || isFetchingHistory}
-      deletingId={deletingId}
-      isProcessing={isGenerating}
-      processingText={`Generating ${navItem?.title}...`}
-    >
-      {selectedItem ? (
-        <AnswerKeyDetails item={selectedItem} />
-      ) : (
-        <NewAnswerKeyForm onGenerate={handleGenerate} allWorksheets={allWorksheets} />
-      )}
-    </ToolPageLayout>
+    <div className="flex flex-col md:flex-row bg-white md:h-[calc(100vh-80px)] md:overflow-hidden overflow-y-auto">
+      <AnswerKeySidebar
+        historyData={historyData}
+        selectedItem={selectedItem}
+        setSelectedItem={setSelectedItem}
+        onDelete={handleDeleteAnswerKey}
+        deletingId={deletingId}
+        isNavCollapsed={isNavCollapsed}
+        setIsNavCollapsed={setIsNavCollapsed}
+        onStartNew={() => setSelectedItem(null)}
+      />
+
+      <div className="flex-1 flex flex-col h-full bg-white transition-all duration-300">
+        {isGenerating || (isLoadingHistory && historyData.length === 0 && !allAnswerKeys?.content) ? (
+          <div className="flex-1 flex items-center justify-center">
+            <div className="text-center">
+              <div className="relative w-20 h-20 mx-auto mb-8">
+                <div className="absolute inset-0 border-8 border-indigo-50 rounded-[2rem]" />
+                <div className="absolute inset-0 border-8 border-indigo-600 rounded-[2rem] border-t-transparent animate-spin" />
+              </div>
+              <h3 className="text-2xl font-black text-gray-900 tracking-tight uppercase mb-2">Analyzing Responses...</h3>
+              <p className="text-sm text-gray-400 font-bold uppercase tracking-[0.3em]">Building solution matrix</p>
+            </div>
+          </div>
+        ) : selectedItem ? (
+          <AnswerKeyDisplay item={selectedItem} />
+        ) : bookLoading ? (
+          <div className="flex-1 flex items-center justify-center font-black text-xs uppercase tracking-widest text-gray-300">
+            Fetching Library...
+          </div>
+        ) : (
+          <NewAnswerKeyForm
+            onGenerate={handleGenerate}
+            allWorksheets={allWorksheets}
+            booksData={booksData}
+            isLoading={isGenerating}
+          />
+        )}
+      </div>
+    </div>
   );
 }
