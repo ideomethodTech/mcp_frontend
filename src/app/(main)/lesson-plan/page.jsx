@@ -183,7 +183,7 @@ function NewLessonPlanForm({ onGenerate, data, bookLoading }) {
 
 export default function LessonPlanPage() {
   const { user } = useAuth();
-  const uid = user?.user?.uid;
+  const uid = user?.user?.uid || user?.uid;
   const pathname = usePathname();
   const navItem = useMemo(() => getNavItemByUrl(pathname), [pathname]);
   const queryClient = useQueryClient();
@@ -213,13 +213,43 @@ export default function LessonPlanPage() {
     onMutate: () => {
       setLessonPlanStatus("loading");
     },
-    onSuccess: (data) => {
+    onSuccess: (data, variables) => {
       console.log("Successfully generated lesson plan:", data);
       setLessonPlanData(data);
       setSelectedPlan(null);
       setLessonPlanStatus("success");
       if (uid) {
-        queryClient.invalidateQueries({ queryKey: ['lp', uid] });
+        queryClient.setQueryData(["lp", uid], (previousData) => {
+          const prevContent = Array.isArray(previousData?.content) ? previousData.content : [];
+
+          const generatedItem = {
+            ...data,
+            id: data?.id || data?.lesson_plan_id,
+            lesson_plan_id: data?.lesson_plan_id || data?.id,
+            chapter: data?.chapter || variables?.chapter,
+            created_at: data?.created_at || new Date().toISOString(),
+          };
+
+          const generatedId = generatedItem.id || generatedItem.lesson_plan_id;
+          const alreadyExists = prevContent.some((item) => {
+            const existingId = item?.id || item?.lesson_plan_id;
+            return Boolean(generatedId) && existingId === generatedId;
+          });
+
+          if (alreadyExists) {
+            return previousData;
+          }
+
+          return {
+            ...(previousData || {}),
+            content: [generatedItem, ...prevContent],
+          };
+        });
+
+        queryClient.invalidateQueries({
+          queryKey: ["lp", uid],
+          refetchType: "all",
+        });
       }
     },
     onError: (err) => {

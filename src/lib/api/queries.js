@@ -53,6 +53,7 @@ export const useGenerateAnswerKey = (options) =>
 export const useUploadBook = (options) =>
   useMutation({
     mutationFn: ({ formData, onUploadProgress }) => uploadBook(formData, onUploadProgress),
+    retry: false,
     ...options,
   });
 

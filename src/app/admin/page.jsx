@@ -33,6 +33,8 @@ export default function AdminDashboardPage() {
 
   const uploadMutation = useUploadBook({
     onSuccess: () => {
+      setUploadProgress(100);
+      setIsUploading(false);
       toast({
         title: "Book uploaded successfully",
         description: "Your book has been uploaded and is being processed.",
@@ -40,9 +42,12 @@ export default function AdminDashboardPage() {
       setIsDialogOpen(false);
       setBookName("");
       setBookFile(null);
+      setUploadProgress(0);
       queryClient.invalidateQueries({ queryKey: ["books"] });
     },
     onError: (error) => {
+      setIsUploading(false);
+      setUploadProgress(0);
       toast({
         title: "Upload failed",
         description: error.response?.data?.message || "Failed to upload book",
@@ -110,18 +115,10 @@ export default function AdminDashboardPage() {
           onUploadProgress: (progressEvent) => {
             if (progressEvent.total) {
               const percent = Math.round((progressEvent.loaded * 100) / progressEvent.total);
-              setUploadProgress(percent);
+              setUploadProgress((previousProgress) =>
+                Math.max(previousProgress, Math.min(percent, 99))
+              );
             }
-          },
-        },
-        {
-          onSuccess: () => {
-            setIsUploading(false);
-            setUploadProgress(0);
-          },
-          onError: () => {
-            setIsUploading(false);
-            setUploadProgress(0);
           },
         }
       );
