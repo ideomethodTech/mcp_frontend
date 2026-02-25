@@ -13,7 +13,9 @@ import {
   ListChecks,
   Package,
 } from "lucide-react";
-import React from "react";
+import React, { useMemo } from "react";
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { cn } from "@/lib/utils";
 
 /* ------------------ UI Components ------------------ */
@@ -30,10 +32,25 @@ const Tag = ({ children, className }) => (
 /* ------------------ Main Component ------------------ */
 
 const LessonPlanItem = ({ item, isgenrated = false }) => {
-  // Robust data extraction from Stage
-  const lesson_plan = isgenrated
+  // Robust data extraction
+  const rawData = isgenrated
     ? (item?.lesson_plan || item?.content?.lesson_plan || item)
     : (item?.content?.lesson_plan || item?.lesson_plan || item);
+
+  // Determine if we have a string (Markdown) or an object (Structured)
+  const lesson_plan = useMemo(() => {
+    if (!rawData) return null;
+    if (typeof rawData === 'string') {
+      return {
+        isMarkdown: true,
+        rawContent: rawData,
+        title: item?.title || item?.chapter || "Lesson Plan",
+        grade_level: item?.grade_level || "N/A",
+        duration: item?.duration || "N/A",
+      };
+    }
+    return rawData;
+  }, [rawData, item]);
 
   if (!lesson_plan || typeof lesson_plan !== 'object') {
     return (
@@ -272,6 +289,23 @@ const LessonPlanItem = ({ item, isgenrated = false }) => {
           </div>
         </div>
       </div>
+
+      {/* Narrative Section - Always shown if Markdown is detected */}
+      {lesson_plan.isMarkdown && (
+        <div className="pt-8 border-t border-slate-100">
+          <div className="flex items-center gap-3 mb-8">
+            <div className="w-10 h-10 rounded-xl bg-indigo-50 flex items-center justify-center">
+              <Sparkles className="w-5 h-5 text-indigo-500" />
+            </div>
+            <h3 className="font-bold text-xl text-slate-900 tracking-tight">Full Lesson Narrative</h3>
+          </div>
+          <div className="bg-white rounded-[3rem] p-8 md:p-12 border border-slate-100 shadow-sm prose prose-indigo max-w-none prose-headings:font-black prose-p:font-bold prose-p:text-slate-600">
+            <ReactMarkdown remarkPlugins={[remarkGfm]}>
+              {lesson_plan.rawContent}
+            </ReactMarkdown>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

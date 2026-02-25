@@ -22,7 +22,8 @@ export const generateWorksheet = async (data) => {
     data: {
       book_id: data.book_id,
       uid: data.uid,
-      prompt: data.chapter
+      prompt: data.chapter, // Legacy
+      topic: data.chapter   // Genkit Flow expects 'topic'
     },
     timeout: 300000,
   });
@@ -126,7 +127,7 @@ export const getAnswerKey = async (answerKeyId, uid) => {
     url: ENDPOINTS.GET_USER_ANSWER_KEY,
     method: "GET",
     params: {
-      answerKeyId,
+      answer_key_id: answerKeyId,
       uid,
     },
   });
@@ -154,9 +155,12 @@ export const createLessonPlan = async (data) => {
     method: "POST",
     data: {
       book_id: data.book_id,
-      prompt: data.chapter,
+      prompt: data.chapter, // Legacy
       uid: data.uid,
-      weeks: data.weeks,
+      weeks: data.weeks,   // Legacy
+      topicName: data.chapter, // Genkit Flow expects 'topicName'
+      gradeLevel: data.class || "10", // Genkit Flow expects 'gradeLevel'
+      duration: `${data.weeks || 2} weeks`, // Genkit Flow expects 'duration'
     },
     timeout: 300000,
   });
@@ -316,9 +320,10 @@ export const generateTestPaper = async (data) => {
       uid: data.uid,
       book_id: data.book_id,
       chapter: data.chapter,
-      prompt: data.chapter,
+      prompt: `Generate a ${data.subject || "English"} test paper for Grade ${data.class} on the topic: ${data.chapter}. Ensure all questions are relevant to ${data.subject || "English"}.`,
+      topic: `${data.subject || "English"}: ${data.chapter}`,
       class: data.class,
-      subject: data.subject || data.chapter, // Fallback to chapter name to force specific context
+      subject: data.subject || "English",
       total_marks: parseInt(data.total_marks || 50),
       duration: data.duration,
     },
@@ -347,7 +352,7 @@ export const getTestPaper = async (testPaperId, uid) => {
     url: ENDPOINTS.GET_TEST_PAPER,
     method: "GET",
     params: {
-      test_paper_id: testPaperId,
+      paper_id: testPaperId,
       uid,
     },
   });
@@ -361,7 +366,7 @@ export const getTestPaperAnswers = async (testPaperId, uid) => {
     url: ENDPOINTS.GET_TEST_PAPER_ANSWERS,
     method: "GET",
     params: {
-      test_paper_id: testPaperId,
+      paper_id: testPaperId,
       uid,
     },
   });

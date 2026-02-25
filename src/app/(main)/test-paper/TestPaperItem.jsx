@@ -56,6 +56,14 @@ const TestPaperItem = ({ item, onRegenerate, isRegenerating, showAnswers, answer
         return [];
     }, [item, sections]);
 
+    // Robust raw content extraction for fallback
+    const rawContent = useMemo(() => {
+        const raw = item?.paper || item?.content?.paper || item?.content || item;
+        if (typeof raw === 'string') return raw;
+        if (typeof raw?.paper === 'string') return raw.paper;
+        return null;
+    }, [item]);
+
     // Map answers to questions if answersData is available (Stage Branch Logic)
     const questionsWithAnswers = useMemo(() => {
         if (!showAnswers || !answersData) return questions;
@@ -250,6 +258,26 @@ const TestPaperItem = ({ item, onRegenerate, isRegenerating, showAnswers, answer
                                 </div>
                             </div>
                         ))}
+                    </div>
+                )}
+
+                {/* Narrative View Fallback */}
+                {(questions.length === 0 && rawContent) && (
+                    <div className="mt-12 pt-12 border-t border-gray-50 animate-in fade-in slide-in-from-bottom-4 duration-700">
+                        <div className="flex items-center gap-4 mb-8">
+                            <div className="w-12 h-12 rounded-2xl bg-indigo-50 border-2 border-indigo-100 flex items-center justify-center text-indigo-600">
+                                <Sparkles className="w-6 h-6" />
+                            </div>
+                            <div>
+                                <h3 className="font-black text-gray-900 tracking-[0.2em] text-xs uppercase">Assessment Content</h3>
+                                <p className="text-[10px] font-bold text-indigo-500 font-black uppercase tracking-widest mt-0.5">Narrative View</p>
+                            </div>
+                        </div>
+                        <div className="bg-white rounded-[2.5rem] p-8 md:p-12 border-2 border-indigo-50 shadow-inner prose prose-indigo max-w-none prose-headings:font-black prose-p:font-bold prose-p:text-slate-600">
+                            <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                {rawContent}
+                            </ReactMarkdown>
+                        </div>
                     </div>
                 )}
             </div>

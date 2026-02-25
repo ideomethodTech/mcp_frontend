@@ -209,6 +209,7 @@ const ChatSidebar = ({
 
 function NewChatForm({ onGenerate, data, isLoading }) {
   const [selectedBook, setSelectedBook] = useState(null);
+  const [selectedChapter, setSelectedChapter] = useState(null);
 
   return (
     <div className="flex-1 flex items-center justify-center min-h-[calc(100vh-400px)] md:h-[calc(100vh-80px)] bg-white p-6 md:p-10">
@@ -248,9 +249,35 @@ function NewChatForm({ onGenerate, data, isLoading }) {
             </Select>
           </div>
 
+          <div className={cn(
+            "transition-all duration-300",
+            selectedBook ? "opacity-100" : "opacity-40 pointer-events-none"
+          )}>
+            <label className="text-[10px] font-black text-gray-400 tracking-[0.2em] mb-3 block pl-1">Focus Chapter (Optional)</label>
+            <Select
+              value={selectedChapter || undefined}
+              onValueChange={setSelectedChapter}
+              disabled={!selectedBook}
+            >
+              <SelectTrigger className="w-full h-14 bg-white border-2 border-gray-100 rounded-2xl px-6 text-base font-bold text-gray-700 shadow-sm focus:ring-4 focus:ring-indigo-50 transition-all">
+                <SelectValue placeholder="All Chapters" />
+              </SelectTrigger>
+              <SelectContent className="rounded-2xl border-gray-100 shadow-xl p-2 font-bold">
+                <SelectItem value="all" className="rounded-xl py-3 font-bold text-indigo-600 focus:bg-indigo-50 italic">
+                  Complete Book
+                </SelectItem>
+                {(selectedBook?.chapters || []).map((chapter, index) => (
+                  <SelectItem key={index} value={chapter} className="rounded-xl py-3 font-bold text-gray-600 focus:bg-indigo-50 focus:text-indigo-600">
+                    {chapter}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
           <Button
             disabled={!selectedBook || isLoading}
-            onClick={() => onGenerate(selectedBook)}
+            onClick={() => onGenerate(selectedBook, selectedChapter)}
             className="w-full h-15 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl shadow-xl shadow-indigo-100 text-sm font-black tracking-widest gap-3 transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Sparkles className="w-5 h-5" />}
@@ -500,8 +527,9 @@ export default function ChatPage() {
     deleteChatMessageMutation({ uid, message_id: messageId });
   }, [selectedChat, uid, deleteChatMessageMutation]);
 
-  const handleNewChat = useCallback((book) => {
-    createChat({ uid, chat_title: book.book_name, book_id: book.id });
+  const handleNewChat = useCallback((book, chapter) => {
+    const title = chapter && chapter !== 'all' ? `${book.book_name} - ${chapter}` : book.book_name;
+    createChat({ uid, chat_title: title, book_id: book.id });
   }, [uid, createChat]);
 
   return (

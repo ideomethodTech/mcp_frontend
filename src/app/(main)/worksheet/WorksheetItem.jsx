@@ -14,7 +14,7 @@ import {
   List
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import React from "react";
+import React, { useMemo } from "react";
 import { useGetAllAnswerKeys } from "@/lib/api/queries";
 import { useAuth } from "@/contexts/auth-context";
 import ReactMarkdown from 'react-markdown';
@@ -72,6 +72,15 @@ const WorksheetItem = ({ item, bookId, isNew, worksheetId, onRegenerate, isRegen
     }
     return "";
   };
+
+  // Robust raw content extraction for fallback
+  const rawContent = useMemo(() => {
+    const raw = isNew ? item : (item?.content || item);
+    if (typeof raw === 'string') return raw;
+    if (typeof raw?.worksheet === 'string') return raw.worksheet;
+    if (typeof raw?.lesson_plan === 'string') return raw.lesson_plan;
+    return null;
+  }, [item, isNew]);
 
   // Extract title safely
   const worksheetTitle = item?.worksheet?.title || item?.worksheet?.itle || item?.content?.worksheet?.title || item?.title || "Educational Worksheet";
@@ -282,6 +291,33 @@ const WorksheetItem = ({ item, bookId, isNew, worksheetId, onRegenerate, isRegen
         })}
       </div>
 
+      {/* Narrative View Fallback */}
+      {(questions.length === 0 && rawContent) && (
+        <div className="mt-12 pt-12 border-t border-slate-100 animate-in fade-in slide-in-from-bottom-4 duration-700">
+          <div className="flex items-center gap-3 mb-8">
+            <div className="w-10 h-10 rounded-xl bg-indigo-50 flex items-center justify-center">
+              <Sparkles className="w-5 h-5 text-indigo-500" />
+            </div>
+            <div>
+              <h3 className="font-bold text-xl text-slate-900 tracking-tight">Worksheet Content</h3>
+              <p className="text-xs text-indigo-500 font-black uppercase tracking-widest mt-0.5">Narrative View</p>
+            </div>
+          </div>
+          <div className="bg-white rounded-[2rem] p-8 md:p-12 border border-slate-100 shadow-sm prose prose-indigo max-w-none prose-headings:font-black prose-p:font-bold prose-p:text-slate-600">
+            <ReactMarkdown remarkPlugins={[remarkGfm]}>
+              {rawContent}
+            </ReactMarkdown>
+          </div>
+        </div>
+      )}
+
+      {/* Empty State */}
+      {questions.length === 0 && !rawContent && (
+        <div className="flex flex-col items-center justify-center py-20 text-slate-400 italic border border-dashed rounded-3xl border-slate-200 bg-slate-50">
+          <FileText className="h-12 w-12 mb-4 opacity-20" />
+          <p className="font-bold">No structured assessment data found.</p>
+        </div>
+      )}
     </div>
   );
 };

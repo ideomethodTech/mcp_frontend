@@ -16,6 +16,7 @@ import {
   BookOpen,
   GraduationCap,
   Zap,
+  Key
 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
@@ -333,20 +334,23 @@ function TestPaperDisplay({ item, onRegenerate, isRegenerating, toggleAnswerKey,
 
         <div className="flex items-center gap-3">
           <Button
-            variant="outline"
-            className="rounded-xl border-2 font-black uppercase text-[10px] tracking-widest h-10 px-4 gap-2"
+            className="rounded-[1.2rem] md:rounded-[1.5rem] bg-indigo-600 hover:bg-indigo-700 text-white font-black uppercase text-[10px] md:text-xs tracking-widest h-12 md:h-14 px-4 md:px-8 gap-3 transition-all shadow-md group"
             onClick={toggleAnswerKey}
             disabled={isFetchingAnswers}
           >
-            {isFetchingAnswers ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+            {isFetchingAnswers ? (
+              <Loader2 className="w-4 h-4 md:w-5 md:h-5 animate-spin" />
+            ) : (
+              <Sparkles className="w-4 h-4 md:w-5 md:h-5" />
+            )}
             {showAnswers ? "Show Questions" : "Answer Key"}
           </Button>
           <Button
             variant="outline"
-            className="rounded-xl border-2 font-black uppercase text-[10px] tracking-widest h-10 px-4"
+            className="rounded-[1.2rem] md:rounded-[1.5rem] border-2 font-black uppercase text-[10px] md:text-xs tracking-widest h-12 md:h-14 px-4 md:px-6 hover:bg-gray-50 transition-all shadow-sm"
             onClick={() => window.print()}
           >
-            <Printer className="w-4 h-4" />
+            <Printer className="w-4 h-4 md:w-5 md:h-5" />
           </Button>
         </div>
       </div>
@@ -390,7 +394,16 @@ export default function TestPaperPage() {
   // Answer Key Fetching (Stage Branch Logic)
   const currentPaperIdForAnswers = useMemo(() => {
     const item = selectedTestPaper || testPaperData;
-    return item?.id || item?.paper_id || item?.test_paper_id;
+    if (!item) return null;
+    // If the paper is a string (Narrative/Markdown mode), we can't fetch structured answers
+    const innerPaper = item?.paper || item?.content?.paper || item?.content || item;
+    if (typeof innerPaper === 'string') return null;
+    // Check all possible ID locations in the response
+    return (
+      item?.id || item?.paper_id || item?.test_paper_id ||
+      innerPaper?.id || innerPaper?.paper_id || innerPaper?.test_paper_id ||
+      null
+    );
   }, [selectedTestPaper, testPaperData]);
 
   const { data: answersData, isLoading: isFetchingAnswers } = useGetTestPaperAnswers(currentPaperIdForAnswers, uid, {
@@ -415,26 +428,35 @@ export default function TestPaperPage() {
     onMutate: () => setTestPaperStatus("loading"),
     onSuccess: (data) => {
       // API might return data differently (nested or direct)
-      const testPaperContent = data.test_paper || data.content || data;
+      // Preserve the top-level ID which is required for fetching answers later
+      const topLevelId = {
+        ...(data.id && { id: data.id }),
+        ...(data.paper_id && { paper_id: data.paper_id }),
+        ...(data.test_paper_id && { test_paper_id: data.test_paper_id }),
+      };
+      const testPaperContent = { ...(data.test_paper || data.content || data), ...topLevelId };
+      console.log("✅ Test paper stored with ID:", testPaperContent.id || testPaperContent.paper_id || testPaperContent.test_paper_id);
       setTestPaperData(testPaperContent);
       setSelectedTestPaper(null);
       setTestPaperStatus("success");
       setShowAnswers(false);
-      if (uid) {
-        // Optimistically update the history sidebar
-        queryClient.setQueryData(["test-papers", uid], (oldData) => {
-          if (!oldData) return { content: [testPaperContent] };
-          return {
-            ...oldData,
-            content: [testPaperContent, ...(oldData.content || [])]
-          };
-        });
+      queryClient.setQueryData(["test-papers", uid], (oldData) => {
+        if (!oldData) return { content: [testPaperContent] };
+        // Ensure we don't have duplicates and the new one is at the top
+        const newId = testPaperContent.id || testPaperContent.paper_id || testPaperContent.test_paper_id;
+        const filtered = (oldData.content || []).filter(item => (item.id || item.paper_id || item.test_paper_id) !== newId);
+        return {
+          ...oldData,
+          content: [testPaperContent, ...filtered]
+        };
+      });
 
+      // Add a slight delay before invalidation to ensure the backend has finished its background update
+      setTimeout(() => {
         queryClient.invalidateQueries({
           queryKey: ["test-papers", uid],
-          refetchType: 'all',
         });
-      }
+      }, 1500);
       toast.success("Test paper generated successfully!");
     },
     onError: (err) => {
@@ -481,6 +503,8 @@ export default function TestPaperPage() {
       uid: uid,
       book_id: bookId,
       chapter: formData.chapter,
+      prompt: `Generate a ${formData.subject || "English"} test paper for Grade ${formData.class} on the topic: ${formData.chapter}. Ensure all questions are relevant to ${formData.subject || "English"}.`,
+      topic: `${formData.subject || "English"}: ${formData.chapter}`,
       class: formData.class,
       subject: formData.subject || "English",
       total_marks: parseInt(formData.total_marks),
@@ -562,5 +586,5 @@ export default function TestPaperPage() {
         )}
       </div>
     </div>
-  )
+  );
 }

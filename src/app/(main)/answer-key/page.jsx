@@ -30,6 +30,7 @@ import {
   useGenerateAnswerKey,
   useUserWorksheet,
   useDeleteAnswerKey,
+  useUserTestPapers,
 } from "@/lib/api/queries";
 import { useAuth } from "@/contexts/auth-context";
 import useApiStore from "@/store/useApiStore";
@@ -183,22 +184,36 @@ const AnswerKeySidebar = ({
 
 // --- New Answer Key Form ---
 
-function NewAnswerKeyForm({ onGenerate, allWorksheets, booksData, isLoading }) {
+function NewAnswerKeyForm({ onGenerate, allWorksheets, userTestPapers, booksData, isLoading }) {
   const [selectedBookId, setSelectedBookId] = useState(null);
   const [selectedChapter, setSelectedChapter] = useState(null);
 
-  const booksWithWorksheets = useMemo(() => {
-    if (!booksData?.content || !allWorksheets?.content) return [];
-    const worksheetBookIds = [...new Set(allWorksheets.content.map((ws) => String(ws.book_id)))];
-    return booksData.content.filter((book) => worksheetBookIds.includes(String(book.id)));
-  }, [booksData, allWorksheets]);
+  const availableBooks = useMemo(() => {
+    if (!booksData?.content) return [];
+
+    // Get all book IDs that have either a worksheet or a test paper
+    const worksheetBookIds = (allWorksheets?.content || []).map(ws => String(ws.book_id));
+    const testPaperBookIds = (userTestPapers?.content || []).map(tp => String(tp.book_id));
+    const combinedBookIds = [...new Set([...worksheetBookIds, ...testPaperBookIds])];
+
+    return booksData.content.filter(book => combinedBookIds.includes(String(book.id)));
+  }, [booksData, allWorksheets, userTestPapers]);
 
   const availableChapters = useMemo(() => {
-    if (!selectedBookId || !allWorksheets?.content) return [];
-    return [...new Set(allWorksheets.content
-      .filter((ws) => String(ws.book_id) === String(selectedBookId))
-      .map((ws) => ws.chapter))];
-  }, [selectedBookId, allWorksheets]);
+    if (!selectedBookId) return [];
+
+    // Get all chapters for this book that have a worksheet
+    const worksheetChapters = (allWorksheets?.content || [])
+      .filter(ws => String(ws.book_id) === String(selectedBookId))
+      .map(ws => ws.chapter);
+
+    // Get all chapters for this book that have a test paper
+    const testPaperChapters = (userTestPapers?.content || [])
+      .filter(tp => String(tp.book_id) === String(selectedBookId))
+      .map(tp => tp.chapter);
+
+    return [...new Set([...worksheetChapters, ...testPaperChapters])];
+  }, [selectedBookId, allWorksheets, userTestPapers]);
 
   return (
     <div className="flex-1 flex items-center justify-center min-h-[calc(100vh-400px)] md:h-[calc(100vh-80px)] bg-white p-6 md:p-10">
@@ -225,7 +240,7 @@ function NewAnswerKeyForm({ onGenerate, allWorksheets, booksData, isLoading }) {
                 <SelectValue placeholder="Choose a book" />
               </SelectTrigger>
               <SelectContent className="rounded-2xl border-gray-100 shadow-xl p-2 font-bold">
-                {booksWithWorksheets?.map((book, index) => (
+                {availableBooks?.map((book, index) => (
                   <SelectItem key={book.id || index} value={book.id} className="rounded-xl py-3 font-bold text-gray-600 focus:bg-indigo-50 focus:text-indigo-600">
                     {book.book_name}
                   </SelectItem>
@@ -448,6 +463,7 @@ export default function AnswerKeyPage() {
 
   const { data: allAnswerKeys, isLoading: isLoadingHistory } = useGetAllAnswerKeys(uid);
   const { data: allWorksheets } = useUserWorksheet(uid, { enabled: !!uid });
+  const { data: userTestPapers } = useUserTestPapers(uid, { enabled: !!uid });
   const { data: booksData, isLoading: bookLoading } = useGetBook();
 
   const { handleDelete: handleHistoryDelete, deletingId } = useHistoryDelete({
@@ -547,6 +563,7 @@ export default function AnswerKeyPage() {
           <NewAnswerKeyForm
             onGenerate={handleGenerate}
             allWorksheets={allWorksheets}
+            userTestPapers={userTestPapers}
             booksData={booksData}
             isLoading={isGenerating}
           />
