@@ -266,15 +266,10 @@ export default function LessonPlanPage() {
     idPropertyName: 'lessonPlanId',
     onDeleteSuccess: (variables) => {
       setLessonPlanStatus("success");
-      if (selectedPlan && selectedPlan.lesson_plan_id === variables.lessonPlanId) {
+      // Use the id directly from variables if provided, or from the selected item
+      const deletedId = variables.lessonPlanId || variables.lesson_plan_id;
+      if (selectedPlan && (selectedPlan.lesson_plan_id === deletedId || selectedPlan.id === deletedId)) {
         setSelectedPlan(null);
-      }
-      // Force immediate background refetch of history to update sidebar
-      if (uid) {
-        queryClient.invalidateQueries({
-          queryKey: ['lp', uid],
-          refetchType: 'all',
-        });
       }
     }
   });
@@ -312,6 +307,8 @@ export default function LessonPlanPage() {
       chapter: chapter,
       uid: uid,
       weeks: weekCount,
+      subject: book.subject || book.book_subject,
+      class: book.class || book.grade_level,
     });
   }, [uid, generateLessonPlan]);
 
@@ -325,7 +322,7 @@ export default function LessonPlanPage() {
         setLessonPlanData(null);
       }}
       onDelete={handleDeleteLP}
-      isHistoryLoading={LPloading || LPFetching}
+      isHistoryLoading={LPloading}
       deletingId={deletingId}
       isProcessing={isCreateLPPending}
       processingText={`Generating ${navItem?.title || 'Lesson Plan'}...`}

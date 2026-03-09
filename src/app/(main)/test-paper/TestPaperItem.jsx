@@ -1,11 +1,18 @@
 "use client";
 
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { FileText, Printer } from "lucide-react";
+import { FileText, Printer, Key } from "lucide-react";
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { useAuth } from "@/contexts/auth-context";
+import { useGetTestPaperAnswers } from "@/lib/api/queries";
 
 const TestPaperItem = ({ item, bookId, isNew, testPaperId }) => {
+    const { user } = useAuth();
+    const uid = user?.user?.uid;
+    const [showAnswers, setShowAnswers] = useState(false);
+
     console.log("TestPaperItem rendered with:", { item, bookId, isNew, testPaperId });
 
     if (!item) {
@@ -16,17 +23,53 @@ const TestPaperItem = ({ item, bookId, isNew, testPaperId }) => {
     const itemWithId = isNew ? { ...item, id: testPaperId } : item;
     console.log("TestPaperItem itemWithId:", itemWithId);
 
-    // Extract metadata from the correct location
-    const paperData = itemWithId.paper || itemWithId;
-    const sections = itemWithId.sections || [];
+    // Resolve each metadata field: top-level first, then data wrapper, then paper sub-object
+    const dataMeta = (itemWithId.data && !Array.isArray(itemWithId.data)) ? itemWithId.data : {};
+    const paperMeta = (itemWithId.paper && !Array.isArray(itemWithId.paper))
+        ? itemWithId.paper
+        : (dataMeta.paper && !Array.isArray(dataMeta.paper)) ? dataMeta.paper : {};
 
-    console.log("paperData:", paperData);
-    console.log("sections:", sections);
+    // Fetch answers externally if not embedded in item
+    const currentPaperId = itemWithId.test_paper_id || itemWithId.id || itemWithId.paper_id || dataMeta?.test_paper_id || dataMeta?.paper_id || dataMeta?.id || testPaperId;
+    console.log("Answer Key - currentPaperId:", currentPaperId);
 
-    // Flatten all questions from all sections
-    const allQuestions = sections.flatMap(section =>
-        Array.isArray(section.questions) ? section.questions : []
-    );
+    const { data: fetchedAnswersData, isLoading: fetchingAnswers } = useGetTestPaperAnswers(currentPaperId, uid, {
+        enabled: !!showAnswers && !!uid && !!currentPaperId
+    });
+
+    const externalAnswers = fetchedAnswersData?.answer_key || fetchedAnswersData?.content?.answers || fetchedAnswersData?.answers || fetchedAnswersData?.content?.answer_key || [];
+    const embeddedAnswers = itemWithId.answer_key || dataMeta?.answer_key || [];
+    const activeAnswers = externalAnswers.length > 0 ? externalAnswers : embeddedAnswers;
+    console.log("activeAnswers:", activeAnswers);
+
+    const sections = itemWithId.sections || dataMeta.sections || [];
+
+    const paperData = {
+        title: itemWithId.title || dataMeta.title || paperMeta.title || null,
+        subject: itemWithId.subject || dataMeta.subject || paperMeta.subject || null,
+        class: itemWithId.class || dataMeta.class || paperMeta.class || null,
+        total_marks: itemWithId.total_marks || dataMeta.total_marks || paperMeta.total_marks || null,
+        duration: itemWithId.duration || dataMeta.duration || paperMeta.duration || null,
+    };
+
+    console.log("Resolved paperData:", paperData);
+    console.log("Resolved sections:", sections);
+
+    // Flatten all questions from all sections, or use item.paper if it's a flat array
+    let allQuestions = [];
+    if (sections.length > 0) {
+        allQuestions = sections.flatMap(section =>
+            Array.isArray(section.questions) ? section.questions : []
+        );
+    } else if (Array.isArray(itemWithId.paper)) {
+        allQuestions = itemWithId.paper;
+    } else if (Array.isArray(dataMeta.paper)) {
+        allQuestions = dataMeta.paper;
+    } else if (Array.isArray(itemWithId.questions)) {
+        allQuestions = itemWithId.questions;
+    } else if (Array.isArray(dataMeta.questions)) {
+        allQuestions = dataMeta.questions;
+    }
 
     console.log("allQuestions:", allQuestions);
     if (allQuestions.length > 0) {
@@ -55,11 +98,46 @@ const TestPaperItem = ({ item, bookId, isNew, testPaperId }) => {
                             <Printer className="h-4 w-4" />
                             Print
                         </Button>
+                        <Button
+                            className="gap-2 bg-gradient-to-r from-primary to-accent hover:opacity-90"
+                            onClick={() => setShowAnswers(!showAnswers)}
+                            disabled={fetchingAnswers}
+                        >
+                            <Key className="h-4 w-4" />
+                            {fetchingAnswers ? "Loading..." : (showAnswers ? "Hide Answer Key" : "Answer Key")}
+                        </Button>
                     </div>
                 </div>
 
                 {/* Test Paper Content */}
                 <div className="p-8">
+                    {showAnswers && (
+                        <div className={`mb-8 p-4 border rounded-lg text-sm flex items-center justify-between shadow-sm ${fetchingAnswers
+                                ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-800'
+                                : activeAnswers.length > 0
+                                    ? 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 border-green-200 dark:border-green-800'
+                                    : 'bg-yellow-50 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-400 border-yellow-200 dark:border-yellow-800'
+                            }`}>
+                            <div className="flex items-center gap-3">
+                                <Key className="h-5 w-5" />
+                                <span className="font-semibold text-base">
+                                    {fetchingAnswers
+                                        ? 'Loading answer key...'
+                                        : activeAnswers.length > 0
+                                            ? 'Answer key generated successfully — scroll down to view it at the bottom of the paper'
+                                            : 'No answers found for this test paper yet'}
+                                </span>
+                            </div>
+                            {!fetchingAnswers && activeAnswers.length > 0 && (
+                                <Button variant="ghost" size="sm" onClick={() => {
+                                    window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+                                }}>
+                                    Scroll Down ↓
+                                </Button>
+                            )}
+                        </div>
+                    )}
+
                     <div className="max-w-4xl">
                         {/* Info Box */}
                         <div className="rounded-xl border-2 border-primary/20 p-6 mb-8 bg-gradient-to-br from-primary/5 to-accent/5">
@@ -148,6 +226,44 @@ const TestPaperItem = ({ item, bookId, isNew, testPaperId }) => {
                             )}
                         </div>
                     </div>
+
+                    {/* Answer Key Section */}
+                    {showAnswers && activeAnswers && activeAnswers.length > 0 && (
+                        <div className="mt-12 pt-8 border-t-2 border-dashed border-primary/30">
+                            <h3 className="text-xl font-bold text-primary mb-6 flex items-center gap-2">
+                                <Key className="h-6 w-6" />
+                                Answer Key
+                            </h3>
+                            <div className="space-y-6">
+                                {activeAnswers.map((answerObj, idx) => (
+                                    <div key={idx} className="bg-muted/30 p-4 rounded-xl border border-border/50">
+                                        <p className="font-semibold text-foreground mb-2">
+                                            <span className="text-primary mr-2">Q{answerObj.question_number || (idx + 1)}.</span>
+                                            {answerObj.question}
+                                        </p>
+                                        <div className="pl-6 space-y-2 text-sm text-muted-foreground">
+                                            <div className="flex gap-2">
+                                                <span className="font-semibold text-foreground">Answer:</span>
+                                                <span className="font-bold text-green-600 dark:text-green-500">
+                                                    {typeof answerObj.correct_answer === 'object'
+                                                        ? JSON.stringify(answerObj.correct_answer)
+                                                        : String(answerObj.correct_answer || answerObj.answer || answerObj.expected_answer || 'N/A')}
+                                                </span>
+                                            </div>
+
+                                            {answerObj.explanation && (
+                                                <div className="mt-2 text-muted-foreground italic">
+                                                    <span className="font-semibold not-italic">Explanation:</span>{" "}
+                                                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{answerObj.explanation}</ReactMarkdown>
+                                                </div>
+                                            )}
+
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
                 </div>
             </div>
         </div>

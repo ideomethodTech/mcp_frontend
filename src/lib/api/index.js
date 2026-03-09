@@ -75,9 +75,19 @@ const api = (config) => {
           return Promise.reject(customError);
         }
 
+        // If the backend returned JSON as a string, parse it so frontend code doesn't break
+        if (typeof error.response.data === 'string') {
+          try {
+            error.response.data = JSON.parse(error.response.data);
+          } catch (e) {
+            // keep it as a string if not JSON
+          }
+        }
+
         // Log structured error if available
-        console.error("API Error Status:", error.response.status);
-        console.error("API Error Response Data:", JSON.stringify(error.response.data, null, 2));
+        const logMethod = error.response.status === 404 ? console.warn : console.error;
+        logMethod("API Error Status:", error.response.status);
+        logMethod("API Error Response Data:", typeof error.response.data === 'string' ? error.response.data : JSON.stringify(error.response.data, null, 2));
       }
 
       // Handle specific JSON parse errors
@@ -89,7 +99,8 @@ const api = (config) => {
       }
 
       // Handle global errors here
-      console.error("Final API Error Log:", error.message || error);
+      const finalLogMethod = error.response?.status === 404 ? console.warn : console.error;
+      finalLogMethod("Final API Error Log:", error.message || error);
       return Promise.reject(error);
     }
   );

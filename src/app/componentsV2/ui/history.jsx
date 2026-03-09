@@ -50,9 +50,25 @@ const History = ({
               e.stopPropagation();
               onDelete(item);
             }}
-            disabled={!!deletingId && (deletingId === item.id || deletingId === item.chat_id || deletingId === item.lesson_plan_id || deletingId === item.worksheet_id || deletingId === item.answer_key_id)}
+            disabled={!!deletingId && (
+              String(deletingId) === String(item.id) ||
+              String(deletingId) === String(item.chat_id) ||
+              String(deletingId) === String(item.lesson_plan_id) ||
+              String(deletingId) === String(item.worksheet_id) ||
+              String(deletingId) === String(item.answer_key_id) ||
+              String(deletingId) === String(item.test_paper_id) ||
+              String(deletingId) === String(item.paper_id)
+            )}
           >
-            {(deletingId && (deletingId === item.id || deletingId === item.chat_id || deletingId === item.lesson_plan_id || deletingId === item.worksheet_id || deletingId === item.answer_key_id)) ? (
+            {(deletingId && (
+              String(deletingId) === String(item.id) ||
+              String(deletingId) === String(item.chat_id) ||
+              String(deletingId) === String(item.lesson_plan_id) ||
+              String(deletingId) === String(item.worksheet_id) ||
+              String(deletingId) === String(item.answer_key_id) ||
+              String(deletingId) === String(item.test_paper_id) ||
+              String(deletingId) === String(item.paper_id)
+            )) ? (
               <Loader className="h-4 w-4 animate-spin" />
             ) : (
               <Trash2 className="h-4 w-4" />

@@ -463,7 +463,7 @@ export default function AnswerKeyPage() {
       selectedItem={selectedItem}
       setSelectedItem={handleHistorySelect}
       onDelete={handleDeleteAnswerKey}
-      isHistoryLoading={isLoadingHistory || isFetchingHistory}
+      isHistoryLoading={isLoadingHistory}
       deletingId={deletingId}
       isProcessing={isGenerating}
       processingText={`Generating ${navItem?.title}...`}

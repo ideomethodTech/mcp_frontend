@@ -230,15 +230,9 @@ export default function WorksheetPage() {
     idPropertyName: "worksheet_id",
     onDeleteSuccess: (variables) => {
       setWorksheetStatus("success");
-      if (selectedworksheet && selectedworksheet.id === variables.worksheet_id) {
+      const deletedId = variables.worksheet_id;
+      if (selectedworksheet && (selectedworksheet.id === deletedId || selectedworksheet.worksheet_id === deletedId)) {
         setSelectedworksheet(null);
-      }
-      // Force immediate background refetch of history to update sidebar
-      if (uid) {
-        queryClient.invalidateQueries({
-          queryKey: ["ws", uid],
-          refetchType: 'all',
-        });
       }
     },
   });
@@ -256,6 +250,8 @@ export default function WorksheetPage() {
       book_id: book.id,
       chapter: chapter,
       uid: uid,
+      subject: book.subject || book.book_subject,
+      class: book.class || book.grade_level,
     });
   }, [uid, generateWSMutation]);
 
@@ -270,7 +266,7 @@ export default function WorksheetPage() {
         setWorksheetData(null);
       }}
       onDelete={handleDeleteWorksheet}
-      isHistoryLoading={worksheetsLoading || worksheetsFetching}
+      isHistoryLoading={worksheetsLoading}
       deletingId={deletingId}
       isProcessing={isLoading || generatingWS}
       processingText={`Generating ${navItem?.title}...`}
