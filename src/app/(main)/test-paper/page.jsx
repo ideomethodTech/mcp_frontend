@@ -42,7 +42,16 @@ const TestPaperSidebar = ({
   setIsNavCollapsed,
   onStartNew
 }) => {
-  const testPapers = userTestPapers?.content || [];
+  const testPapers = useMemo(() => {
+    let raw = [];
+    if (!userTestPapers) raw = [];
+    else if (Array.isArray(userTestPapers)) raw = userTestPapers;
+    else if (Array.isArray(userTestPapers.content)) raw = userTestPapers.content;
+    else if (Array.isArray(userTestPapers.data)) raw = userTestPapers.data;
+    else if (Array.isArray(userTestPapers.test_papers)) raw = userTestPapers.test_papers;
+    else if (Array.isArray(userTestPapers.papers)) raw = userTestPapers.papers;
+    return raw;
+  }, [userTestPapers]);
 
   return (
     <div className={cn(
@@ -426,7 +435,7 @@ export default function TestPaperPage() {
 
   const { mutate: generateTestPaperMutation, isPending: generatingTestPaper } = useGenerateTestPaper({
     onMutate: () => setTestPaperStatus("loading"),
-    onSuccess: (data) => {
+    onSuccess: (data, variables) => {
       // API might return data differently (nested or direct)
       // Preserve the top-level ID which is required for fetching answers later
       const topLevelId = {
@@ -434,20 +443,45 @@ export default function TestPaperPage() {
         ...(data.paper_id && { paper_id: data.paper_id }),
         ...(data.test_paper_id && { test_paper_id: data.test_paper_id }),
       };
-      const testPaperContent = { ...(data.test_paper || data.content || data), ...topLevelId };
+
+      const testPaperContent = {
+        ...(data.test_paper || data.content || data),
+        ...topLevelId,
+        // Optimistically add context from variables so the sidebar renders immediately with valid info
+        subject: data.subject || data.test_paper?.subject || variables.subject,
+        chapter: data.chapter || data.test_paper?.chapter || variables.chapter,
+        class: data.class || data.test_paper?.class || variables.class,
+        title: data.title || data.test_paper?.title || `${variables.subject || "Test Paper"} - ${variables.chapter || "Mixed"}`,
+        created_at: data.created_at || data.test_paper?.created_at || new Date().toISOString()
+      };
+
       console.log("✅ Test paper stored with ID:", testPaperContent.id || testPaperContent.paper_id || testPaperContent.test_paper_id);
       setTestPaperData(testPaperContent);
       setSelectedTestPaper(null);
       setTestPaperStatus("success");
       setShowAnswers(false);
       queryClient.setQueryData(["test-papers", uid], (oldData) => {
-        if (!oldData) return { content: [testPaperContent] };
-        // Ensure we don't have duplicates and the new one is at the top
+        if (!oldData) return [testPaperContent]; // Default to simple array
+
         const newId = testPaperContent.id || testPaperContent.paper_id || testPaperContent.test_paper_id;
-        const filtered = (oldData.content || []).filter(item => (item.id || item.paper_id || item.test_paper_id) !== newId);
+
+        // Handle direct array
+        if (Array.isArray(oldData)) {
+          const filtered = oldData.filter(item => (item.id || item.paper_id || item.test_paper_id) !== newId);
+          return [testPaperContent, ...filtered];
+        }
+
+        // Handle wrapped arrays like { content: [...] } or { data: [...] }
+        const key = oldData.content !== undefined ? 'content' :
+          oldData.data !== undefined ? 'data' :
+            oldData.test_papers !== undefined ? 'test_papers' : 'papers';
+
+        const oldArray = Array.isArray(oldData[key]) ? oldData[key] : [];
+        const filtered = oldArray.filter(item => (item.id || item.paper_id || item.test_paper_id) !== newId);
+
         return {
           ...oldData,
-          content: [testPaperContent, ...filtered]
+          [key]: [testPaperContent, ...filtered]
         };
       });
 

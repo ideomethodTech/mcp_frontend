@@ -34,7 +34,7 @@ export function useHistoryDelete({
     });
 
     const handleDelete = useCallback((item, additionalParams = {}) => {
-        const id = item.id || item.chat_id || item.lesson_plan_id || item.worksheet_id || item.answer_key_id;
+        const id = item.id || item.test_paper_id || item.paper_id || item.chat_id || item.lesson_plan_id || item.worksheet_id || item.answer_key_id;
 
         if (!id) {
             toast.warning('Attempted to delete item with no ID');

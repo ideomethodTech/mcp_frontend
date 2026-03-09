@@ -15,26 +15,35 @@ export const generateContent = async ({ uid, prompt, book_id, chat_id }) => {
 };
 
 export const generateWorksheet = async (data) => {
-  console.log("🚀 Sending Worksheet Generation Request:", JSON.stringify(data, null, 2));
   const response = await api({
     url: ENDPOINTS.GENERATE_WORKSHEET,
     method: "POST",
     data: {
-      book_id: data.book_id,
       uid: data.uid,
-      prompt: data.chapter, // Legacy
-      topic: data.chapter   // Genkit Flow expects 'topic'
+      book_id: data.book_id,
+      chapter: data.chapter,
+      prompt: `Generate a worksheet based on chapter: ${data.chapter}.`,
+      subject: data.subject || null,
+      class: data.class || null,
     },
     timeout: 300000,
   });
   return response.data;
 };
 
-export const generateAnswerKey = async ({ worksheet_id, book_id, uid, chapter }) => {
+export const generateAnswerKey = async (data) => {
   const response = await api({
     url: ENDPOINTS.GENERATE_ANSWER_KEY,
     method: "POST",
-    data: { worksheet_id, book_id, uid, prompt: chapter },
+    data: {
+      worksheet_id: data.worksheet_id,
+      book_id: data.book_id,
+      uid: data.uid,
+      chapter: data.chapter,
+      prompt: `Generate an answer key for chapter: ${data.chapter}.`,
+      subject: data.subject || null,
+      class: data.class || null,
+    },
     timeout: 300000,
   });
   return response.data;
@@ -127,7 +136,7 @@ export const getAnswerKey = async (answerKeyId, uid) => {
     url: ENDPOINTS.GET_USER_ANSWER_KEY,
     method: "GET",
     params: {
-      answer_key_id: answerKeyId,
+      answerKeyId,
       uid,
     },
   });
@@ -154,13 +163,14 @@ export const createLessonPlan = async (data) => {
     url: ENDPOINTS.GENERATE_LESSON_PLAN,
     method: "POST",
     data: {
-      book_id: data.book_id,
-      prompt: data.chapter, // Legacy
       uid: data.uid,
-      weeks: data.weeks,   // Legacy
-      topicName: data.chapter, // Genkit Flow expects 'topicName'
-      gradeLevel: data.class || "10", // Genkit Flow expects 'gradeLevel'
-      duration: `${data.weeks || 2} weeks`, // Genkit Flow expects 'duration'
+      book_id: data.book_id,
+      chapter: data.chapter, // Ensure 'chapter' is sent directly
+      prompt: `Generate a detailed lesson plan for chapter: ${data.chapter}.`,
+      weeks: data.weeks,
+      // Pass-through any other fields likes subject or class if they were sent
+      subject: data.subject || null,
+      class: data.class || null,
     },
     timeout: 300000,
   });
@@ -303,16 +313,6 @@ export const registerUser = async (data) => {
 };
 
 export const generateTestPaper = async (data) => {
-  console.log("🚀 OUTGOING TEST PAPER PAYLOAD:", {
-    uid: data.uid,
-    book_id: data.book_id,
-    chapter: data.chapter,
-    class: data.class,
-    subject: data.subject,
-    total_marks: data.total_marks,
-    duration: data.duration
-  });
-
   const response = await api({
     url: ENDPOINTS.GENERATE_TEST_PAPER,
     method: "POST",
@@ -320,17 +320,14 @@ export const generateTestPaper = async (data) => {
       uid: data.uid,
       book_id: data.book_id,
       chapter: data.chapter,
-      prompt: `Generate a ${data.subject || "English"} test paper for Grade ${data.class} on the topic: ${data.chapter}. Ensure all questions are relevant to ${data.subject || "English"}.`,
-      topic: `${data.subject || "English"}: ${data.chapter}`,
+      prompt: `Generate a ${data.subject} test paper based on chapter: ${data.chapter}. Ensure questions are specific to this subject and chapter context.`,
       class: data.class,
-      subject: data.subject || "English",
-      total_marks: parseInt(data.total_marks || 50),
+      subject: data.subject,
+      total_marks: data.total_marks,
       duration: data.duration,
     },
     timeout: 300000,
   });
-
-  console.log("📥 TEST PAPER API RESPONSE:", response.data);
   return response.data;
 };
 
@@ -373,11 +370,10 @@ export const getTestPaperAnswers = async (testPaperId, uid) => {
   return response.data;
 };
 
-export const deleteTestPaper = async ({ uid, paper_id, test_paper_id }) => {
-  const idToDelete = paper_id || test_paper_id;
-  if (!uid || !idToDelete) throw new Error("uid and paper_id are required");
+export const deleteTestPaper = async ({ uid, test_paper_id }) => {
+  if (!uid || !test_paper_id) throw new Error("uid and test_paper_id are required");
   const response = await api({
-    url: `${ENDPOINTS.DELETE_TEST_PAPER}${uid}/${idToDelete}`,
+    url: `${ENDPOINTS.DELETE_TEST_PAPER}${uid}/${test_paper_id}`,
     method: "DELETE",
   });
   return response.data;

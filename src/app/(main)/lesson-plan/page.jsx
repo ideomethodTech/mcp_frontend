@@ -294,11 +294,56 @@ export default function LessonPlanPage() {
 
   // Mutations
   const { mutate: generateLessonPlan, isPending: isCreateLPPending } = useCreateLessonPlan({
-    onSuccess: (data) => {
-      setLessonPlanData(data);
+    onSuccess: (data, variables) => {
+      // Preserve top level IDs if nested
+      const topLevelId = {
+        ...(data.lesson_plan_id && { lesson_plan_id: data.lesson_plan_id }),
+        ...(data.id && { id: data.id })
+      };
+
+      const newPlan = {
+        ...(data.lesson_plan || data.content || data),
+        ...topLevelId,
+        chapter: data.chapter || variables.chapter,
+        book: data.book || variables.book_name || "Book",
+        title: data.title || `${variables.book_name || "Book"} - ${variables.chapter || "Chapter"}`,
+        created_at: data.created_at || new Date().toISOString()
+      };
+
+      setLessonPlanData(newPlan);
       setSelectedPlan(null);
+
       if (uid) {
-        queryClient.invalidateQueries({ queryKey: ['lp', uid] });
+        // Optimistic UI Update: Instantly inject the generated plan into the history sidebar correctly
+        queryClient.setQueryData(['lp', uid], (oldData) => {
+          if (!oldData) return [newPlan]; // Default to simple array
+
+          const newId = newPlan.lesson_plan_id || newPlan.id;
+
+          // Handle direct array
+          if (Array.isArray(oldData)) {
+            const filtered = oldData.filter(item => (item.lesson_plan_id || item.id) !== newId);
+            return [newPlan, ...filtered];
+          }
+
+          // Handle wrapped arrays like { content: [...] } or { data: [...] }
+          const key = oldData.content !== undefined ? 'content' :
+            oldData.data !== undefined ? 'data' :
+              oldData.lesson_plans !== undefined ? 'lesson_plans' : 'plans';
+
+          const oldArray = Array.isArray(oldData[key]) ? oldData[key] : [];
+          const filtered = oldArray.filter(item => (item.lesson_plan_id || item.id) !== newId);
+
+          return {
+            ...oldData,
+            [key]: [newPlan, ...filtered]
+          };
+        });
+
+        // Add a slight delay before invalidation to ensure the backend has finished its background update
+        setTimeout(() => {
+          queryClient.invalidateQueries({ queryKey: ['lp', uid] });
+        }, 1500);
       }
       toast.success("Lesson plan generated successfully!");
     },
@@ -334,6 +379,7 @@ export default function LessonPlanPage() {
 
     generateLessonPlan({
       book_id: book.id,
+      book_name: book.book_name || book.title, // Just for optimistic UI context
       chapter: chapter,
       uid: uid,
       weeks: weekCount,

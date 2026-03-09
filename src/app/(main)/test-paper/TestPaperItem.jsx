@@ -210,29 +210,46 @@ const TestPaperItem = ({ item, onRegenerate, isRegenerating, showAnswers, answer
 
                                     {question.options && Array.isArray(question.options) && question.options.length > 0 && (
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-8">
-                                            {question.options.map((option, optIndex) => (
-                                                <div key={optIndex} className={cn(
-                                                    "flex gap-4 p-4 md:p-5 rounded-[1.5rem] border-2 transition-all shadow-sm",
-                                                    showAnswers && (option === question.correct_answer || option === question.answer)
-                                                        ? "bg-emerald-50 border-emerald-200"
-                                                        : "bg-gray-50 border-transparent hover:border-indigo-100 hover:bg-white hover:shadow-md group/opt"
-                                                )}>
-                                                    <span className={cn(
-                                                        "flex-shrink-0 w-9 h-9 md:w-10 md:h-10 rounded-xl border-2 flex items-center justify-center text-xs md:text-sm font-black",
-                                                        showAnswers && (option === question.correct_answer || option === question.answer)
-                                                            ? "bg-emerald-600 text-white border-emerald-600"
-                                                            : "bg-white border-gray-100 text-gray-400 group-hover/opt:text-indigo-600 group-hover/opt:border-indigo-100"
+                                            {question.options.map((option, optIndex) => {
+                                                // Robust correct answer matching:
+                                                // The API may return correct_answer as a letter ("A"), "(A)", "a",
+                                                // or the full option text. We handle all cases.
+                                                const correctAnswerRaw = question.correct_answer || question.answer || '';
+                                                const correctLetter = String(correctAnswerRaw).replace(/[^a-zA-Z]/g, '').toUpperCase();
+                                                const optionLetter = String.fromCharCode(65 + optIndex); // A, B, C, D
+                                                const isCorrectByLetter = correctLetter === optionLetter;
+                                                const isCorrectByText = option === correctAnswerRaw;
+                                                const isCorrect = showAnswers && (isCorrectByLetter || isCorrectByText);
+
+                                                return (
+                                                    <div key={optIndex} className={cn(
+                                                        "flex gap-4 p-4 md:p-5 rounded-[1.5rem] border-2 transition-all shadow-sm",
+                                                        isCorrect
+                                                            ? "bg-emerald-50 border-emerald-200"
+                                                            : "bg-gray-50 border-transparent hover:border-indigo-100 hover:bg-white hover:shadow-md group/opt"
                                                     )}>
-                                                        {String.fromCharCode(65 + optIndex)}
-                                                    </span>
-                                                    <p className={cn(
-                                                        "text-sm md:text-base font-bold transition-colors py-2",
-                                                        showAnswers && (option === question.correct_answer || option === question.answer)
-                                                            ? "text-emerald-900"
-                                                            : "text-gray-600 group-hover/opt:text-gray-900"
-                                                    )}>{option}</p>
-                                                </div>
-                                            ))}
+                                                        <span className={cn(
+                                                            "flex-shrink-0 w-9 h-9 md:w-10 md:h-10 rounded-xl border-2 flex items-center justify-center text-xs md:text-sm font-black",
+                                                            isCorrect
+                                                                ? "bg-emerald-600 text-white border-emerald-600"
+                                                                : "bg-white border-gray-100 text-gray-400 group-hover/opt:text-indigo-600 group-hover/opt:border-indigo-100"
+                                                        )}>
+                                                            {optionLetter}
+                                                        </span>
+                                                        <p className={cn(
+                                                            "text-sm md:text-base font-bold transition-colors py-2",
+                                                            isCorrect
+                                                                ? "text-emerald-900"
+                                                                : "text-gray-600 group-hover/opt:text-gray-900"
+                                                        )}>{option}</p>
+                                                        {isCorrect && (
+                                                            <span className="ml-auto flex-shrink-0 self-center text-emerald-500">
+                                                                <CheckCircle2 className="w-5 h-5" />
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                );
+                                            })}
                                         </div>
                                     )}
 
