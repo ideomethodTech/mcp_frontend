@@ -224,8 +224,9 @@ export const useGetTestPaperAnswers = (testPaperId, uid, options = {}) =>
   useQuery({
     queryKey: ["test-paper-answers", testPaperId, uid],
     queryFn: () => getTestPaperAnswers(testPaperId, uid),
-    enabled: !!testPaperId && !!uid,
     ...options,
+    // Let caller override enabled, default to true only when ids present
+    enabled: options.enabled !== undefined ? options.enabled : (!!testPaperId && !!uid),
   });
 
 export const useTestPaperAPITest = (options = {}) =>

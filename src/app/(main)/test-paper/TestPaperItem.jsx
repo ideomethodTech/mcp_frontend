@@ -30,14 +30,17 @@ const TestPaperItem = ({ item, bookId, isNew, testPaperId }) => {
         : (dataMeta.paper && !Array.isArray(dataMeta.paper)) ? dataMeta.paper : {};
 
     // Fetch answers externally if not embedded in item
-    const currentPaperId = itemWithId.test_paper_id || itemWithId.id || itemWithId.paper_id;
+    const currentPaperId = itemWithId.test_paper_id || itemWithId.id || itemWithId.paper_id || dataMeta?.test_paper_id || dataMeta?.paper_id || dataMeta?.id || testPaperId;
+    console.log("Answer Key - currentPaperId:", currentPaperId);
+
     const { data: fetchedAnswersData, isLoading: fetchingAnswers } = useGetTestPaperAnswers(currentPaperId, uid, {
         enabled: !!showAnswers && !!uid && !!currentPaperId
     });
 
-    const externalAnswers = fetchedAnswersData?.answer_key || fetchedAnswersData?.content?.answers || fetchedAnswersData?.answers || [];
-    const embeddedAnswers = itemWithId.answer_key || dataMeta.answer_key || [];
+    const externalAnswers = fetchedAnswersData?.answer_key || fetchedAnswersData?.content?.answers || fetchedAnswersData?.answers || fetchedAnswersData?.content?.answer_key || [];
+    const embeddedAnswers = itemWithId.answer_key || dataMeta?.answer_key || [];
     const activeAnswers = externalAnswers.length > 0 ? externalAnswers : embeddedAnswers;
+    console.log("activeAnswers:", activeAnswers);
 
     const sections = itemWithId.sections || dataMeta.sections || [];
 
@@ -108,6 +111,33 @@ const TestPaperItem = ({ item, bookId, isNew, testPaperId }) => {
 
                 {/* Test Paper Content */}
                 <div className="p-8">
+                    {showAnswers && (
+                        <div className={`mb-8 p-4 border rounded-lg text-sm flex items-center justify-between shadow-sm ${fetchingAnswers
+                                ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-800'
+                                : activeAnswers.length > 0
+                                    ? 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 border-green-200 dark:border-green-800'
+                                    : 'bg-yellow-50 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-400 border-yellow-200 dark:border-yellow-800'
+                            }`}>
+                            <div className="flex items-center gap-3">
+                                <Key className="h-5 w-5" />
+                                <span className="font-semibold text-base">
+                                    {fetchingAnswers
+                                        ? 'Loading answer key...'
+                                        : activeAnswers.length > 0
+                                            ? 'Answer key generated successfully — scroll down to view it at the bottom of the paper'
+                                            : 'No answers found for this test paper yet'}
+                                </span>
+                            </div>
+                            {!fetchingAnswers && activeAnswers.length > 0 && (
+                                <Button variant="ghost" size="sm" onClick={() => {
+                                    window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+                                }}>
+                                    Scroll Down ↓
+                                </Button>
+                            )}
+                        </div>
+                    )}
+
                     <div className="max-w-4xl">
                         {/* Info Box */}
                         <div className="rounded-xl border-2 border-primary/20 p-6 mb-8 bg-gradient-to-br from-primary/5 to-accent/5">
