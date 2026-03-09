@@ -14,21 +14,36 @@ export const generateContent = async ({ uid, prompt, book_id, chat_id }) => {
   return response.data;
 };
 
-export const generateWorksheet = async ({ book_id, uid, chapter }) => {
+export const generateWorksheet = async (data) => {
   const response = await api({
     url: ENDPOINTS.GENERATE_WORKSHEET,
     method: "POST",
-    data: { book_id, uid, prompt: chapter },
+    data: {
+      uid: data.uid,
+      book_id: data.book_id,
+      chapter: data.chapter,
+      prompt: `Generate a worksheet based on chapter: ${data.chapter}.`,
+      subject: data.subject || null,
+      class: data.class || null,
+    },
     timeout: 300000,
   });
   return response.data;
 };
 
-export const generateAnswerKey = async ({ worksheet_id, book_id, uid, chapter }) => {
+export const generateAnswerKey = async (data) => {
   const response = await api({
     url: ENDPOINTS.GENERATE_ANSWER_KEY,
     method: "POST",
-    data: { worksheet_id, book_id, uid, prompt: chapter },
+    data: {
+      worksheet_id: data.worksheet_id,
+      book_id: data.book_id,
+      uid: data.uid,
+      chapter: data.chapter,
+      prompt: `Generate an answer key for chapter: ${data.chapter}.`,
+      subject: data.subject || null,
+      class: data.class || null,
+    },
     timeout: 300000,
   });
   return response.data;
@@ -148,10 +163,14 @@ export const createLessonPlan = async (data) => {
     url: ENDPOINTS.GENERATE_LESSON_PLAN,
     method: "POST",
     data: {
-      book_id: data.book_id,
-      prompt: data.chapter,
       uid: data.uid,
+      book_id: data.book_id,
+      chapter: data.chapter, // Ensure 'chapter' is sent directly
+      prompt: `Generate a detailed lesson plan for chapter: ${data.chapter}.`,
       weeks: data.weeks,
+      // Pass-through any other fields likes subject or class if they were sent
+      subject: data.subject || null,
+      class: data.class || null,
     },
     timeout: 300000,
   });
@@ -209,6 +228,7 @@ export const createChat = async (data) => {
       chat_title: data.chat_title,
       uid: data.uid,
       book_id: data.book_id,
+      ...(data.chapter ? { chapter: data.chapter } : {}),
     },
   });
   return response.data;
@@ -330,7 +350,7 @@ export const getTestPaper = async (testPaperId, uid) => {
     url: ENDPOINTS.GET_TEST_PAPER,
     method: "GET",
     params: {
-      test_paper_id: testPaperId,
+      paper_id: testPaperId,   // backend expects 'paper_id', not 'test_paper_id'
       uid,
     },
   });
@@ -344,7 +364,7 @@ export const getTestPaperAnswers = async (testPaperId, uid) => {
     url: ENDPOINTS.GET_TEST_PAPER_ANSWERS,
     method: "GET",
     params: {
-      test_paper_id: testPaperId,
+      paper_id: testPaperId,
       uid,
     },
   });

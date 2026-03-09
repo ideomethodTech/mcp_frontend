@@ -36,15 +36,15 @@ const ChatMessage = ({ isUser = false, content, isLoading = false }) => {
     code: () => null, // Do not render code blocks or inline code
     pre: () => null,
     // Optionally, customize other elements for branding
-    h1: ({node, ...props}) => <h1 className="text-2xl font-bold mt-4 mb-2" {...props} />,
-    h2: ({node, ...props}) => <h2 className="text-xl font-semibold mt-3 mb-2" {...props} />,
-    h3: ({node, ...props}) => <h3 className="text-lg font-semibold mt-2 mb-1" {...props} />,
-    ul: ({node, ...props}) => <ul className="list-disc pl-6 my-2" {...props} />,
-    ol: ({node, ...props}) => <ol className="list-decimal pl-6 my-2" {...props} />,
-    li: ({node, ...props}) => <li className="mb-1" {...props} />,
-    blockquote: ({node, ...props}) => <blockquote className="border-l-4 border-primary pl-4 italic text-muted-foreground my-2" {...props} />,
-    a: ({node, ...props}) => <a className="text-primary underline" target="_blank" rel="noopener noreferrer" {...props} />,
-    p: ({node, ...props}) => <p className="mb-2" {...props} />,
+    h1: ({ node, ...props }) => <h1 className="text-2xl font-bold mt-4 mb-2" {...props} />,
+    h2: ({ node, ...props }) => <h2 className="text-xl font-semibold mt-3 mb-2" {...props} />,
+    h3: ({ node, ...props }) => <h3 className="text-lg font-semibold mt-2 mb-1" {...props} />,
+    ul: ({ node, ...props }) => <ul className="list-disc pl-6 my-2" {...props} />,
+    ol: ({ node, ...props }) => <ol className="list-decimal pl-6 my-2" {...props} />,
+    li: ({ node, ...props }) => <li className="mb-1" {...props} />,
+    blockquote: ({ node, ...props }) => <blockquote className="border-l-4 border-primary pl-4 italic text-muted-foreground my-2" {...props} />,
+    a: ({ node, ...props }) => <a className="text-primary underline" target="_blank" rel="noopener noreferrer" {...props} />,
+    p: ({ node, ...props }) => <p className="mb-2" {...props} />,
   };
 
   return (
@@ -258,6 +258,7 @@ function ChatInterface({ chatSession, setChatSession }) {
 
 function NewChatForm({ onStartChat, data }) {
   const [selectedBook, setSelectedBook] = useState(null);
+  const [selectedChapter, setSelectedChapter] = useState(null);
 
   return (
     <div className="flex flex-col items-center justify-center min-h-[500px]">
@@ -270,25 +271,48 @@ function NewChatForm({ onStartChat, data }) {
             <h2 className="text-xl font-semibold">Start a New Chat</h2>
           </CardHeader>
           <CardContent className="flex flex-col items-center gap-4">
-            <p className="text-sm text-muted-foreground text-center">Select a book to begin your conversation.</p>
-            <Select onValueChange={(val) => setSelectedBook(JSON.parse(val))}>
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Choose a book" />
-              </SelectTrigger>
-              <SelectContent>
-                {data?.map((book, index) => (
-                  <SelectItem
-                    key={book.id || book.book_id || index}
-                    value={JSON.stringify(book)}
-                  >
-                    {book.book_name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <p className="text-sm text-muted-foreground text-center">Select a book and an optional chapter to begin your conversation.</p>
+
+            <div className="w-full space-y-4">
+              <Select onValueChange={(val) => {
+                setSelectedBook(JSON.parse(val));
+                setSelectedChapter(null);
+              }}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Choose a book" />
+                </SelectTrigger>
+                <SelectContent>
+                  {data?.map((book, index) => (
+                    <SelectItem
+                      key={book.id || book.book_id || index}
+                      value={JSON.stringify(book)}
+                    >
+                      {book.book_name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              {selectedBook && selectedBook.chapters && selectedBook.chapters.length > 0 && (
+                <Select onValueChange={(val) => setSelectedChapter(val)} value={selectedChapter || ""}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select a chapter (optional)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="All Chapters">All Chapters</SelectItem>
+                    {selectedBook.chapters.map((chapter, index) => (
+                      <SelectItem key={index} value={chapter}>
+                        {chapter}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
+
           </CardContent>
-          <CardFooter className="justify-center">
-            <Button onClick={() => onStartChat(selectedBook)} disabled={!selectedBook}>
+          <CardFooter className="justify-center mt-2">
+            <Button onClick={() => onStartChat(selectedBook, selectedChapter)} disabled={!selectedBook}>
               <MessageSquare className="mr-2 h-4 w-4" /> Start Chat
             </Button>
           </CardFooter>
@@ -350,12 +374,21 @@ export default function ChatPage() {
       // ✅ 1️⃣ Instantly select the new chat
       setSelectedChat(newChat);
 
-      // ✅ 2️⃣ Force refetch chat history immediately
-      await queryClient.refetchQueries({
+      // ✅ 1.5️⃣ Optimistically update the userChats cache for instant UI feedback
+      queryClient.setQueryData(['userChats', uid], (oldData) => {
+        if (!oldData) return { chats: [newChat] };
+        return {
+          ...oldData,
+          chats: [newChat, ...(oldData.chats || [])]
+        };
+      });
+
+      // ✅ 2️⃣ Invalidate chat history in the background to ensure consistency
+      queryClient.invalidateQueries({
         queryKey: ['userChats', uid],
       });
 
-      // ✅ 3️⃣ Also refetch chat details so UI is fresh
+      // ✅ 3️⃣ Refetch chat details so UI is fresh
       queryClient.refetchQueries({
         queryKey: ['chatDetails', uid, data.chat_id],
       });
@@ -381,12 +414,18 @@ export default function ChatPage() {
     }
   });
 
-  const handleStartChat = useCallback((book) => {
+  const handleStartChat = useCallback((book, chapter) => {
     if (!uid || !book) return;
+
+    // Add chapter to chat title, ignore "All Chapters"
+    const isChapValid = chapter && chapter !== "All Chapters";
+    const chatTitle = isChapValid ? `${book.book_name} - ${chapter}` : book.book_name;
+
     createChatMutation({
       uid,
-      chat_title: book.book_name,
+      chat_title: chatTitle,
       book_id: book.id,
+      chapter: isChapValid ? chapter : undefined,
     });
   }, [uid, createChatMutation]);
 

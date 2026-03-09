@@ -54,6 +54,56 @@ export default function TestPaperPage() {
     onError: () => setTestPaperStatus("error"),
   });
 
+  // Normalize history items so history.jsx can render title/chapter/book correctly.
+  // The backend list returns items where metadata (subject, chapter, class) may be
+  // at the top level or inside a nested 'paper' object.
+  const normalizedHistory = useMemo(() => {
+    // Log the raw response so we can see the exact shape
+    console.log("=== userTestPapers raw response ===", userTestPapers);
+
+    // Handle all common API response shapes:
+    //  - direct array: [...]
+    //  - { content: [...] }
+    //  - { data: [...] }
+    //  - { test_papers: [...] }
+    //  - { papers: [...] }
+    let raw = [];
+    if (!userTestPapers) {
+      raw = [];
+    } else if (Array.isArray(userTestPapers)) {
+      raw = userTestPapers;
+    } else if (Array.isArray(userTestPapers.content)) {
+      raw = userTestPapers.content;
+    } else if (Array.isArray(userTestPapers.data)) {
+      raw = userTestPapers.data;
+    } else if (Array.isArray(userTestPapers.test_papers)) {
+      raw = userTestPapers.test_papers;
+    } else if (Array.isArray(userTestPapers.papers)) {
+      raw = userTestPapers.papers;
+    } else {
+      console.warn("Unexpected userTestPapers shape:", userTestPapers);
+      raw = [];
+    }
+
+    console.log("Resolved raw history list:", raw);
+
+    return raw.map((item) => {
+      const meta = item.paper || {};
+      return {
+        ...item,
+        // 'title' is used as the primary label in history.jsx
+        title: item.title || meta.title || item.subject || meta.subject || "Test Paper",
+        // 'chapter' is used as the secondary label fallback
+        chapter: item.chapter || meta.chapter || "",
+        // 'book' is shown as the subtitle
+        book: item.book || meta.book || item.subject || meta.subject || "",
+        // ensure id is always present for selection/delete
+        // The list API may return paper_id at the top level (not id)
+        id: item.id || item.paper_id || meta.paper_id || meta.id,
+      };
+    });
+  }, [userTestPapers]);
+
   useEffect(() => {
     if (!uid) return;
     if (testPapersLoading) {
@@ -70,17 +120,18 @@ export default function TestPaperPage() {
     onSuccess: (data) => {
       console.log("=== Test Paper API Response ===");
       console.log("Full response:", data);
-      console.log("data.test_paper:", data.test_paper);
-      console.log("data.content:", data.content);
+      console.log("data.paper_id:", data.paper_id);
       console.log("data.test_paper_id:", data.test_paper_id);
       console.log("data.id:", data.id);
 
-      // Try multiple possible response structures
+      // The generate API returns the full paper object at the top level:
+      // { message, paper_id, paper: {...}, sections: [...], answer_key: [...] }
+      // No wrapper needed — use data directly as the paper content.
       const testPaperContent = data.test_paper || data.content || data;
-      console.log("Extracted test paper content:", testPaperContent);
 
       setTestPaperData(testPaperContent);
-      setCurrentTestPaperId(data.test_paper_id || data.id);
+      // Backend returns the ID as paper_id, test_paper_id, or id — check all
+      setCurrentTestPaperId(data.paper_id || data.test_paper_id || data.id);
       setIsNewTestPaper(true); // Mark as new
       setSelectedTestPaper(null); // Clear any selected test paper
       setTestPaperStatus("success");
@@ -109,22 +160,24 @@ export default function TestPaperPage() {
     idPropertyName: "test_paper_id", // Backend expects test_paper_id
     onDeleteSuccess: (variables) => {
       setTestPaperStatus("success");
-      if (selectedTestPaper && (selectedTestPaper.id === variables.test_paper_id)) {
+      const deletedId = variables.test_paper_id;
+
+      // Clear selected paper if it was the one deleted
+      if (selectedTestPaper && selectedTestPaper.id === deletedId) {
         setSelectedTestPaper(null);
       }
-      // Force immediate background refetch of history to update sidebar
-      if (uid) {
-        queryClient.invalidateQueries({
-          queryKey: ["test-papers", uid],
-          refetchType: 'all',
-        });
+      // Clear new paper display if it was the one deleted
+      if (currentTestPaperId && currentTestPaperId === deletedId) {
+        setTestPaperData(null);
+        setCurrentTestPaperId(null);
+        setIsNewTestPaper(false);
       }
     },
   });
 
   const handleDeleteTestPaper = useCallback((item) => {
-    // Note: The history items has 'id', but the delete API expects 'test_paper_id'
-    handleHistoryDelete({ ...item, test_paper_id: item.id }, { uid });
+    // Note: The history item id is used as the test_paper_id for deletion
+    handleHistoryDelete(item, { uid });
   }, [uid, handleHistoryDelete]);
 
   const handleGenerate = useCallback((book, formData) => {
@@ -140,6 +193,7 @@ export default function TestPaperPage() {
     setSelectedBookId(book.id);
     setIsNewTestPaper(true);
     setSelectedTestPaper(null);
+    setTestPaperData(null); // Clear previous paper data
 
     generateTestPaperMutation({
       uid: uid,
@@ -151,20 +205,36 @@ export default function TestPaperPage() {
       duration: formData.duration,
     });
   }, [uid, generateTestPaperMutation]);
+
+  // When a history item is selected, fetch its full data (including sections/questions)
+  const selectedPaperId = selectedTestPaper?.id || null;
+  const {
+    data: fullSelectedPaperResponse,
+    isLoading: isLoadingSelectedPaper,
+  } = useGetTestPaperById(selectedPaperId, uid, {
+    enabled: !!selectedPaperId && !!uid && !isNewTestPaper,
+  });
+
+  // Unwrap fullSelectedPaper if it's in a data/test_paper property
+  const fullSelectedPaper = useMemo(() => {
+    if (!fullSelectedPaperResponse) return null;
+    return fullSelectedPaperResponse.data || fullSelectedPaperResponse.test_paper || fullSelectedPaperResponse.content || fullSelectedPaperResponse;
+  }, [fullSelectedPaperResponse]);
+
   useEffect(() => {
     // Only load from URL if we don't have a newly generated paper or a manually selected one
-    if (testPaperId && userTestPapers?.content && !testPaperData && !selectedTestPaper) {
-      const foundPaper = userTestPapers.content.find((tp) => tp.id === testPaperId);
+    if (testPaperId && normalizedHistory.length > 0 && !testPaperData && !selectedTestPaper) {
+      const foundPaper = normalizedHistory.find((tp) => tp.id === testPaperId);
       if (foundPaper) {
         console.log("Loading test paper from URL ID:", testPaperId);
         setSelectedTestPaper(foundPaper);
       }
     }
-  }, [testPaperId, userTestPapers, testPaperData, selectedTestPaper]);
+  }, [testPaperId, normalizedHistory, testPaperData, selectedTestPaper]);
 
   return (
     <ToolPageLayout
-      historyData={userTestPapers?.content || []}
+      historyData={normalizedHistory}
       selectedItem={selectedTestPaper}
       setSelectedItem={(item) => {
         setSelectedTestPaper(item);
@@ -173,18 +243,29 @@ export default function TestPaperPage() {
         setTestPaperData(null);
       }}
       onDelete={handleDeleteTestPaper}
-      isHistoryLoading={testPapersLoading || testPapersFetching}
+      isHistoryLoading={testPapersLoading}
       deletingId={deletingId}
       isProcessing={generatingTestPaper}
       processingText={`Generating ${navItem?.title}...`}
     >
       {selectedTestPaper ? (
-        <TestPaperItem
-          item={selectedTestPaper}
-          bookId={selectedTestPaper.book_id}
-          isNew={false}
-          testPaperId={selectedTestPaper.id}
-        />
+        isLoadingSelectedPaper ? (
+          <div className="lg:col-span-3 flex items-center justify-center min-h-[400px]">
+            <div className="text-center">
+              <Loader2 className="mx-auto h-10 w-10 animate-spin text-primary mb-3" />
+              <p className="text-sm text-muted-foreground">Loading test paper...</p>
+            </div>
+          </div>
+        ) : (
+          <TestPaperItem
+            item={fullSelectedPaper
+              ? { ...selectedTestPaper, ...fullSelectedPaper }  // merge metadata + questions
+              : selectedTestPaper}
+            bookId={selectedTestPaper.book_id}
+            isNew={false}
+            testPaperId={selectedTestPaper.id}
+          />
+        )
       ) : testPaperData ? (
         <TestPaperItem
           item={testPaperData}
