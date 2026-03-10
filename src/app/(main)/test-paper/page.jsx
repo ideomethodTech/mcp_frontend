@@ -87,7 +87,14 @@ export default function TestPaperPage() {
 
     console.log("Resolved raw history list:", raw);
 
-    return raw.map((item) => {
+    // 2. Sort newest first (if created_at exists)
+    const sorted = [...raw].sort((a, b) => {
+      const timeA = a.created_at ? new Date(a.created_at).getTime() : 0;
+      const timeB = b.created_at ? new Date(b.created_at).getTime() : 0;
+      return timeB - timeA;
+    });
+
+    return sorted.map((item) => {
       const meta = item.paper || {};
       return {
         ...item,
@@ -131,17 +138,43 @@ export default function TestPaperPage() {
 
       setTestPaperData(testPaperContent);
       // Backend returns the ID as paper_id, test_paper_id, or id — check all
-      setCurrentTestPaperId(data.paper_id || data.test_paper_id || data.id);
+      const paperId = data.paper_id || data.test_paper_id || data.id;
+      setCurrentTestPaperId(paperId);
       setIsNewTestPaper(true); // Mark as new
       setSelectedTestPaper(null); // Clear any selected test paper
       setTestPaperStatus("success");
 
-      // Force background refetch of history to update sidebar
+      // ✅ Instantly update the cache list for immediate UI feedback
+      const newPaperEntry = {
+        id: paperId,
+        paper_id: paperId,
+        title: data.title || data.subject || "Test Paper",
+        chapter: data.chapter || "",
+        book: data.book || data.subject || "",
+        created_at: new Date().toISOString(),
+      };
+
+      queryClient.setQueryData(["test-papers", uid], (oldData) => {
+        if (!oldData) return { content: [newPaperEntry] };
+        
+        // Handle variations of list structure
+        if (Array.isArray(oldData)) return [newPaperEntry, ...oldData];
+        if (Array.isArray(oldData.content)) return { ...oldData, content: [newPaperEntry, ...oldData.content] };
+        if (Array.isArray(oldData.data)) return { ...oldData, data: [newPaperEntry, ...oldData.data] };
+        if (Array.isArray(oldData.papers)) return { ...oldData, papers: [newPaperEntry, ...oldData.papers] };
+        
+        return { content: [newPaperEntry, ...(oldData.content || [])] };
+      });
+
+      // Background sync to ensure everything is perfect
       if (uid) {
-        queryClient.invalidateQueries({
-          queryKey: ["test-papers", uid],
-          refetchType: 'all',
-        });
+        setTimeout(() => {
+          queryClient.invalidateQueries({
+            queryKey: ["test-papers", uid],
+            exact: true,
+            refetchType: 'active'
+          });
+        }, 3000);
       }
 
       toast.success("Test paper generated successfully!");

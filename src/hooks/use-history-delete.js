@@ -1,50 +1,40 @@
 import { useState, useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { toast } from 'react-toastify';
+import { useToast } from './use-toast';
 
-/**
- * A reusable hook for handling history item deletions with optimistic UI.
- * The item is removed from the cache immediately when delete is clicked.
- * - On success → stays removed, server re-synced in background.
- * - On 404    → stays removed (item was already gone server-side), no error shown.
- * - On other error → item is restored to the cache and an error toast is shown.
- */
-export function useHistoryDelete({
-    useMutation,
-    queryKeyToInvalidate,
+export function useHistoryDelete({ 
+    useMutation, 
+    queryKeyToInvalidate, 
     idPropertyName = 'id',
-    onDeleteSuccess = () => { }
+    onDeleteSuccess = () => {} 
 }) {
     const [deletingId, setDeletingId] = useState(null);
     const queryClient = useQueryClient();
+    const { toast } = useToast();
 
-    // ─── Helper: build an updated cache snapshot with the item removed ───────
-    const buildFilteredCache = (oldData, deletedId) => {
+    /**
+     * Helper to safely remove an item from various cache structures.
+     * Checks ALL possible ID fields to ensure thorough removal regardless of backend structure.
+     */
+    const buildFilteredCache = (oldData, targetId) => {
         if (!oldData) return oldData;
-        const targetId = String(deletedId);
+        const targetIdStr = String(targetId);
         let matchCount = 0;
 
-        const filterOut = (arr) => {
-            if (!Array.isArray(arr)) return arr;
-            return arr.filter((item) => {
-                const itemIds = [
+        const filterOut = (list) => {
+            return list.filter(item => {
+                const possibleIds = [
                     item.id,
-                    item.lesson_plan_id,
-                    item.lessonPlanId,
                     item.worksheet_id,
-                    item.worksheetId,
                     item.answer_key_id,
-                    item.answerKeyId,
-                    item.test_paper_id,
-                    item.testPaperId,
-                    item.paper_id,
-                    item.paperId,
+                    item.lesson_plan_id,
                     item.chat_id,
-                    item.chatId
-                ].filter(Boolean).map(String);
-
-                // If any of the item's IDs match the target, filter it out
-                const isMatch = itemIds.some(id => id === targetId);
+                    item.paper_id,
+                    item.test_paper_id,
+                    item.id_paper
+                ].filter(val => val !== undefined && val !== null).map(String);
+                
+                const isMatch = possibleIds.includes(targetIdStr);
                 if (isMatch) matchCount++;
                 return !isMatch;
             });
@@ -57,6 +47,7 @@ export function useHistoryDelete({
             const newData = { ...oldData };
             let changed = false;
 
+            // Deep clean all array properties (like 'content', 'data', 'papers')
             Object.keys(oldData).forEach(key => {
                 if (Array.isArray(oldData[key])) {
                     const filtered = filterOut(oldData[key]);
@@ -69,90 +60,109 @@ export function useHistoryDelete({
             if (changed) resultData = newData;
         }
 
-        console.log(`[useHistoryDelete] Build cache removal: Filtered out ${matchCount} items matching ID ${targetId}. Current data keys:`,
-            typeof resultData === 'object' ? Object.keys(resultData) : 'array');
-
+        if (matchCount > 0) {
+            console.log(`[useHistoryDelete] Cache filter: Successfully hidden ${matchCount} local matches for ID ${targetIdStr}.`);
+        }
         return resultData;
     };
 
     const mutation = useMutation({
+        onMutate: async (variables) => {
+            // Priority for idPropertyName, fall back to .id
+            const currentId = variables[idPropertyName] || variables.id;
+            if (!currentId) return null;
+
+            console.log(`[useHistoryDelete] Mutating ID: ${currentId}`);
+            setDeletingId(currentId);
+
+            // Cancel outgoing refetches so they don't overwrite our optimistic update
+            const keys = Array.isArray(queryKeyToInvalidate) && Array.isArray(queryKeyToInvalidate[0]) 
+                ? queryKeyToInvalidate 
+                : [queryKeyToInvalidate];
+
+            await Promise.all(keys.map(key => 
+                queryClient.cancelQueries({ queryKey: key, exact: false })
+            ));
+
+            // Snapshot current state for potential rollback
+            const snapshots = keys.map(key => ({
+                key,
+                data: queryClient.getQueryData(key)
+            }));
+
+            // Optimistically update ALL matched keys
+            keys.forEach(key => {
+                queryClient.setQueriesData(
+                    { queryKey: key },
+                    (oldData) => buildFilteredCache(oldData, currentId)
+                );
+            });
+
+            return { snapshots, id: currentId };
+        },
         onSuccess: (data, variables) => {
             setDeletingId(null);
             onDeleteSuccess(variables);
-            toast.success('Item deleted successfully');
+            
+            toast({
+                title: 'Success',
+                description: 'Deleted successfully'
+            });
 
-            // Delay invalidation slightly to avoid eventual consistency "ghost" items
+            // Re-sync with server after a delay (ensuring DB deletion has propagated)
+            const keys = Array.isArray(queryKeyToInvalidate) && Array.isArray(queryKeyToInvalidate[0]) 
+                ? queryKeyToInvalidate 
+                : [queryKeyToInvalidate];
+            
             setTimeout(() => {
-                queryClient.invalidateQueries({ queryKey: queryKeyToInvalidate });
-            }, 1500);
+                keys.forEach(key => {
+                    queryClient.invalidateQueries({ queryKey: key, exact: false });
+                });
+            }, 3000); // 3 seconds is safer for slower backends
         },
         onError: (error, variables, context) => {
+            console.error('[useHistoryDelete] Deletion failed:', error);
             const status = error?.response?.status;
-            const currentId = context?.id || variables[idPropertyName];
-
+            
+            // 404 means it's already gone, so we treat it as success locally
             if (status === 404) {
-                console.warn('[useHistoryDelete] 404 — item already gone server-side. Enforcing optimistic removal.');
-                queryClient.setQueriesData(
-                    { queryKey: queryKeyToInvalidate },
-                    (oldData) => buildFilteredCache(oldData, currentId)
-                );
                 setDeletingId(null);
                 onDeleteSuccess(variables);
                 return;
             }
 
-            // Real error — restore the cached snapshot 
-            if (context?.previousData) {
-                console.log('[useHistoryDelete] Restoring cache due to error.');
-                queryClient.setQueryData(queryKeyToInvalidate, context.previousData);
+            // Rollback optimistic changes if request failed
+            if (context?.snapshots) {
+                context.snapshots.forEach(({ key, data }) => {
+                    queryClient.setQueryData(key, data);
+                });
             }
 
-            console.error('[useHistoryDelete] Deletion failed:', error);
-            toast.error(error.response?.data?.message || 'Failed to delete item');
+            toast({
+                title: 'Error',
+                description: error.response?.data?.message || 'Failed to delete. Please try again.',
+                variant: 'destructive'
+            });
             setDeletingId(null);
         },
     });
 
     const handleDelete = useCallback((item, additionalParams = {}) => {
-        const id =
-            item.lesson_plan_id ||
-            item.lessonPlanId ||
-            item.worksheet_id ||
-            item.worksheetId ||
-            item.answer_key_id ||
-            item.answerKeyId ||
-            item.test_paper_id ||
-            item.testPaperId ||
-            item.paper_id ||
-            item.paperId ||
-            item.chat_id ||
-            item.chatId ||
-            item.id;
-
+        // Detect the best ID to send to the backend
+        const id = item[idPropertyName] || item.id || item.worksheet_id || item.answer_key_id || item.lesson_plan_id || item.chat_id || item.paper_id || item.test_paper_id;
+        
         if (!id) {
-            toast.warning('Attempted to delete item with no ID');
+            console.warn('[useHistoryDelete] Item has no detectable ID:', item);
             return;
         }
-
-        setDeletingId(id);
-
-        // ── Snapshot current cache for potential rollback ──────────────────
-        const previousData = queryClient.getQueryData(queryKeyToInvalidate);
-
-        // ── Optimistically remove the item from the cache immediately ──────
-        queryClient.setQueriesData(
-            { queryKey: queryKeyToInvalidate },
-            (oldData) => buildFilteredCache(oldData, id)
-        );
 
         const mutationVariables = {
             [idPropertyName]: id,
             ...additionalParams
         };
 
-        // Pass the snapshot and id as context
-        mutation.mutate(mutationVariables, { context: { previousData, id } });
-    }, [idPropertyName, mutation, queryKeyToInvalidate, queryClient]);
+        mutation.mutate(mutationVariables);
+    }, [idPropertyName, mutation]);
 
     return {
         handleDelete,

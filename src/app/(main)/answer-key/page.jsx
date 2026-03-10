@@ -183,7 +183,7 @@ function AnswerKeyDetails({ item }) {
   );
 }
 
-function NewAnswerKeyForm({ onGenerate, allWorksheets }) {
+function NewAnswerKeyForm({ onGenerate, allWorksheets, uid }) {
   const form = useForm({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -192,7 +192,9 @@ function NewAnswerKeyForm({ onGenerate, allWorksheets }) {
     },
   });
 
-  const { data: booksData } = useGetBook();
+  const { data: booksData } = useGetBook(uid, {
+    enabled: !!uid,
+  });
 
   // ✅ Filter books to only show those with worksheets
   const booksWithWorksheets = React.useMemo(() => {
@@ -321,23 +323,33 @@ export default function AnswerKeyPage() {
     queryKeyToInvalidate: ["all-answer-keys", uid],
     idPropertyName: "answer_key_id",
     onDeleteSuccess: (variables) => {
-      if (selectedItem && selectedItem.id === variables.answer_key_id) {
+      const deletedId = variables.answer_key_id || variables.id;
+      if (selectedItem && (selectedItem.id === deletedId || selectedItem.answer_key_id === deletedId)) {
         setSelectedItem(null);
       }
     },
   });
 
+  const { mutate: deleteAKMutation } = useDeleteAnswerKey();
+
   const handleDeleteAnswerKey = useCallback((item) => {
+    if (!uid) return;
+    // Perform actual deletion (hook handles optimistic cache removal thoroughly)
     handleHistoryDelete(item, { uid });
   }, [uid, handleHistoryDelete]);
 
   const { mutate: generateAnswerKey, isPending: isGenerating } = useGenerateAnswerKey({
     onSuccess: (data) => {
-      console.log("Answer key generated:", data);
-      // If the API returns the full object, use it; otherwise, we might need to refetch
       setSelectedItem(data.answer_key || data);
+      
+      // Instantly refresh cache
       queryClient.invalidateQueries({ queryKey: ["all-answer-keys", uid] });
       queryClient.invalidateQueries({ queryKey: ["ws", uid] });
+      
+      // Deep sync after delay
+      setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: ["all-answer-keys", uid], exact: true });
+      }, 2000);
 
       toast({
         title: "Success",
@@ -356,15 +368,43 @@ export default function AnswerKeyPage() {
   });
 
   const historyData = React.useMemo(() => {
-    const allKeys = allAnswerKeys?.content || [];
-    const uniqueByWorksheet = allKeys.reduce((acc, current) => {
-      const exists = acc.find((item) => item.worksheet_id === current.worksheet_id);
+    // 1. Resolve raw list from all possible backend property names
+    let raw = [];
+    if (!allAnswerKeys) {
+      raw = [];
+    } else if (Array.isArray(allAnswerKeys)) {
+      raw = allAnswerKeys;
+    } else if (Array.isArray(allAnswerKeys.content)) {
+      raw = allAnswerKeys.content;
+    } else if (Array.isArray(allAnswerKeys.data)) {
+      raw = allAnswerKeys.data;
+    } else if (Array.isArray(allAnswerKeys.answer_keys)) {
+      raw = allAnswerKeys.answer_keys;
+    }
+    
+    // Sort newest first
+    const sorted = [...raw].sort((a, b) => {
+      const timeA = a.created_at ? new Date(a.created_at).getTime() : 0;
+      const timeB = b.created_at ? new Date(b.created_at).getTime() : 0;
+      return timeB - timeA;
+    });
+
+    const uniqueByWorksheet = sorted.reduce((acc, current) => {
+      const exists = acc.find((item) => String(item.worksheet_id) === String(current.worksheet_id));
       if (!exists) {
         acc.push(current);
       }
       return acc;
     }, []);
-    return uniqueByWorksheet;
+
+    // Normalize for sidebar
+    return uniqueByWorksheet.map(item => ({
+      ...item,
+      id: item.id || item.answer_key_id,
+      title: item.title || item.worksheet_title || `Answers: ${item.chapter || 'Assessment'}`,
+      chapter: item.chapter || "",
+      book: item.book || item.book_name || ""
+    }));
   }, [allAnswerKeys]);
 
   console.log(historyData);
@@ -428,7 +468,8 @@ export default function AnswerKeyPage() {
     }
 
     // ✅ Check if answer key already exists for this worksheet
-    const existingAnswerKey = allAnswerKeys?.content?.find((key) => key.worksheet_id === worksheetExists.id);
+    const rawKeys = allAnswerKeys?.content || allAnswerKeys?.data || (Array.isArray(allAnswerKeys) ? allAnswerKeys : []);
+    const existingAnswerKey = rawKeys.find((key) => String(key.worksheet_id) === String(worksheetExists.id));
 
     console.log("existingAnswerKey:", existingAnswerKey);
 
@@ -471,7 +512,7 @@ export default function AnswerKeyPage() {
       {selectedItem ? (
         <AnswerKeyDetails item={selectedItem} />
       ) : (
-        <NewAnswerKeyForm onGenerate={handleGenerate} allWorksheets={allWorksheets} />
+        <NewAnswerKeyForm onGenerate={handleGenerate} allWorksheets={allWorksheets} uid={uid} />
       )}
     </ToolPageLayout>
   );

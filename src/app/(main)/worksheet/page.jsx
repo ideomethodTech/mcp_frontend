@@ -15,7 +15,7 @@ import { ToolPageLayout } from "@/app/componentsV2/ui/tool-page-layout";
 import { getNavItemByUrl } from "@/app/utils";
 import { usePathname } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
-import { useDeleteWorksheet, useGenerateWorksheet, useGetBook, useUserWorksheet } from "@/lib/api/queries";
+import { useDeleteWorksheet, useGenerateWorksheet, useGetBook, useUserWorksheet, useGetAllAnswerKeys, useDeleteAnswerKey } from "@/lib/api/queries";
 import { useAuth } from "@/contexts/auth-context";
 import useApiStore from "@/store/useApiStore";
 import { useHistoryDelete } from "@/hooks/use-history-delete";
@@ -185,9 +185,17 @@ export default function WorksheetPage() {
   const { worksheetStatus, setWorksheetStatus } = useApiStore();
   const { data: userworksheet, isLoading: worksheetsLoading, isFetching: worksheetsFetching } = useUserWorksheet(uid, {
     enabled: !!uid,
-    onSuccess: () => setWorksheetStatus("success"),
-    onError: () => setWorksheetStatus("error"),
   });
+
+  const { data: allAnswerKeys } = useGetAllAnswerKeys(uid, {
+    enabled: !!uid,
+  });
+
+  const { mutate: deleteAKMutation } = useDeleteAnswerKey();
+
+  useEffect(() => {
+    if (userworksheet) setWorksheetStatus("success");
+  }, [userworksheet, setWorksheetStatus]);
 
   useEffect(() => {
     if (!uid) return;
@@ -195,6 +203,39 @@ export default function WorksheetPage() {
       setWorksheetStatus("loading");
     }
   }, [worksheetsLoading, uid, setWorksheetStatus]);
+
+  const normalizedHistory = useMemo(() => {
+    // 1. Resolve raw list from all possible backend property names
+    let raw = [];
+    if (!userworksheet) {
+      raw = [];
+    } else if (Array.isArray(userworksheet)) {
+      raw = userworksheet;
+    } else if (Array.isArray(userworksheet.content)) {
+      raw = userworksheet.content;
+    } else if (Array.isArray(userworksheet.data)) {
+      raw = userworksheet.data;
+    } else if (Array.isArray(userworksheet.worksheets)) {
+      raw = userworksheet.worksheets;
+    } else if (Array.isArray(userworksheet.items)) {
+      raw = userworksheet.items;
+    }
+
+    // 2. Sort newest first
+    const sorted = [...raw].sort((a, b) => {
+      const timeA = a.created_at ? new Date(a.created_at).getTime() : 0;
+      const timeB = b.created_at ? new Date(b.created_at).getTime() : 0;
+      return timeB - timeA;
+    });
+
+    // 3. Normalize for UI
+    return sorted.map(item => ({
+      ...item,
+      id: item.id || item.worksheet_id,
+      title: item.title || item?.content?.worksheet?.title || item.chapter || "Worksheet",
+      book: item.book || item.book_name || ""
+    }));
+  }, [userworksheet]);
 
   const [selectedworksheet, setSelectedworksheet] = useState(null);
   const { data: bookData, isLoading: bookLoading } = useGetBook();
@@ -211,10 +252,42 @@ export default function WorksheetPage() {
       setWorksheetData(data.worksheet);
       setCurrentWorksheetId(data.worksheet_id);
       setWorksheetStatus("success");
+      
+      const newWorksheet = {
+        id: data.worksheet_id,
+        worksheet_id: data.worksheet_id,
+        title: data.worksheet?.title || data.worksheet?.itle || "Worksheet",
+        chapter: data.worksheet?.chapter || "Assessment",
+        book_id: selectedBookId,
+        created_at: new Date().toISOString(),
+      };
+
+      // ✅ Instantly update the cache list for immediate UI feedback
+      queryClient.setQueryData(["ws", uid], (oldData) => {
+        if (!oldData) return { content: [newWorksheet] };
+        
+        // Handle variations of list structure to avoid accidental data loss
+        if (Array.isArray(oldData)) return [newWorksheet, ...oldData];
+        if (Array.isArray(oldData.content)) return { ...oldData, content: [newWorksheet, ...oldData.content] };
+        if (Array.isArray(oldData.data)) return { ...oldData, data: [newWorksheet, ...oldData.data] };
+        if (Array.isArray(oldData.worksheets)) return { ...oldData, worksheets: [newWorksheet, ...oldData.worksheets] };
+        
+        // Fallback
+        return { 
+          ...oldData,
+          content: [newWorksheet, ...(oldData.content || [])] 
+        };
+      });
+
+      // Background sync to ensure everything is perfect
       if (uid) {
-        queryClient.invalidateQueries({
-          queryKey: ["ws", uid],
-        });
+        setTimeout(() => {
+          queryClient.invalidateQueries({
+            queryKey: ["ws", uid],
+            exact: true,
+            refetchType: 'active'
+          });
+        }, 3000);
       }
     },
     onError: (error) => {
@@ -234,12 +307,43 @@ export default function WorksheetPage() {
       if (selectedworksheet && (selectedworksheet.id === deletedId || selectedworksheet.worksheet_id === deletedId)) {
         setSelectedworksheet(null);
       }
+
+      // ✅ CASCADE DELETE: Find and delete ALL associated answer keys
+      if (allAnswerKeys) {
+        const rawKeys = allAnswerKeys.content || allAnswerKeys.data || (Array.isArray(allAnswerKeys) ? allAnswerKeys : []);
+        const associatedKeys = rawKeys.filter(key => String(key.worksheet_id) === String(deletedId));
+        
+        associatedKeys.forEach(associatedKey => {
+          console.log("Cascading delete for associated answer key:", associatedKey.id);
+          deleteAKMutation({ 
+            uid, 
+            answer_key_id: associatedKey.id || associatedKey.answer_key_id 
+          });
+        });
+      }
     },
   });
 
   const handleDeleteWorksheet = useCallback((item) => {
+    const worksheetId = item.worksheet_id || item.id;
+    if (!uid) return;
+
+    // Perform the actual mutation (handles status/success toast and optimistic removal)
     handleHistoryDelete(item, { uid });
-  }, [uid, handleHistoryDelete]);
+
+    // Automated cleanup of associated answer keys in the background
+    if (worksheetId && allAnswerKeys) {
+      const allKeys = allAnswerKeys.content || allAnswerKeys.data || (Array.isArray(allAnswerKeys) ? allAnswerKeys : []);
+      const associatedKeys = allKeys.filter(key => String(key.worksheet_id) === String(worksheetId));
+      
+      associatedKeys.forEach(associatedKey => {
+        deleteAKMutation({ 
+          uid, 
+          answer_key_id: associatedKey.id || associatedKey.answer_key_id 
+        });
+      });
+    }
+  }, [uid, handleHistoryDelete, allAnswerKeys, deleteAKMutation, queryClient]);
 
   const handleGenerate = useCallback((book, chapter) => {
     if (!book) return;
@@ -257,7 +361,7 @@ export default function WorksheetPage() {
 
   return (
     <ToolPageLayout
-      historyData={userworksheet?.content || []}
+      historyData={normalizedHistory}
       selectedItem={selectedworksheet}
       setSelectedItem={(item) => {
         setSelectedworksheet(item);

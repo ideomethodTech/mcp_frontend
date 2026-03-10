@@ -326,12 +326,12 @@ export default function ChatPage() {
   const pathname = usePathname();
   const navItem = useMemo(() => getNavItemByUrl(pathname), [pathname]);
   const { user } = useAuth();   // ✅ dynamically fetched
-  const uid = user?.user?.uid;
+  const uid = user?.user?.uid || user?.uid;
   const queryClient = useQueryClient();
   const { chatStatus, setChatStatus } = useApiStore();
   console.log("user", user);
   // All Chats
-  const { data: userChats, isLoading: chatsLoading } = useUserChats(uid);
+  const { data: userChats, isLoading: chatsLoading, isFetching: chatsFetching } = useUserChats(uid);
 
   useEffect(() => {
     if (userChats?.chats) {
@@ -368,6 +368,7 @@ export default function ChatPage() {
         chat_title: data.chat_title,
         uid: data.uid,
         book_id: data.book_id,
+        created_at: new Date().toISOString(),
       };
       console.log('New chat object:', newChat);
 
@@ -377,6 +378,12 @@ export default function ChatPage() {
       // ✅ 1.5️⃣ Optimistically update the userChats cache for instant UI feedback
       queryClient.setQueryData(['userChats', uid], (oldData) => {
         if (!oldData) return { chats: [newChat] };
+        
+        if (Array.isArray(oldData)) return [newChat, ...oldData];
+        if (Array.isArray(oldData.chats)) return { ...oldData, chats: [newChat, ...oldData.chats] };
+        if (Array.isArray(oldData.content)) return { ...oldData, content: [newChat, ...oldData.content] };
+        if (Array.isArray(oldData.data)) return { ...oldData, data: [newChat, ...oldData.data] };
+        
         return {
           ...oldData,
           chats: [newChat, ...(oldData.chats || [])]
@@ -433,8 +440,40 @@ export default function ChatPage() {
     handleHistoryDelete(item, { uid });
   }, [uid, handleHistoryDelete]);
 
+  const normalizedHistory = useMemo(() => {
+    // 1. Resolve raw list from all possible backend property names
+    let raw = [];
+    if (!userChats) {
+      raw = [];
+    } else if (Array.isArray(userChats)) {
+      raw = userChats;
+    } else if (Array.isArray(userChats.chats)) {
+      raw = userChats.chats;
+    } else if (Array.isArray(userChats.content)) {
+      raw = userChats.content;
+    } else if (Array.isArray(userChats.data)) {
+      raw = userChats.data;
+    }
+
+    // 2. Sort newest first
+    const sorted = [...raw].sort((a, b) => {
+      const timeA = a.created_at ? new Date(a.created_at).getTime() : 0;
+      const timeB = b.created_at ? new Date(b.created_at).getTime() : 0;
+      return timeB - timeA;
+    });
+
+    // 3. Normalize for UI
+    return sorted.map(item => ({
+      ...item,
+      id: item.id || item.chat_id,
+      title: item.title || item.chat_title || "Chat Session",
+      chat_title: item.chat_title || item.title || "Chat Session",
+      book: item.book || item.book_name || ""
+    }));
+  }, [userChats]);
+
   // FIX — Get selected chat object
-  const selectedChatObj = userChats?.chats.find(c => c.id === selectedChat?.id);
+  const selectedChatObj = normalizedHistory.find(c => String(c.id) === String(selectedChat?.id));
 
   // Lookup book_id from books list if not available in chat data
   const getBookIdForChat = () => {
@@ -453,6 +492,8 @@ export default function ChatPage() {
 
     return matchingBook?.id;
   };
+
+  const isHistoryLoading = chatsLoading || (chatsFetching && normalizedHistory.length === 0);
 
   return (
     <div className="max-w-7xl mx-auto my-5 space-y-6">
@@ -477,10 +518,11 @@ export default function ChatPage() {
           item={navItem.itemtype}
           selectedItem={selectedChat}
           setSelectedItem={setSelectedChat}
-          historyData={userChats?.chats || []}
+          historyData={normalizedHistory}
           isChat={true}
           onDelete={handleDeleteChat}
           deletingId={deletingId}
+          isLoading={isHistoryLoading}
         />
         {/* Lesson Plan Content */}
         {creatingChat || messagesLoading ? (
