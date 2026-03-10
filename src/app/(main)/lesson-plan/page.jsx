@@ -193,13 +193,14 @@ export default function LessonPlanPage() {
   const [lessonPlanData, setLessonPlanData] = useState(null);
   const [isNewPlan, setIsNewPlan] = useState(false);
 
-  // API Queries
   const { data: userLP, isLoading: LPloading, isFetching: LPFetching } = useUserLessonPlan(uid, {
     enabled: !!uid,
-    onSuccess: () => setLessonPlanStatus("success"),
-    onError: () => setLessonPlanStatus("error"),
   });
   const { data: bookData, isLoading: bookLoading } = useGetBook();
+
+  useEffect(() => {
+    if (userLP) setLessonPlanStatus("success");
+  }, [userLP, setLessonPlanStatus]);
 
   useEffect(() => {
     if (!uid) return;
@@ -208,48 +209,81 @@ export default function LessonPlanPage() {
     }
   }, [LPloading, uid, setLessonPlanStatus]);
 
+  const normalizedHistory = useMemo(() => {
+    // 1. Resolve raw list from all possible backend property names
+    let raw = [];
+    if (!userLP) {
+      raw = [];
+    } else if (Array.isArray(userLP)) {
+      raw = userLP;
+    } else if (Array.isArray(userLP.content)) {
+      raw = userLP.content;
+    } else if (Array.isArray(userLP.data)) {
+      raw = userLP.data;
+    } else if (Array.isArray(userLP.lesson_plans)) {
+      raw = userLP.lesson_plans;
+    }
+
+    // 2. Sort newest first
+    const sorted = [...raw].sort((a, b) => {
+      const timeA = a.created_at ? new Date(a.created_at).getTime() : 0;
+      const timeB = b.created_at ? new Date(b.created_at).getTime() : 0;
+      return timeB - timeA;
+    });
+
+    // 3. Normalize for UI
+    return sorted.map(item => ({
+      ...item,
+      id: item.id || item.lesson_plan_id,
+      title: item.title || item.chapter || "Lesson Plan",
+      book: item.book || item.book_name || ""
+    }));
+  }, [userLP]);
+
   // Mutations
   const { mutate: generateLessonPlan, isPending: isCreateLPPending } = useCreateLessonPlan({
     onMutate: () => {
       setLessonPlanStatus("loading");
     },
-    onSuccess: (data, variables) => {
-      console.log("Successfully generated lesson plan:", data);
+    onSuccess: (data) => {
       setLessonPlanData(data);
       setSelectedPlan(null);
       setLessonPlanStatus("success");
+
+      const newPlan = {
+        id: data.lesson_plan_id || data.id,
+        lesson_plan_id: data.lesson_plan_id || data.id,
+        title: data.title || data.chapter || "Lesson Plan",
+        chapter: data.chapter || "Assessment",
+        book: data.book || "",
+        created_at: new Date().toISOString(),
+      };
+
+      // ✅ Instantly update the cache list for immediate UI feedback
+      queryClient.setQueryData(['lp', uid], (oldData) => {
+        if (!oldData) return { content: [newPlan] };
+        
+        // Handle variations of list structure to avoid accidental data loss
+        if (Array.isArray(oldData)) return [newPlan, ...oldData];
+        if (Array.isArray(oldData.content)) return { ...oldData, content: [newPlan, ...oldData.content] };
+        if (Array.isArray(oldData.data)) return { ...oldData, data: [newPlan, ...oldData.data] };
+        if (Array.isArray(oldData.lesson_plans)) return { ...oldData, lesson_plans: [newPlan, ...oldData.lesson_plans] };
+        
+        return {
+          ...oldData,
+          content: [newPlan, ...(oldData.content || [])]
+        };
+      });
+
+      // Background sync to ensure everything is perfect
       if (uid) {
-        queryClient.setQueryData(["lp", uid], (previousData) => {
-          const prevContent = Array.isArray(previousData?.content) ? previousData.content : [];
-
-          const generatedItem = {
-            ...data,
-            id: data?.id || data?.lesson_plan_id,
-            lesson_plan_id: data?.lesson_plan_id || data?.id,
-            chapter: data?.chapter || variables?.chapter,
-            created_at: data?.created_at || new Date().toISOString(),
-          };
-
-          const generatedId = generatedItem.id || generatedItem.lesson_plan_id;
-          const alreadyExists = prevContent.some((item) => {
-            const existingId = item?.id || item?.lesson_plan_id;
-            return Boolean(generatedId) && existingId === generatedId;
+        setTimeout(() => {
+          queryClient.invalidateQueries({
+            queryKey: ['lp', uid],
+            exact: true,
+            refetchType: 'active'
           });
-
-          if (alreadyExists) {
-            return previousData;
-          }
-
-          return {
-            ...(previousData || {}),
-            content: [generatedItem, ...prevContent],
-          };
-        });
-
-        queryClient.invalidateQueries({
-          queryKey: ["lp", uid],
-          refetchType: "all",
-        });
+        }, 3000);
       }
     },
     onError: (err) => {
@@ -266,7 +300,6 @@ export default function LessonPlanPage() {
     idPropertyName: 'lessonPlanId',
     onDeleteSuccess: (variables) => {
       setLessonPlanStatus("success");
-      // Use the id directly from variables if provided, or from the selected item
       const deletedId = variables.lessonPlanId || variables.lesson_plan_id;
       if (selectedPlan && (selectedPlan.lesson_plan_id === deletedId || selectedPlan.id === deletedId)) {
         setSelectedPlan(null);
@@ -275,6 +308,9 @@ export default function LessonPlanPage() {
   });
 
   const handleDeleteLP = useCallback((item) => {
+    if (!uid) return;
+
+    // Perform actual deletion (hook handles optimistic cache removal thoroughly)
     handleHistoryDelete(item, { uid });
   }, [uid, handleHistoryDelete]);
 
@@ -314,7 +350,7 @@ export default function LessonPlanPage() {
 
   return (
     <ToolPageLayout
-      historyData={userLP?.content || []}
+      historyData={normalizedHistory}
       selectedItem={selectedPlan}
       setSelectedItem={(item) => {
         setSelectedPlan(item);

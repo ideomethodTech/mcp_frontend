@@ -93,7 +93,7 @@ export const deleteBook = async ({ uid, book_id }) => {
   return response.data;
 };
 
-//Worksheet
+// Worksheet
 export const createWorksheet = async (data) => {
   const response = await api({
     url: ENDPOINTS.GENERATE_WORKSHEET,
@@ -120,10 +120,31 @@ export const getWorksheet = async (uid) => {
   return response.data;
 };
 
-export const deleteWorksheet = async ({ uid, worksheet_id }) => {
-  if (!uid || !worksheet_id) throw new Error("uid and worksheet_id are required");
+export const deleteWorksheet = async ({ uid, worksheet_id, id }) => {
+  let actualUid = uid;
+  const actualId = worksheet_id || id;
+
+  if (!actualUid && typeof window !== 'undefined') {
+    try {
+      const stored = localStorage.getItem("user");
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        actualUid = parsed?.user?.uid || parsed?.uid;
+      }
+    } catch (e) {
+      console.error("UID recovery failed for worksheet delete", e);
+    }
+  }
+
+  if (!actualUid || !actualId) throw new Error("uid and worksheet_id are required for deletion");
+  
+  // Use a cleaner path construction for consistency
+  const cleanBase = ENDPOINTS.DELETE_WORKSHEET.endsWith('/') 
+    ? ENDPOINTS.DELETE_WORKSHEET.slice(0, -1) 
+    : ENDPOINTS.DELETE_WORKSHEET;
+  
   const response = await api({
-    url: `${ENDPOINTS.DELETE_WORKSHEET}${uid}/${worksheet_id}`,
+    url: `${cleanBase}/${actualUid}/${actualId}`,
     method: "DELETE",
   });
   return response.data;
@@ -189,8 +210,8 @@ export const getLessonPlan = async (uid) => {
   return response.data;
 };
 
-export const deleteLessonPlan = async ({ uid, lesson_plan_id, lessonPlanId }) => {
-  const actualLessonPlanId = lesson_plan_id || lessonPlanId;
+export const deleteLessonPlan = async ({ uid, lesson_plan_id, lessonPlanId, id }) => {
+  const actualLessonPlanId = lesson_plan_id || lessonPlanId || id;
   let actualUid = uid;
 
   if (!actualUid && typeof window !== 'undefined') {
@@ -208,12 +229,12 @@ export const deleteLessonPlan = async ({ uid, lesson_plan_id, lessonPlanId }) =>
   if (!actualUid || !actualLessonPlanId) throw new Error("uid and lesson_plan_id are required");
 
   // Remove trailing slash to prevent CORS issues if endpoint has one (failsafe)
-  const endpoint = ENDPOINTS.DELETE_LESSON_PLAN.endsWith('/')
+  const cleanBase = ENDPOINTS.DELETE_LESSON_PLAN.endsWith('/')
     ? ENDPOINTS.DELETE_LESSON_PLAN.slice(0, -1)
     : ENDPOINTS.DELETE_LESSON_PLAN;
 
   const response = await api({
-    url: `${endpoint}/${actualUid}/${actualLessonPlanId}`,
+    url: `${cleanBase}/${actualUid}/${actualLessonPlanId}`,
     method: "DELETE",
   });
   return response.data;
@@ -252,28 +273,91 @@ export const getChatDetails = async (uid, chatId) => {
   return response.data;
 };
 
-export const deleteChat = async ({ uid, chatId }) => {
-  if (!uid || !chatId) throw new Error("User ID and Chat ID are required");
+export const deleteChat = async ({ uid, chatId, chat_id, id }) => {
+  let actualUid = uid;
+  const actualId = chatId || chat_id || id;
+
+  if (!actualUid && typeof window !== 'undefined') {
+    try {
+      const stored = localStorage.getItem("user");
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        actualUid = parsed?.user?.uid || parsed?.uid;
+      }
+    } catch (e) {
+      console.error("UID recovery failed for chat delete", e);
+    }
+  }
+
+  if (!actualUid || !actualId) throw new Error("User ID and Chat ID are required for deletion");
+  console.log("🗑️ Deleting chat:", { actualUid, actualId });
+  
+  // Use a cleaner path construction exactly like lesson plan deletion
+  const cleanBase = ENDPOINTS.DELETE_CHAT.endsWith('/') 
+    ? ENDPOINTS.DELETE_CHAT.slice(0, -1) 
+    : ENDPOINTS.DELETE_CHAT;
+
+  const finalUrl = `${cleanBase}/${actualUid}/${actualId}`;
+  console.log("➡️ DELETE URL:", finalUrl);
+
   const response = await api({
-    url: `${ENDPOINTS.DELETE_CHAT}${uid}/${chatId}`,
+    url: finalUrl,
     method: "DELETE",
   });
   return response.data;
 };
 
-export const deleteChatMessage = async ({ uid, message_id }) => {
-  if (!uid || !message_id) throw new Error("uid and message_id are required");
+export const deleteChatMessage = async ({ uid, message_id, id }) => {
+  let actualUid = uid;
+  const actualId = message_id || id;
+
+  if (!actualUid && typeof window !== 'undefined') {
+    try {
+      const stored = localStorage.getItem("user");
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        actualUid = parsed?.user?.uid || parsed?.uid;
+      }
+    } catch (e) {
+      console.error("UID recovery failed for chat message delete", e);
+    }
+  }
+
+  // Use a cleaner path construction for consistency
+  const cleanBase = ENDPOINTS.DELETE_CHAT_MESSAGE.endsWith('/') 
+    ? ENDPOINTS.DELETE_CHAT_MESSAGE.slice(0, -1) 
+    : ENDPOINTS.DELETE_CHAT_MESSAGE;
+
   const response = await api({
-    url: `${ENDPOINTS.DELETE_CHAT_MESSAGE}${uid}/${message_id}`,
+    url: `${cleanBase}/${actualUid}/${actualId}`,
     method: "DELETE",
   });
   return response.data;
 };
 
-export const deleteAnswerKey = async ({ uid, answer_key_id }) => {
-  if (!uid || !answer_key_id) throw new Error("uid and answer_key_id are required");
+export const deleteAnswerKey = async ({ uid, answer_key_id, id }) => {
+  let actualUid = uid;
+  const actualId = answer_key_id || id;
+
+  if (!actualUid && typeof window !== 'undefined') {
+    try {
+      const stored = localStorage.getItem("user");
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        actualUid = parsed?.user?.uid || parsed?.uid;
+      }
+    } catch (e) {
+      console.error("UID recovery failed for answer key delete", e);
+    }
+  }
+
+  // Use a cleaner path construction for consistency
+  const cleanBase = ENDPOINTS.DELETE_ANSWER_KEY.endsWith('/') 
+    ? ENDPOINTS.DELETE_ANSWER_KEY.slice(0, -1) 
+    : ENDPOINTS.DELETE_ANSWER_KEY;
+
   const response = await api({
-    url: `${ENDPOINTS.DELETE_ANSWER_KEY}${uid}/${answer_key_id}`,
+    url: `${cleanBase}/${actualUid}/${actualId}`,
     method: "DELETE",
   });
   return response.data;
@@ -371,10 +455,29 @@ export const getTestPaperAnswers = async (testPaperId, uid) => {
   return response.data;
 };
 
-export const deleteTestPaper = async ({ uid, test_paper_id }) => {
-  if (!uid || !test_paper_id) throw new Error("uid and test_paper_id are required");
+export const deleteTestPaper = async ({ uid, test_paper_id, id, paper_id }) => {
+  let actualUid = uid;
+  const actualId = test_paper_id || id || paper_id;
+
+  if (!actualUid && typeof window !== 'undefined') {
+    try {
+      const stored = localStorage.getItem("user");
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        actualUid = parsed?.user?.uid || parsed?.uid;
+      }
+    } catch (e) {
+      console.error("UID recovery failed for test paper delete", e);
+    }
+  }
+
+  // Use a cleaner path construction for consistency
+  const cleanBase = ENDPOINTS.DELETE_TEST_PAPER.endsWith('/') 
+    ? ENDPOINTS.DELETE_TEST_PAPER.slice(0, -1) 
+    : ENDPOINTS.DELETE_TEST_PAPER;
+
   const response = await api({
-    url: `${ENDPOINTS.DELETE_TEST_PAPER}${uid}/${test_paper_id}`,
+    url: `${cleanBase}/${actualUid}/${actualId}`,
     method: "DELETE",
   });
   return response.data;

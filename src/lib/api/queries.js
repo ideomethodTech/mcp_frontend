@@ -99,6 +99,7 @@ export const useGetAnswerKeyById = (answerKeyId, uid, options = {}) =>
     queryKey: ["answer-key", answerKeyId, uid],
     queryFn: () => getAnswerKey(answerKeyId, uid), // ✅ Pass uid here!
     enabled: !!answerKeyId && !!uid,
+    staleTime: 0,
     ...options,
   });
 
@@ -107,6 +108,7 @@ export const useGetAllAnswerKeys = (uid, options = {}) =>
     queryKey: ["all-answer-keys", uid],
     queryFn: () => getAllAnswerKeys(uid),
     enabled: !!uid, // ✅ only when user is logged in
+    staleTime: 0,
     ...options,
   });
 
@@ -194,6 +196,7 @@ export const useGetLessonPlans = (uid, options = {}) =>
     queryKey: ["lessonPlans", uid],
     queryFn: () => getLessonPlan(uid),
     enabled: !!uid,
+    staleTime: 0,
     ...options,
   });
 
@@ -218,6 +221,7 @@ export const useGetTestPaperById = (testPaperId, uid, options = {}) =>
     queryKey: ["test-paper", testPaperId, uid],
     queryFn: () => getTestPaper(testPaperId, uid),
     enabled: !!testPaperId && !!uid,
+    staleTime: 0,
     ...options,
   });
 
@@ -225,6 +229,7 @@ export const useGetTestPaperAnswers = (testPaperId, uid, options = {}) =>
   useQuery({
     queryKey: ["test-paper-answers", testPaperId, uid],
     queryFn: () => getTestPaperAnswers(testPaperId, uid),
+    staleTime: 0,
     ...options,
     // Let caller override enabled, default to true only when ids present
     enabled: options.enabled !== undefined ? options.enabled : (!!testPaperId && !!uid),

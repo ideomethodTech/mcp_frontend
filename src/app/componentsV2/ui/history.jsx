@@ -1,74 +1,73 @@
 import React from 'react';
 import { File, Loader, Plus, Trash2 } from 'lucide-react';
-import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
-import { ITEM_TYPES, NAV_ITEMS } from '@/lib/constants';
 
 const History = ({
   selectedItem,
   setSelectedItem,
-  historyData,
-  item,
+  historyData = [],
+  item = "Item",
   isChat = false,
   onDelete,
   deletingId,
   isLoading = false,
 }) => {
 
-  const historyItem = ({ index, item, selectedItem, setSelectedItem }) => {
+  const historyItem = ({ item: currentItem, selectedItem, setSelectedItem, stableKey }) => {
+    // Correct selection check
+    const isSelected = String(selectedItem?.id) === String(currentItem.id) || 
+                       String(selectedItem?.worksheet_id) === String(currentItem.worksheet_id) || 
+                       String(selectedItem?.answer_key_id) === String(currentItem.answer_key_id) ||
+                       String(selectedItem?.lesson_plan_id) === String(currentItem.lesson_plan_id) ||
+                       String(selectedItem?.paper_id) === String(currentItem.paper_id);
+
+    // Correct delete state check
+    const currentDeletingId = String(deletingId);
+    const itemIds = [
+      currentItem.id, 
+      currentItem.worksheet_id, 
+      currentItem.answer_key_id, 
+      currentItem.lesson_plan_id, 
+      currentItem.paper_id, 
+      currentItem.test_paper_id, 
+      currentItem.chat_id
+    ].map(String);
+    
+    const isDeleting = deletingId && itemIds.includes(currentDeletingId);
+
     return (
-      <div key={index} className="flex items-start gap-2">
+      <div key={stableKey} className="flex items-start gap-2">
         <button
           onClick={() => {
-            isChat ? setSelectedItem({
-              id: item.id,
-              chat_title: item.title,
-              uid: item.uid
-            }) :
-              setSelectedItem(item)
+            setSelectedItem(currentItem);
           }}
-          className={`w-full text-left p-2 rounded-lg border ${(selectedItem?.id === item.id || selectedItem === item)
+          className={`w-full text-left p-2 rounded-lg border ${isSelected
             ? 'bg-primary/10 border-primary'
             : 'hover:bg-muted/50'
             }`}
         >
           <div className="flex justify-between items-center text-xs text-muted-foreground mb-1">
             <File className="text-xs text-muted-foreground mt-1" />
-            <span>  {item.created_at}
-            </span>
+            <span>{currentItem.created_at ? new Date(currentItem.created_at).toLocaleDateString([], { month: 'short', day: 'numeric' }) : ''}</span>
           </div>
-          <p className="font-medium text-foreground text-sm mb-1 truncate">{item.title ? item.title : item.chapter}</p>
+          <p className="font-medium text-foreground text-sm mb-1 truncate">
+            {currentItem.title ? currentItem.title : currentItem.chapter}
+          </p>
           <p className="text-xs text-muted-foreground truncate">
-            {item.book ? item.book : (item?.content?.worksheet ? item?.content?.worksheet.title : item?.content?.lesson_plan?.title)}
+            {currentItem.book || currentItem.book_name || (currentItem?.content?.worksheet ? currentItem?.content?.worksheet.title : currentItem?.content?.lesson_plan?.title)}
           </p>
         </button>
         {onDelete && (
           <button
             aria-label="Delete"
-            className="p-2 text-muted-foreground hover:text-destructive shrink-0"
+            className="p-2 text-muted-foreground hover:text-destructive shrink-0 mt-1"
             onClick={(e) => {
               e.stopPropagation();
-              onDelete(item);
+              onDelete(currentItem);
             }}
-            disabled={!!deletingId && (
-              String(deletingId) === String(item.id) ||
-              String(deletingId) === String(item.chat_id) ||
-              String(deletingId) === String(item.lesson_plan_id) ||
-              String(deletingId) === String(item.worksheet_id) ||
-              String(deletingId) === String(item.answer_key_id) ||
-              String(deletingId) === String(item.test_paper_id) ||
-              String(deletingId) === String(item.paper_id)
-            )}
+            disabled={!!isDeleting}
           >
-            {(deletingId && (
-              String(deletingId) === String(item.id) ||
-              String(deletingId) === String(item.chat_id) ||
-              String(deletingId) === String(item.lesson_plan_id) ||
-              String(deletingId) === String(item.worksheet_id) ||
-              String(deletingId) === String(item.answer_key_id) ||
-              String(deletingId) === String(item.test_paper_id) ||
-              String(deletingId) === String(item.paper_id)
-            )) ? (
+            {isDeleting ? (
               <Loader className="h-4 w-4 animate-spin" />
             ) : (
               <Trash2 className="h-4 w-4" />
@@ -76,15 +75,21 @@ const History = ({
           </button>
         )}
       </div>
-    )
-  }
+    );
+  };
+
   return (
     <div className="lg:col-span-1">
       <div className="rounded-2xl border border-border bg-card p-6 shadow-[var(--shadow-md)]">
-        <Button className="w-full mb-4 bg-gradient-to-r from-primary to-accent hover:opacity-90 transition-opacity" variant="outline" onClick={() => setSelectedItem(null)}>
-          <Plus className="h-4 w-4 mr-2" /> <p>{item ? `New ${item}` : 'New worksheet'}</p>
+        <Button 
+          className="w-full mb-4 bg-gradient-to-r from-primary to-accent hover:opacity-90 transition-opacity" 
+          variant="outline" 
+          onClick={() => setSelectedItem(null)}
+        >
+          <Plus className="h-4 w-4 mr-2" /> 
+          <p>{item ? `New ${item}` : 'New worksheet'}</p>
         </Button>
-        <div className="space-y-2 max-h-[500px] overflow-y-auto pr-1">
+        <div className="space-y-2 max-h-[calc(100vh-350px)] overflow-y-auto pr-1">
           <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">
             History
           </p>
@@ -96,15 +101,20 @@ const History = ({
                 </div>
               )}
               <div className="space-y-2">
-                {historyData.map((item, index) => (
-                  historyItem({ index, item, selectedItem, setSelectedItem, isChat })
-                ))}
+                {historyData.map((itemData, index) => {
+                  const stableKey = itemData.id || itemData.worksheet_id || itemData.answer_key_id || itemData.lesson_plan_id || itemData.paper_id || itemData.test_paper_id || itemData.chat_id || index;
+                  return (
+                    <div key={stableKey}>
+                      {historyItem({ item: itemData, selectedItem, setSelectedItem, stableKey })}
+                    </div>
+                  );
+                })}
               </div>
             </div>
           ) : isLoading ? (
             <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
               <Loader className="h-6 w-6 animate-spin mb-2" />
-              <p className="text-xs">Loading history...</p>
+              <p className="text-xs italic">Loading history...</p>
             </div>
           ) : (
             <div className="text-center py-4 text-xs text-muted-foreground italic border border-dashed rounded-lg">
@@ -114,7 +124,7 @@ const History = ({
         </div>
       </div>
     </div>
-  )
+  );
 };
 
 export default History;
