@@ -26,11 +26,17 @@ export function useHistoryDelete({
                 const possibleIds = [
                     item.id,
                     item.worksheet_id,
+                    item.worksheetId,
                     item.answer_key_id,
+                    item.answerKeyId,
                     item.lesson_plan_id,
+                    item.lessonPlanId,
                     item.chat_id,
+                    item.chatId,
                     item.paper_id,
+                    item.paperId,
                     item.test_paper_id,
+                    item.testPaperId,
                     item.id_paper
                 ].filter(val => val !== undefined && val !== null).map(String);
                 
@@ -47,7 +53,7 @@ export function useHistoryDelete({
             const newData = { ...oldData };
             let changed = false;
 
-            // Deep clean all array properties (like 'content', 'data', 'papers')
+            // Deep clean all array properties (like 'content', 'data', 'papers', 'lesson_plans')
             Object.keys(oldData).forEach(key => {
                 if (Array.isArray(oldData[key])) {
                     const filtered = filterOut(oldData[key]);
@@ -118,7 +124,7 @@ export function useHistoryDelete({
                 keys.forEach(key => {
                     queryClient.invalidateQueries({ queryKey: key, exact: false });
                 });
-            }, 3000); // 3 seconds is safer for slower backends
+            }, 5000); // 5 seconds is safer for slower backends
         },
         onError: (error, variables, context) => {
             console.error('[useHistoryDelete] Deletion failed:', error);

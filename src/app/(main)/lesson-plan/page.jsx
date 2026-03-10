@@ -183,7 +183,7 @@ function NewLessonPlanForm({ onGenerate, data, bookLoading }) {
 
 export default function LessonPlanPage() {
   const { user } = useAuth();
-  const uid = user?.user?.uid;
+  const uid = user?.user?.uid || user?.uid;
   const pathname = usePathname();
   const navItem = useMemo(() => getNavItemByUrl(pathname), [pathname]);
   const queryClient = useQueryClient();
