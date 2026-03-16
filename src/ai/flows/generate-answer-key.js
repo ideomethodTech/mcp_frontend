@@ -14,10 +14,15 @@ import { z } from 'genkit';
 const GenerateAnswerKeyInputSchema = z.object({
   worksheetContent: z
     .string()
+    .optional()
     .describe('The content of the worksheet for which to generate an answer key.'),
   bookContext: z
     .string()
     .describe('The relevant context from the book to use for generating the answer key.'),
+  prompt: z
+    .string()
+    .optional()
+    .describe('Custom instructions or specific questions to answer.'),
 });
 const GenerateAnswerKeyOutputSchema = z.object({
   answerKey: z.string().describe('The generated answer key for the worksheet.'),
@@ -31,13 +36,22 @@ const prompt = ai.definePrompt({
   name: 'generateAnswerKeyPrompt',
   input: { schema: GenerateAnswerKeyInputSchema },
   output: { schema: GenerateAnswerKeyOutputSchema },
-  prompt: `You are an expert teacher and your task is to generate an answer key for a given worksheet using the context from the book.
+  prompt: `You are an expert teacher. Your task is to generate an answer key using the provided book context.
 
+---
+INSTRUCTION PROMPT:
+{{{prompt}}}
+---
+
+If specific questions are listed in the INSTRUCTION PROMPT above, you MUST generate answers for EXACTLY those questions and NOTHING ELSE.
+
+If NO specific questions are listed, use the Worksheet Content below:
 Worksheet Content: {{{worksheetContent}}}
 
-Book Context: {{{bookContext}}}
+Book Context:
+{{{bookContext}}}
 
-Answer Key:`, // The answer key is generated here using the worksheet content and book context.
+Answer Key:`, 
 });
 
 const generateAnswerKeyFlow = ai.defineFlow(

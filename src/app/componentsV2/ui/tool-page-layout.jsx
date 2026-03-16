@@ -43,9 +43,9 @@ export function ToolPageLayout({
     const Icon = navItem?.icon;
 
     return (
-        <div className="max-w-7xl mx-auto my-5 space-y-6 px-4">
+        <div className="max-w-7xl mx-auto my-5 space-y-6 px-4 print:max-w-none print:w-full print:m-0 print:p-0 print:block">
             {/* HEADER */}
-            <div className="relative overflow-hidden rounded-3xl border border-border bg-gradient-to-br from-primary/10 via-accent/10 to-primary/5 p-8 shadow-[var(--shadow-lg)]">
+            <div className="relative overflow-hidden rounded-3xl border border-border bg-gradient-to-br from-primary/10 via-accent/10 to-primary/5 p-8 shadow-[var(--shadow-lg)] print:hidden">
                 <div className="relative flex items-center gap-4">
                     {Icon && (
                         <div className="p-3 rounded-xl bg-gradient-to-br from-primary to-accent shadow-[var(--shadow-glow)]">
@@ -63,22 +63,24 @@ export function ToolPageLayout({
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 print:block">
                 {/* SIDEBAR / HISTORY */}
-                <History
-                    item={navItem?.itemtype || "Item"}
-                    historyData={historyData}
-                    selectedItem={selectedItem}
-                    setSelectedItem={setSelectedItem}
-                    isLoading={isHistoryLoading}
-                    onDelete={onDelete}
-                    deletingId={deletingId}
-                />
+                <div className="print:hidden">
+                    <History
+                        item={navItem?.itemtype || "Item"}
+                        historyData={historyData}
+                        selectedItem={selectedItem}
+                        setSelectedItem={setSelectedItem}
+                        isLoading={isHistoryLoading}
+                        onDelete={onDelete}
+                        deletingId={deletingId}
+                    />
+                </div>
 
                 {/* MAIN CONTENT AREA */}
-                <div className="lg:col-span-3 min-h-[500px]">
+                <div className="lg:col-span-3 min-h-[500px] print:block print:w-full">
                     {isProcessing ? (
-                        <div className="flex flex-col items-center justify-center h-full">
+                        <div className="flex flex-col items-center justify-center h-full print:hidden">
                             <div className="w-full max-w-2xl text-center">
                                 <Loader2 className="mx-auto h-12 w-12 animate-spin text-primary mb-4" />
                                 <h3 className="text-lg font-medium text-foreground">{processingText}</h3>

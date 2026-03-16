@@ -115,7 +115,8 @@ export function segregateQuestions(questions = []) {
         QUESTION_TYPES.FILL_IN_BLANK, "fill in blank", "fib", "fill_in_the_blanks",
         QUESTION_TYPES.SHORT_ANSWER, "short answer", "sa"
       ];
-      return type && !known.includes(type);
+      // Include it if it's NOT in the known categories (this ensures no question is lost)
+      return !known.includes(type);
     })
   };
 }

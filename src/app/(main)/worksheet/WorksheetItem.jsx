@@ -17,7 +17,8 @@ const WorksheetItem = ({ item, bookId, isNew, worksheetId }) => {
   const { user } = useAuth();
 
   // ✅ Get all answer keys and find existing one for this worksheet
-  const { data: allAnswerKeys } = useGetAllAnswerKeys(item.uid);
+  const currentUid = user?.user?.uid || user?.uid || item.uid;
+  const { data: allAnswerKeys } = useGetAllAnswerKeys(currentUid);
 
   const { mutate: generateAnswerKey, isPending } = useGenerateAnswerKey({
     onSuccess: (data) => {
@@ -40,7 +41,9 @@ const WorksheetItem = ({ item, bookId, isNew, worksheetId }) => {
     const chapterValue = isNew ? item.chapter : item.content?.worksheet?.chapter;
 
     // ✅ Check if answer key exists for this worksheet
-    const existingAnswerKey = allAnswerKeys?.content?.find((key) => key.worksheet_id === currentWorksheetId);
+    const existingAnswerKey = allAnswerKeys?.content?.find(
+      (key) => String(key.worksheet_id) === String(currentWorksheetId)
+    );
 
     if (existingAnswerKey) {
       router.push(`/answer-key?answer_key_id=${existingAnswerKey.id}`);
@@ -48,9 +51,11 @@ const WorksheetItem = ({ item, bookId, isNew, worksheetId }) => {
       generateAnswerKey({
         worksheet_id: currentWorksheetId,
         book_id: bookId || item.book_id,
-        uid: user.user.uid,
+        uid: currentUid,
         chapter: chapterValue,
         questions: questions,
+        subject: item.subject || item.book_subject,
+        class: item.class || item.grade_level,
       });
     }
   };
@@ -84,9 +89,9 @@ const WorksheetItem = ({ item, bookId, isNew, worksheetId }) => {
 
   return (
     <div>
-      <div className="rounded-2xl border border-border bg-card shadow-[var(--shadow-md)]">
+      <div className="rounded-2xl border border-border bg-card shadow-[var(--shadow-md)] print:border-none print:shadow-none print:bg-transparent">
         {/* Header with Actions */}
-        <div className="p-6 border-b border-border flex items-center justify-between">
+        <div className="p-6 border-b border-border flex items-center justify-between print:hidden">
           <div className="flex items-center gap-3">
             <Sheet className="h-6 w-6 text-primary" />
             <div>

@@ -473,11 +473,20 @@ export default function AnswerKeyPage() {
       setSelectedItem(existingAnswerKey);
     } else {
       console.log("Generating new answer key for worksheet:", worksheetExists.id);
+      
+      // ✅ Extract questions correctly to pass to the generator
+      // This ensures the AI only generates answers for the questions actually in the worksheet
+      const wsContent = worksheetExists.content?.worksheet || worksheetExists.content || worksheetExists;
+      const questionsToAnswer = wsContent.questions || worksheetExists.questions || [];
+
       generateAnswerKey({
         worksheet_id: worksheetExists.id,
         book_id: values.book,
         uid: uid,
         chapter: values.chapter,
+        questions: questionsToAnswer,
+        subject: worksheetExists.subject || wsContent.subject,
+        class: worksheetExists.class || wsContent.class || wsContent.grade_level,
       });
     }
   };

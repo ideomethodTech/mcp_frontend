@@ -33,19 +33,19 @@ import {
 // AI Generation Hooks
 export const useGenerateContent = (options) =>
   useMutation({
-    mutationFn: ({ uid, prompt, book_id, chat_id }) => generateContent({ uid, prompt, book_id, chat_id }),
+    mutationFn: generateContent,
     ...options,
   });
 
 export const useGenerateWorksheet = (options) =>
   useMutation({
-    mutationFn: ({ book_id, uid, chapter }) => generateWorksheet({ book_id, uid, chapter }),
+    mutationFn: generateWorksheet,
     ...options,
   });
 
 export const useGenerateAnswerKey = (options) =>
   useMutation({
-    mutationFn: ({ worksheet_id, book_id, uid, chapter }) => generateAnswerKey({ worksheet_id, book_id, uid, chapter }),
+    mutationFn: generateAnswerKey,
     ...options,
   });
 
@@ -207,8 +207,7 @@ export const useGetLessonPlans = (uid, options = {}) =>
 
 export const useGenerateTestPaper = (options) =>
   useMutation({
-    mutationFn: ({ uid, book_id, chapter, class: className, subject, total_marks, duration }) =>
-      generateTestPaper({ uid, book_id, chapter, class: className, subject, total_marks, duration }),
+    mutationFn: generateTestPaper,
     ...options,
   });
 
