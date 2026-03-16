@@ -275,9 +275,10 @@ export default function LessonPlanPage() {
         };
       });
 
-      // Background sync to ensure everything is perfect
+      // Mark stale but do NOT immediately refetch to avoid showing stale backend data
       queryClient.invalidateQueries({
         queryKey: ['lp', uid],
+        refetchType: 'none'
       });
     },
     onError: (err) => {
@@ -294,9 +295,17 @@ export default function LessonPlanPage() {
     idPropertyName: 'lessonPlanId',
     onDeleteSuccess: (variables) => {
       setLessonPlanStatus("success");
-      const deletedId = variables.lessonPlanId || variables.lesson_plan_id;
-      if (selectedPlan && (selectedPlan.lesson_plan_id === deletedId || selectedPlan.id === deletedId)) {
+      const deletedId = String(variables.lessonPlanId || variables.lesson_plan_id || "");
+      
+      // ✅ Instantly revert to "New" form if the currently viewed plan is deleted
+      if (selectedPlan && (String(selectedPlan.lesson_plan_id) === deletedId || String(selectedPlan.id) === deletedId)) {
         setSelectedPlan(null);
+      }
+      
+      // Also clear temporary generation data if it was showing
+      if (lessonPlanData && (String(lessonPlanData.lesson_plan_id) === deletedId || String(lessonPlanData.id) === deletedId)) {
+        setLessonPlanData(null);
+        setIsNewPlan(false);
       }
     }
   });
@@ -309,7 +318,7 @@ export default function LessonPlanPage() {
   }, [uid, handleHistoryDelete]);
 
   const handleGenerate = useCallback((book, chapter, weekCount = 2) => {
-    const bookId = book?.id || book?.book_id;
+    const bookId = book?.book_id || book?.id;
     console.log("handleGenerate called with:", {
       bookName: book?.book_name,
       bookId: bookId,

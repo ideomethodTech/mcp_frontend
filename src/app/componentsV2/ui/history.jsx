@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { File, Loader, Plus, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import useApiStore from '@/store/useApiStore';
 
 const History = ({
   selectedItem,
@@ -12,6 +13,19 @@ const History = ({
   deletingId,
   isLoading = false,
 }) => {
+  const deletedIds = useApiStore(state => state.deletedIds || []);
+
+  const filteredHistory = useMemo(() => {
+    if (!historyData || !Array.isArray(historyData)) return [];
+    if (deletedIds.length === 0) return historyData;
+    
+    return historyData.filter(h => {
+      // Extract the most likely ID
+      const hId = h.id || h.worksheet_id || h.answer_key_id || h.lesson_plan_id || h.paper_id || h.test_paper_id || h.chat_id;
+      if (!hId) return true; // Keep items with no ID (shouldn't happen with normalization)
+      return !deletedIds.includes(String(hId));
+    });
+  }, [historyData, deletedIds]);
 
   const historyItem = ({ item: currentItem, selectedItem, setSelectedItem, stableKey }) => {
     // Correct selection check
@@ -93,7 +107,7 @@ const History = ({
           <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">
             History
           </p>
-          {historyData && historyData.length > 0 ? (
+          {filteredHistory && filteredHistory.length > 0 ? (
             <div className="relative">
               {isLoading && (
                 <div className="absolute inset-0 bg-card/50 backdrop-blur-[1px] z-10 flex items-center justify-center rounded-lg">
@@ -101,7 +115,7 @@ const History = ({
                 </div>
               )}
               <div className="space-y-2">
-                {historyData.map((itemData, index) => {
+                {filteredHistory.map((itemData, index) => {
                   const stableKey = itemData.id || itemData.worksheet_id || itemData.answer_key_id || itemData.lesson_plan_id || itemData.paper_id || itemData.test_paper_id || itemData.chat_id || index;
                   return (
                     <div key={stableKey}>

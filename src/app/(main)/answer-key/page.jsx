@@ -323,8 +323,10 @@ export default function AnswerKeyPage() {
     queryKeyToInvalidate: ["all-answer-keys", uid],
     idPropertyName: "answer_key_id",
     onDeleteSuccess: (variables) => {
-      const deletedId = variables.answer_key_id || variables.id;
-      if (selectedItem && (selectedItem.id === deletedId || selectedItem.answer_key_id === deletedId)) {
+      const deletedId = String(variables.answer_key_id || variables.id || "");
+      
+      // ✅ Instantly revert to "New" form if the currently viewed key is deleted
+      if (selectedItem && (String(selectedItem.id) === deletedId || String(selectedItem.answer_key_id) === deletedId)) {
         setSelectedItem(null);
       }
     },

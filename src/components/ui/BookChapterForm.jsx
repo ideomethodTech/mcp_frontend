@@ -38,7 +38,7 @@ export function BookChapterForm({
   const uid = user?.user?.uid || user?.uid;
   const { data: booksData, isLoading: bookLoading } = useGetBook(uid);
   const selectedBookId = form.watch("book");
-  const selectedBook = booksData?.content?.find((b) => (b.id || b.book_id) == selectedBookId); // Use loose equality for string/number comparison
+  const selectedBook = booksData?.content?.find((b) => (b.book_id || b.id) == selectedBookId); // Prioritize book_id for RAG backend compatibility
 
   const handleSubmit = (values) => {
     // ✅ Return full book object + form values
@@ -85,7 +85,7 @@ export function BookChapterForm({
                           </FormControl>
                           <SelectContent>
                             {booksData?.content?.map((book, index) => (
-                              <SelectItem key={book.id || book.book_id || index} value={book.id || book.book_id}>
+                              <SelectItem key={book.book_id || book.id || index} value={book.book_id || book.id}>
                                 {book.book_name}
                               </SelectItem>
                             ))}

@@ -305,9 +305,18 @@ export default function WorksheetPage() {
     idPropertyName: "worksheet_id",
     onDeleteSuccess: (variables) => {
       setWorksheetStatus("success");
-      const deletedId = variables.worksheet_id;
-      if (selectedworksheet && (selectedworksheet.id === deletedId || selectedworksheet.worksheet_id === deletedId)) {
+      const deletedId = String(variables.worksheet_id || "");
+      
+      // ✅ Instantly revert to "New" form if the currently viewed worksheet is deleted
+      if (selectedworksheet && (String(selectedworksheet.id) === deletedId || String(selectedworksheet.worksheet_id) === deletedId)) {
         setSelectedworksheet(null);
+      }
+      
+      // Also clear temporary generation data if it was showing
+      if (currentWorksheetId && String(currentWorksheetId) === deletedId) {
+        setWorksheetData(null);
+        setCurrentWorksheetId(null);
+        setIsNewWorksheet(false);
       }
 
       // ✅ CASCADE DELETE: Find and delete ALL associated answer keys
@@ -349,7 +358,7 @@ export default function WorksheetPage() {
 
   const handleGenerate = useCallback((book, chapter) => {
     if (!book) return;
-    const bookId = book.id || book.book_id;
+    const bookId = book.book_id || book.id;
     setSelectedBookId(bookId);
     setIsNewWorksheet(true);
     setSelectedworksheet(null);

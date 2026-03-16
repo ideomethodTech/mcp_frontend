@@ -191,14 +191,14 @@ export default function TestPaperPage() {
     idPropertyName: "test_paper_id", // Backend expects test_paper_id
     onDeleteSuccess: (variables) => {
       setTestPaperStatus("success");
-      const deletedId = variables.test_paper_id;
+      const deletedId = String(variables.test_paper_id || "");
 
-      // Clear selected paper if it was the one deleted
-      if (selectedTestPaper && selectedTestPaper.id === deletedId) {
+      // ✅ Clear selected paper if it was the one deleted
+      if (selectedTestPaper && String(selectedTestPaper.id) === deletedId) {
         setSelectedTestPaper(null);
       }
-      // Clear new paper display if it was the one deleted
-      if (currentTestPaperId && currentTestPaperId === deletedId) {
+      // ✅ Clear new paper display if it was the one deleted
+      if (currentTestPaperId && String(currentTestPaperId) === deletedId) {
         setTestPaperData(null);
         setCurrentTestPaperId(null);
         setIsNewTestPaper(false);
@@ -214,7 +214,7 @@ export default function TestPaperPage() {
   const handleGenerate = useCallback((book, formData) => {
     if (!book || !formData) return;
 
-    const bookId = book.id || book.book_id || book.bookId;
+    const bookId = book.book_id || book.id || book.bookId;
     const currentUid = uid || book.uid || book.user_id;
 
     console.log("=== GENERATING TEST PAPER DEBUG ===");
