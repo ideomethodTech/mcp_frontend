@@ -29,6 +29,13 @@ const WorksheetItem = ({ item, bookId, isNew, worksheetId }) => {
     },
   });
 
+  // Extract questions with multiple fallback levels for various API response formats
+  const questions =
+    (isNew ? (item?.questions || item?.worksheet?.questions || item?.content?.questions || item?.content?.worksheet?.questions) :
+      (item?.content?.worksheet?.questions || item?.content?.questions || item?.content?.worksheet?.worksheet?.questions || item?.questions || item?.worksheet?.questions)) || [];
+
+  const worksheetData = segregateQuestions(questions);
+
   const handleAnswerKey = () => {
     const chapterValue = isNew ? item.chapter : item.content?.worksheet?.chapter;
 
@@ -43,16 +50,10 @@ const WorksheetItem = ({ item, bookId, isNew, worksheetId }) => {
         book_id: bookId || item.book_id,
         uid: user.user.uid,
         chapter: chapterValue,
+        questions: questions,
       });
     }
   };
-
-  // Extract questions with multiple fallback levels for various API response formats
-  const questions =
-    (isNew ? (item?.questions || item?.worksheet?.questions || item?.content?.questions || item?.content?.worksheet?.questions) :
-      (item?.content?.worksheet?.questions || item?.content?.questions || item?.content?.worksheet?.worksheet?.questions || item?.questions || item?.worksheet?.questions)) || [];
-
-  const worksheetData = segregateQuestions(questions);
 
   // Helper to safely render text (handles cases where API might return an object instead of string)
   const renderText = (text) => {

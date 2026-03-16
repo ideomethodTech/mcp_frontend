@@ -32,6 +32,11 @@ export const generateWorksheet = async (data) => {
 };
 
 export const generateAnswerKey = async (data) => {
+  let promptText = `Generate an answer key for chapter: ${data.chapter}.`;
+  if (data.questions && data.questions.length > 0) {
+    promptText = `Generate a detailed answer key strictly for the following worksheet questions based on chapter: ${data.chapter}. Only provide answers for these specific questions:\n\n${JSON.stringify(data.questions)}`;
+  }
+
   const response = await api({
     url: ENDPOINTS.GENERATE_ANSWER_KEY,
     method: "POST",
@@ -40,7 +45,7 @@ export const generateAnswerKey = async (data) => {
       book_id: data.book_id,
       uid: data.uid,
       chapter: data.chapter,
-      prompt: `Generate an answer key for chapter: ${data.chapter}.`,
+      prompt: promptText,
       subject: data.subject || null,
       class: data.class || null,
     },

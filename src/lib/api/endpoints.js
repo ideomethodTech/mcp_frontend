@@ -7,7 +7,7 @@ const ENDPOINTS = {
   GENERATE_TEST_PAPER: "/api/test_paper/generate/",
 
   // Book Management
-  UPLOAD_BOOK: "/upload/book/",
+  UPLOAD_BOOK: "/upload/book",
   // UPLOAD_BOOK: "/book/upload_book", // This endpoint only accepts a URL, not a file
   GET_BOOK: "/book/get_book/",
   DELETE_BOOK: "/book/", // DELETE /book/{uid}/{book_id}

@@ -245,17 +245,17 @@ export default function LessonPlanPage() {
     onMutate: () => {
       setLessonPlanStatus("loading");
     },
-    onSuccess: (data) => {
+    onSuccess: (data, variables) => {
       setLessonPlanData(data);
       setSelectedPlan(null);
       setLessonPlanStatus("success");
 
       const newPlan = {
-        id: data.lesson_plan_id || data.id,
+        id: data.lesson_plan_id || data.id || `new-${Date.now()}`,
         lesson_plan_id: data.lesson_plan_id || data.id,
-        title: data.title || data.chapter || "Lesson Plan",
-        chapter: data.chapter || "Assessment",
-        book: data.book || "",
+        title: data.title || data.lesson_plan?.title || variables.chapter || "Lesson Plan",
+        chapter: variables.chapter || "Assessment",
+        book: variables.book_name || "",
         created_at: new Date().toISOString(),
       };
 
@@ -276,15 +276,9 @@ export default function LessonPlanPage() {
       });
 
       // Background sync to ensure everything is perfect
-      if (uid) {
-        setTimeout(() => {
-          queryClient.invalidateQueries({
-            queryKey: ['lp', uid],
-            exact: true,
-            refetchType: 'active'
-          });
-        }, 3000);
-      }
+      queryClient.invalidateQueries({
+        queryKey: ['lp', uid],
+      });
     },
     onError: (err) => {
       console.error('Error generating lesson plan:', err);
@@ -341,6 +335,7 @@ export default function LessonPlanPage() {
 
     generateLessonPlan({
       book_id: bookId,
+      book_name: book.book_name,
       chapter: chapter,
       uid: uid,
       weeks: weekCount,

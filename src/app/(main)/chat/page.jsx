@@ -258,7 +258,6 @@ function ChatInterface({ chatSession, setChatSession }) {
 
 function NewChatForm({ onStartChat, data }) {
   const [selectedBook, setSelectedBook] = useState(null);
-  const [selectedChapter, setSelectedChapter] = useState(null);
 
   return (
     <div className="flex flex-col items-center justify-center min-h-[500px]">
@@ -276,7 +275,6 @@ function NewChatForm({ onStartChat, data }) {
             <div className="w-full space-y-4">
               <Select onValueChange={(val) => {
                 setSelectedBook(JSON.parse(val));
-                setSelectedChapter(null);
               }}>
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="Choose a book" />
@@ -292,27 +290,11 @@ function NewChatForm({ onStartChat, data }) {
                   ))}
                 </SelectContent>
               </Select>
-
-              {selectedBook && selectedBook.chapters && selectedBook.chapters.length > 0 && (
-                <Select onValueChange={(val) => setSelectedChapter(val)} value={selectedChapter || ""}>
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select a chapter (optional)" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="All Chapters">All Chapters</SelectItem>
-                    {selectedBook.chapters.map((chapter, index) => (
-                      <SelectItem key={index} value={chapter}>
-                        {chapter}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              )}
             </div>
 
           </CardContent>
           <CardFooter className="justify-center mt-2">
-            <Button onClick={() => onStartChat(selectedBook, selectedChapter)} disabled={!selectedBook}>
+            <Button onClick={() => onStartChat(selectedBook)} disabled={!selectedBook}>
               <MessageSquare className="mr-2 h-4 w-4" /> Start Chat
             </Button>
           </CardFooter>
@@ -421,18 +403,16 @@ export default function ChatPage() {
     }
   });
 
-  const handleStartChat = useCallback((book, chapter) => {
+  const handleStartChat = useCallback((book) => {
     if (!uid || !book) return;
 
-    // Add chapter to chat title, ignore "All Chapters"
-    const isChapValid = chapter && chapter !== "All Chapters";
-    const chatTitle = isChapValid ? `${book.book_name} - ${chapter}` : book.book_name;
+    // Use just the book name for the chat title
+    const chatTitle = book.book_name;
 
     createChatMutation({
       uid,
       chat_title: chatTitle,
       book_id: book.id,
-      chapter: isChapValid ? chapter : undefined,
     });
   }, [uid, createChatMutation]);
 
