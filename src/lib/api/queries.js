@@ -90,8 +90,9 @@ export const useUserWorksheet = (uid, options = {}) =>
     queryKey: ["ws", uid],
     queryFn: () => getWorksheet(uid),
     enabled: true,
-    ...options,
     staleTime: 0,
+    placeholderData: 'keepPreviousData',
+    ...options,
   });
 
 export const useGetAnswerKeyById = (answerKeyId, uid, options = {}) =>
@@ -107,8 +108,9 @@ export const useGetAllAnswerKeys = (uid, options = {}) =>
   useQuery({
     queryKey: ["all-answer-keys", uid],
     queryFn: () => getAllAnswerKeys(uid),
-    enabled: !!uid, // ✅ only when user is logged in
+    enabled: !!uid,
     staleTime: 0,
+    placeholderData: 'keepPreviousData',
     ...options,
   });
 
@@ -130,8 +132,9 @@ export const useUserLessonPlan = (uid, options = {}) =>
     queryKey: ["lp", uid],
     queryFn: () => getLessonPlan(uid),
     enabled: true,
-    ...options,
     staleTime: 0,
+    placeholderData: 'keepPreviousData', // ← keeps old data visible during refetch
+    ...options,
   });
 
 // Chat Management Hooks
@@ -165,6 +168,8 @@ export const useUserChats = (uid, options) =>
     queryFn: () => getUserChats(uid),
     enabled: !!uid,
     staleTime: 0,
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: true,
     ...options,
   });
 
@@ -213,6 +218,7 @@ export const useUserTestPapers = (uid, options = {}) =>
     queryFn: () => getAllTestPapers(uid),
     enabled: !!uid,
     staleTime: 0,
+    placeholderData: 'keepPreviousData',
     ...options,
   });
 

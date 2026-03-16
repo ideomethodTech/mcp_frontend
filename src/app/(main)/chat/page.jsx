@@ -453,7 +453,24 @@ export default function ChatPage() {
       raw = userChats.content;
     } else if (Array.isArray(userChats.data)) {
       raw = userChats.data;
+    } else if (Array.isArray(userChats.chat_list)) {
+      raw = userChats.chat_list;
+    } else if (Array.isArray(userChats.results)) {
+      raw = userChats.results;
+    } else if (Array.isArray(userChats.items)) {
+      raw = userChats.items;
+    } else if (userChats && typeof userChats === 'object') {
+      // Last-resort: find the first array-valued property
+      const firstArrayVal = Object.values(userChats).find(v => Array.isArray(v));
+      if (firstArrayVal) {
+        console.log('normalizedHistory: using fallback array key from userChats:', Object.keys(userChats).find(k => Array.isArray(userChats[k])));
+        raw = firstArrayVal;
+      } else {
+        console.warn('normalizedHistory: userChats has no array property. Shape:', JSON.stringify(userChats).slice(0, 200));
+      }
     }
+
+    console.log('normalizedHistory: raw count =', raw.length, '| userChats keys =', userChats ? Object.keys(userChats) : 'null');
 
     // 2. Sort newest first
     const sorted = [...raw].sort((a, b) => {

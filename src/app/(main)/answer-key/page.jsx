@@ -342,14 +342,9 @@ export default function AnswerKeyPage() {
     onSuccess: (data) => {
       setSelectedItem(data.answer_key || data);
       
-      // Instantly refresh cache
+      // Refresh answer-key list after generation
       queryClient.invalidateQueries({ queryKey: ["all-answer-keys", uid] });
-      queryClient.invalidateQueries({ queryKey: ["ws", uid] });
-      
-      // Deep sync after delay
-      setTimeout(() => {
-        queryClient.invalidateQueries({ queryKey: ["all-answer-keys", uid], exact: true });
-      }, 2000);
+      queryClient.invalidateQueries({ queryKey: ["ws", uid], refetchType: 'none' });
 
       toast({
         title: "Success",

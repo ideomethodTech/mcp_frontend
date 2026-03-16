@@ -88,10 +88,34 @@ export const QUESTION_TYPES = {
 };
 
 export function segregateQuestions(questions = []) {
+  if (!Array.isArray(questions)) return { multipleChoice: [], trueFalse: [], fillInTheBlanks: [], shortAnswer: [], others: [] };
+  
   return {
-    multipleChoice: questions.filter((q) => q.type === QUESTION_TYPES.MULTIPLE_CHOICE),
-    trueFalse: questions.filter((q) => q.type === QUESTION_TYPES.TRUE_FALSE),
-    fillInTheBlanks: questions.filter((q) => q.type === QUESTION_TYPES.FILL_IN_BLANK),
-    shortAnswer: questions.filter((q) => q.type === QUESTION_TYPES.SHORT_ANSWER),
+    multipleChoice: questions.filter((q) => {
+      const type = (q.type || q.question_type || "").toLowerCase();
+      return type === QUESTION_TYPES.MULTIPLE_CHOICE || type === "multiple choice" || type === "mcq";
+    }),
+    trueFalse: questions.filter((q) => {
+      const type = (q.type || q.question_type || "").toLowerCase();
+      return type === QUESTION_TYPES.TRUE_FALSE || type === "true false" || type === "true/false";
+    }),
+    fillInTheBlanks: questions.filter((q) => {
+      const type = (q.type || q.question_type || "").toLowerCase();
+      return type === QUESTION_TYPES.FILL_IN_BLANK || type === "fill in blank" || type === "fib" || type === "fill_in_the_blanks";
+    }),
+    shortAnswer: questions.filter((q) => {
+      const type = (q.type || q.question_type || "").toLowerCase();
+      return type === QUESTION_TYPES.SHORT_ANSWER || type === "short answer" || type === "sa";
+    }),
+    others: questions.filter((q) => {
+      const type = (q.type || q.question_type || "").toLowerCase();
+      const known = [
+        QUESTION_TYPES.MULTIPLE_CHOICE, "multiple choice", "mcq",
+        QUESTION_TYPES.TRUE_FALSE, "true false", "true/false",
+        QUESTION_TYPES.FILL_IN_BLANK, "fill in blank", "fib", "fill_in_the_blanks",
+        QUESTION_TYPES.SHORT_ANSWER, "short answer", "sa"
+      ];
+      return type && !known.includes(type);
+    })
   };
 }

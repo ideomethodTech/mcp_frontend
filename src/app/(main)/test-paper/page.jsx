@@ -156,25 +156,23 @@ export default function TestPaperPage() {
 
       queryClient.setQueryData(["test-papers", uid], (oldData) => {
         if (!oldData) return { content: [newPaperEntry] };
-        
+
         // Handle variations of list structure
         if (Array.isArray(oldData)) return [newPaperEntry, ...oldData];
         if (Array.isArray(oldData.content)) return { ...oldData, content: [newPaperEntry, ...oldData.content] };
         if (Array.isArray(oldData.data)) return { ...oldData, data: [newPaperEntry, ...oldData.data] };
         if (Array.isArray(oldData.papers)) return { ...oldData, papers: [newPaperEntry, ...oldData.papers] };
-        
+
         return { content: [newPaperEntry, ...(oldData.content || [])] };
       });
 
-      // Background sync to ensure everything is perfect
+      // Mark stale only - no forced refetch
       if (uid) {
-        setTimeout(() => {
-          queryClient.invalidateQueries({
-            queryKey: ["test-papers", uid],
-            exact: true,
-            refetchType: 'active'
-          });
-        }, 3000);
+        queryClient.invalidateQueries({
+          queryKey: ["test-papers", uid],
+          exact: true,
+          refetchType: 'none',
+        });
       }
 
       toast.success("Test paper generated successfully!");
@@ -216,21 +214,24 @@ export default function TestPaperPage() {
   const handleGenerate = useCallback((book, formData) => {
     if (!book || !formData) return;
 
-    console.log("Generating Test Paper with payload:", {
-      subject: formData.subject,
-      chapter: formData.chapter,
-      book: book.book_name,
-      bookId: book.id
-    });
+    const bookId = book.id || book.book_id || book.bookId;
+    const currentUid = uid || book.uid || book.user_id;
 
-    setSelectedBookId(book.id);
-    setIsNewTestPaper(true);
-    setSelectedTestPaper(null);
-    setTestPaperData(null); // Clear previous paper data
+    console.log("=== GENERATING TEST PAPER DEBUG ===");
+    console.log("Full Book Object:", book);
+    console.log("Form Data:", formData);
+    console.log("Calculated Book ID:", bookId);
+    console.log("Calculated UID:", currentUid);
+    console.log("====================================");
+
+    if (!bookId) {
+      toast.error("Could not determine Book ID. Refresh and try again.");
+      return;
+    }
 
     generateTestPaperMutation({
-      uid: uid,
-      book_id: book.id,
+      uid: currentUid,
+      book_id: bookId,
       chapter: formData.chapter,
       class: formData.class,
       subject: formData.subject,

@@ -115,16 +115,20 @@ export function useHistoryDelete({
                 description: 'Deleted successfully'
             });
 
-            // Re-sync with server after a delay (ensuring DB deletion has propagated)
+            // Mark the query stale so next navigation/focus re-syncs silently.
+            // Do NOT invalidate with an active refetch here — it would cause the
+            // deleted item to re-appear while the new server response loads.
             const keys = Array.isArray(queryKeyToInvalidate) && Array.isArray(queryKeyToInvalidate[0]) 
                 ? queryKeyToInvalidate 
                 : [queryKeyToInvalidate];
             
-            setTimeout(() => {
-                keys.forEach(key => {
-                    queryClient.invalidateQueries({ queryKey: key, exact: false });
+            keys.forEach(key => {
+                queryClient.invalidateQueries({ 
+                    queryKey: key, 
+                    exact: false,
+                    refetchType: 'none' // Mark stale but do NOT immediately refetch
                 });
-            }, 5000); // 5 seconds is safer for slower backends
+            });
         },
         onError: (error, variables, context) => {
             console.error('[useHistoryDelete] Deletion failed:', error);
