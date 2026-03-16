@@ -245,30 +245,30 @@ export default function LessonPlanPage() {
     onMutate: () => {
       setLessonPlanStatus("loading");
     },
-    onSuccess: (data) => {
+    onSuccess: (data, variables) => {
       setLessonPlanData(data);
       setSelectedPlan(null);
       setLessonPlanStatus("success");
 
       const newPlan = {
-        id: data.lesson_plan_id || data.id,
+        id: data.lesson_plan_id || data.id || `new-${Date.now()}`,
         lesson_plan_id: data.lesson_plan_id || data.id,
-        title: data.title || data.chapter || "Lesson Plan",
-        chapter: data.chapter || "Assessment",
-        book: data.book || "",
+        title: data.title || data.lesson_plan?.title || variables.chapter || "Lesson Plan",
+        chapter: variables.chapter || "Assessment",
+        book: variables.book_name || "",
         created_at: new Date().toISOString(),
       };
 
       // ✅ Instantly update the cache list for immediate UI feedback
       queryClient.setQueryData(['lp', uid], (oldData) => {
         if (!oldData) return { content: [newPlan] };
-        
+
         // Handle variations of list structure to avoid accidental data loss
         if (Array.isArray(oldData)) return [newPlan, ...oldData];
         if (Array.isArray(oldData.content)) return { ...oldData, content: [newPlan, ...oldData.content] };
         if (Array.isArray(oldData.data)) return { ...oldData, data: [newPlan, ...oldData.data] };
         if (Array.isArray(oldData.lesson_plans)) return { ...oldData, lesson_plans: [newPlan, ...oldData.lesson_plans] };
-        
+
         return {
           ...oldData,
           content: [newPlan, ...(oldData.content || [])]
@@ -276,15 +276,9 @@ export default function LessonPlanPage() {
       });
 
       // Background sync to ensure everything is perfect
-      if (uid) {
-        setTimeout(() => {
-          queryClient.invalidateQueries({
-            queryKey: ['lp', uid],
-            exact: true,
-            refetchType: 'active'
-          });
-        }, 3000);
-      }
+      queryClient.invalidateQueries({
+        queryKey: ['lp', uid],
+      });
     },
     onError: (err) => {
       console.error('Error generating lesson plan:', err);
@@ -315,9 +309,10 @@ export default function LessonPlanPage() {
   }, [uid, handleHistoryDelete]);
 
   const handleGenerate = useCallback((book, chapter, weekCount = 2) => {
+    const bookId = book?.id || book?.book_id;
     console.log("handleGenerate called with:", {
       bookName: book?.book_name,
-      bookId: book?.id,
+      bookId: bookId,
       chapter,
       weekCount
     });
@@ -328,9 +323,9 @@ export default function LessonPlanPage() {
     }
 
     // Validate ID
-    if (!book.id) {
-      console.error("handleGenerate: Book object is missing 'id' property:", book);
-      toast.error("Selected book has no ID. Please try another book.");
+    if (!bookId) {
+      console.error("handleGenerate: Book object is missing a valid ID property:", book);
+      toast.error("Selected book has no valid ID. Please try another book.");
       return;
     }
 
@@ -339,7 +334,8 @@ export default function LessonPlanPage() {
     setLessonPlanData(null);
 
     generateLessonPlan({
-      book_id: book.id,
+      book_id: bookId,
+      book_name: book.book_name,
       chapter: chapter,
       uid: uid,
       weeks: weekCount,

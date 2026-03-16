@@ -29,6 +29,13 @@ const WorksheetItem = ({ item, bookId, isNew, worksheetId }) => {
     },
   });
 
+  // Extract questions with multiple fallback levels for various API response formats
+  const questions =
+    (isNew ? (item?.questions || item?.worksheet?.questions || item?.content?.questions || item?.content?.worksheet?.questions) :
+      (item?.content?.worksheet?.questions || item?.content?.questions || item?.content?.worksheet?.worksheet?.questions || item?.questions || item?.worksheet?.questions)) || [];
+
+  const worksheetData = segregateQuestions(questions);
+
   const handleAnswerKey = () => {
     const chapterValue = isNew ? item.chapter : item.content?.worksheet?.chapter;
 
@@ -43,28 +50,37 @@ const WorksheetItem = ({ item, bookId, isNew, worksheetId }) => {
         book_id: bookId || item.book_id,
         uid: user.user.uid,
         chapter: chapterValue,
+        questions: questions,
       });
     }
   };
-
-  // Extract questions with multiple fallback levels for various API response formats
-  const questions =
-    (isNew ? (item?.questions || item?.worksheet?.questions) :
-      (item?.content?.worksheet?.questions || item?.content?.questions || item?.content?.worksheet?.worksheet?.questions)) || [];
-
-  const worksheetData = segregateQuestions(questions);
 
   // Helper to safely render text (handles cases where API might return an object instead of string)
   const renderText = (text) => {
     if (typeof text === 'string') return text;
     if (typeof text === 'object' && text !== null) {
-      return text.question || text.text || JSON.stringify(text);
+      return text.question || text.text || text.answer || text.correct_answer || JSON.stringify(text);
     }
     return "";
   };
 
   // Extract title safely
-  const worksheetTitle = item?.worksheet?.title || item?.worksheet?.itle || item?.content?.worksheet?.title || item?.title || "Educational Worksheet";
+  const worksheetTitle =
+    item?.worksheet?.title ||
+    item?.worksheet?.itle ||
+    item?.content?.worksheet?.title ||
+    item?.title ||
+    item?.content?.title ||
+    "Educational Worksheet";
+
+  if (typeof item === 'string' && item.length > 0) {
+    return (
+      <div className="p-12 text-center rounded-2xl border border-dashed border-border bg-card">
+        <h3 className="text-xl font-semibold text-destructive mb-2">Message from AI</h3>
+        <p className="text-muted-foreground">{item}</p>
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -130,109 +146,153 @@ const WorksheetItem = ({ item, bookId, isNew, worksheetId }) => {
 
             {/* Questions Section */}
             <div className="space-y-8">
-              {worksheetData?.multipleChoice?.length > 0 && (
-                <div>
-                  <h3 className="text-lg font-semibold mb-4">A. Multiple Choice Questions</h3>
-                  <div className="space-y-6">
-                    {worksheetData.multipleChoice.map((question, index) => (
-                      <div key={`mcq-${index}`} className="space-y-2">
-                        <div className="flex gap-2 font-medium">
-                          <span>{index + 1}.</span>
-                          <div className="prose prose-sm max-w-none">
-                            <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                              {renderText(question.question)}
-                            </ReactMarkdown>
-                          </div>
-                        </div>
-                        <div className="pl-4 space-y-1 text-sm grid grid-cols-1 md:grid-cols-2 gap-2">
-                          {question.options?.map((option, i) => (
-                            <p key={`opt-${index}-${i}`} className="flex items-center gap-2">
-                              <span className="w-5 h-5 rounded-full border border-border flex items-center justify-center text-[10px]">{String.fromCharCode(65 + i)}</span>
-                              {renderText(option)}
-                            </p>
-                          ))}
+              {(() => {
+                let qCounter = 0;
+                return (
+                  <>
+                    {worksheetData?.multipleChoice?.length > 0 && (
+                      <div>
+                        <h3 className="text-lg font-semibold mb-4">A. Multiple Choice Questions</h3>
+                        <div className="space-y-6">
+                          {worksheetData.multipleChoice.map((question, index) => {
+                            qCounter++;
+                            return (
+                              <div key={`mcq-${index}`} className="space-y-2">
+                                <div className="flex gap-2 font-medium">
+                                  <span>{qCounter}.</span>
+                                  <div className="prose prose-sm max-w-none">
+                                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                      {renderText(question.question)}
+                                    </ReactMarkdown>
+                                  </div>
+                                </div>
+                                <div className="pl-4 space-y-1 text-sm grid grid-cols-1 md:grid-cols-2 gap-2">
+                                  {question.options?.map((option, i) => (
+                                    <p key={`opt-${index}-${i}`} className="flex items-center gap-2">
+                                      <span className="w-5 h-5 rounded-full border border-border flex items-center justify-center text-[10px]">{String.fromCharCode(65 + i)}</span>
+                                      {renderText(option)}
+                                    </p>
+                                  ))}
+                                </div>
+                              </div>
+                            );
+                          })}
                         </div>
                       </div>
-                    ))}
-                  </div>
-                </div>
-              )}
+                    )}
 
-              {worksheetData?.trueFalse?.length > 0 && (
-                <div>
-                  <h3 className="text-lg font-semibold mb-4">B. True or False</h3>
-                  <div className="space-y-4">
-                    {worksheetData.trueFalse.map((question, index) => (
-                      <div key={`tf-${index}`} className="space-y-3">
-                        <div className="flex items-start gap-3">
-                          <span className="font-medium">{index + 1}.</span>
-                          <div className="flex-1">
-                            <div className="prose prose-sm max-w-none mb-2">
-                              <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                                {renderText(question.question)}
-                              </ReactMarkdown>
-                            </div>
-                            <div className="flex gap-6 pl-4 text-sm">
-                              <span className="flex items-center gap-2"><div className="w-3 h-3 rounded-full border border-border" /> True</span>
-                              <span className="flex items-center gap-2"><div className="w-3 h-3 rounded-full border border-border" /> False</span>
-                            </div>
-                          </div>
+                    {worksheetData?.trueFalse?.length > 0 && (
+                      <div>
+                        <h3 className="text-lg font-semibold mb-4">B. True or False</h3>
+                        <div className="space-y-4">
+                          {worksheetData.trueFalse.map((question, index) => {
+                            qCounter++;
+                            return (
+                              <div key={`tf-${index}`} className="space-y-3">
+                                <div className="flex items-start gap-3">
+                                  <span className="font-medium">{qCounter}.</span>
+                                  <div className="flex-1">
+                                    <div className="prose prose-sm max-w-none mb-2">
+                                      <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                        {renderText(question.question)}
+                                      </ReactMarkdown>
+                                    </div>
+                                    <div className="flex gap-6 pl-4 text-sm">
+                                      <span className="flex items-center gap-2"><div className="w-3 h-3 rounded-full border border-border" /> True</span>
+                                      <span className="flex items-center gap-2"><div className="w-3 h-3 rounded-full border border-border" /> False</span>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
                         </div>
                       </div>
-                    ))}
-                  </div>
-                </div>
-              )}
+                    )}
 
-              {worksheetData?.fillInTheBlanks?.length > 0 && (
-                <div>
-                  <h3 className="text-lg font-semibold mb-4">C. Fill in the Blanks</h3>
-                  <div className="space-y-4">
-                    {worksheetData.fillInTheBlanks.map((question, index) => (
-                      <div key={`fib-${index}`} className="flex items-start gap-3">
-                        <span className="font-medium">{index + 1}.</span>
-                        <div className="prose prose-sm max-w-none flex-1">
-                          <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                            {renderText(question.question)}
-                          </ReactMarkdown>
+                    {worksheetData?.fillInTheBlanks?.length > 0 && (
+                      <div>
+                        <h3 className="text-lg font-semibold mb-4">C. Fill in the Blanks</h3>
+                        <div className="space-y-4">
+                          {worksheetData.fillInTheBlanks.map((question, index) => {
+                            qCounter++;
+                            return (
+                              <div key={`fib-${index}`} className="flex items-start gap-3">
+                                <span className="font-medium">{qCounter}.</span>
+                                <div className="prose prose-sm max-w-none flex-1">
+                                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                    {renderText(question.question)}
+                                  </ReactMarkdown>
+                                </div>
+                              </div>
+                            );
+                          })}
                         </div>
                       </div>
-                    ))}
-                  </div>
-                </div>
-              )}
+                    )}
 
-              {worksheetData?.shortAnswer?.length > 0 && (
-                <div>
-                  <h3 className="text-lg font-semibold mb-4">D. Short Answer Questions</h3>
-                  <div className="space-y-6">
-                    {worksheetData.shortAnswer.map((question, index) => (
-                      <div key={`sa-${index}`} className="space-y-2">
-                        <div className="flex gap-2 font-medium">
-                          <span>{index + 1}.</span>
-                          <div className="prose prose-sm max-w-none">
-                            <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                              {renderText(question.question || question.text)}
-                            </ReactMarkdown>
-                          </div>
-                        </div>
-                        <div className="pl-4 min-h-[40px] border-b border-dashed border-border/50 text-muted-foreground italic text-sm">
-                          Space for answer...
-                        </div>
-                        {/* Always show expected answer in the preview for the teacher */}
-                        <div className="bg-primary/5 p-3 rounded-lg text-xs text-primary/80 mt-2">
-                          <span className="font-bold">Expected:</span>
-                          <div className="prose prose-xs max-w-none inline-block align-top ml-2">
-                            <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                              {renderText(question.expected_answer || question.answer)}
-                            </ReactMarkdown>
-                          </div>
+                    {worksheetData?.shortAnswer?.length > 0 && (
+                      <div>
+                        <h3 className="text-lg font-semibold mb-4">D. Short Answer Questions</h3>
+                        <div className="space-y-6">
+                          {worksheetData.shortAnswer.map((question, index) => {
+                            qCounter++;
+                            return (
+                              <div key={`sa-${index}`} className="space-y-2">
+                                <div className="flex gap-2 font-medium">
+                                  <span>{qCounter}.</span>
+                                  <div className="prose prose-sm max-w-none">
+                                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                      {renderText(question.question || question.text)}
+                                    </ReactMarkdown>
+                                  </div>
+                                </div>
+                                <div className="pl-4 min-h-[40px] border-b border-dashed border-border/50 text-muted-foreground italic text-sm">
+                                  Space for answer...
+                                </div>
+                                <div className="bg-primary/5 p-3 rounded-lg text-xs text-primary/80 mt-2">
+                                  <span className="font-bold">Expected:</span>
+                                  <div className="prose prose-xs max-w-none inline-block align-top ml-2">
+                                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                      {renderText(question.expected_answer || question.answer)}
+                                    </ReactMarkdown>
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
                         </div>
                       </div>
-                    ))}
-                  </div>
-                </div>
-              )}
+                    )}
+
+                    {worksheetData?.others?.length > 0 && (
+                      <div>
+                        <h3 className="text-lg font-semibold mb-4">E. Other Questions</h3>
+                        <div className="space-y-6">
+                          {worksheetData.others.map((question, index) => {
+                            qCounter++;
+                            return (
+                              <div key={`other-${index}`} className="space-y-2">
+                                <div className="flex gap-2 font-medium">
+                                  <span>{qCounter}.</span>
+                                  <div className="prose prose-sm max-w-none">
+                                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                      {renderText(question.question || question.text)}
+                                    </ReactMarkdown>
+                                  </div>
+                                </div>
+                                <div className="pl-4 min-h-[40px] border-b border-dashed border-border/50 text-muted-foreground italic text-sm">
+                                  Space for answer...
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </>
+                );
+              })()}
             </div>
           </div>
         </div>

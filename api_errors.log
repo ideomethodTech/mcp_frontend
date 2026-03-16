@@ -1,0 +1,19 @@
+
+
+[2026-03-16T06:02:30.076Z] API Error:
+{
+  "url": "/api/test_paper/generate/",
+  "status": 500,
+  "data": {
+    "error": "Book content not found for the specified book_id"
+  }
+}
+
+[2026-03-16T06:02:30.115Z] API Error:
+{
+  "url": "/api/test_paper/generate/",
+  "status": 500,
+  "data": {
+    "error": "Book content not found for the specified book_id"
+  }
+}

@@ -32,6 +32,11 @@ export const generateWorksheet = async (data) => {
 };
 
 export const generateAnswerKey = async (data) => {
+  let promptText = `Generate an answer key for chapter: ${data.chapter}.`;
+  if (data.questions && data.questions.length > 0) {
+    promptText = `Generate a detailed answer key strictly for the following worksheet questions based on chapter: ${data.chapter}. Only provide answers for these specific questions:\n\n${JSON.stringify(data.questions)}`;
+  }
+
   const response = await api({
     url: ENDPOINTS.GENERATE_ANSWER_KEY,
     method: "POST",
@@ -40,7 +45,7 @@ export const generateAnswerKey = async (data) => {
       book_id: data.book_id,
       uid: data.uid,
       chapter: data.chapter,
-      prompt: `Generate an answer key for chapter: ${data.chapter}.`,
+      prompt: promptText,
       subject: data.subject || null,
       class: data.class || null,
     },
@@ -137,12 +142,12 @@ export const deleteWorksheet = async ({ uid, worksheet_id, id }) => {
   }
 
   if (!actualUid || !actualId) throw new Error("uid and worksheet_id are required for deletion");
-  
+
   // Use a cleaner path construction for consistency
-  const cleanBase = ENDPOINTS.DELETE_WORKSHEET.endsWith('/') 
-    ? ENDPOINTS.DELETE_WORKSHEET.slice(0, -1) 
+  const cleanBase = ENDPOINTS.DELETE_WORKSHEET.endsWith('/')
+    ? ENDPOINTS.DELETE_WORKSHEET.slice(0, -1)
     : ENDPOINTS.DELETE_WORKSHEET;
-  
+
   const response = await api({
     url: `${cleanBase}/${actualUid}/${actualId}`,
     method: "DELETE",
@@ -291,10 +296,10 @@ export const deleteChat = async ({ uid, chatId, chat_id, id }) => {
 
   if (!actualUid || !actualId) throw new Error("User ID and Chat ID are required for deletion");
   console.log("🗑️ Deleting chat:", { actualUid, actualId });
-  
+
   // Use a cleaner path construction exactly like lesson plan deletion
-  const cleanBase = ENDPOINTS.DELETE_CHAT.endsWith('/') 
-    ? ENDPOINTS.DELETE_CHAT.slice(0, -1) 
+  const cleanBase = ENDPOINTS.DELETE_CHAT.endsWith('/')
+    ? ENDPOINTS.DELETE_CHAT.slice(0, -1)
     : ENDPOINTS.DELETE_CHAT;
 
   const finalUrl = `${cleanBase}/${actualUid}/${actualId}`;
@@ -324,8 +329,8 @@ export const deleteChatMessage = async ({ uid, message_id, id }) => {
   }
 
   // Use a cleaner path construction for consistency
-  const cleanBase = ENDPOINTS.DELETE_CHAT_MESSAGE.endsWith('/') 
-    ? ENDPOINTS.DELETE_CHAT_MESSAGE.slice(0, -1) 
+  const cleanBase = ENDPOINTS.DELETE_CHAT_MESSAGE.endsWith('/')
+    ? ENDPOINTS.DELETE_CHAT_MESSAGE.slice(0, -1)
     : ENDPOINTS.DELETE_CHAT_MESSAGE;
 
   const response = await api({
@@ -352,8 +357,8 @@ export const deleteAnswerKey = async ({ uid, answer_key_id, id }) => {
   }
 
   // Use a cleaner path construction for consistency
-  const cleanBase = ENDPOINTS.DELETE_ANSWER_KEY.endsWith('/') 
-    ? ENDPOINTS.DELETE_ANSWER_KEY.slice(0, -1) 
+  const cleanBase = ENDPOINTS.DELETE_ANSWER_KEY.endsWith('/')
+    ? ENDPOINTS.DELETE_ANSWER_KEY.slice(0, -1)
     : ENDPOINTS.DELETE_ANSWER_KEY;
 
   const response = await api({
@@ -472,8 +477,8 @@ export const deleteTestPaper = async ({ uid, test_paper_id, id, paper_id }) => {
   }
 
   // Use a cleaner path construction for consistency
-  const cleanBase = ENDPOINTS.DELETE_TEST_PAPER.endsWith('/') 
-    ? ENDPOINTS.DELETE_TEST_PAPER.slice(0, -1) 
+  const cleanBase = ENDPOINTS.DELETE_TEST_PAPER.endsWith('/')
+    ? ENDPOINTS.DELETE_TEST_PAPER.slice(0, -1)
     : ENDPOINTS.DELETE_TEST_PAPER;
 
   const response = await api({

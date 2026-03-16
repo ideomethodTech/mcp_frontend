@@ -41,7 +41,7 @@ const History = ({
           onClick={() => {
             setSelectedItem(currentItem);
           }}
-          className={`w-full text-left p-2 rounded-lg border ${isSelected
+          className={`flex-1 min-w-0 text-left p-2 rounded-lg border ${isSelected
             ? 'bg-primary/10 border-primary'
             : 'hover:bg-muted/50'
             }`}
@@ -89,7 +89,7 @@ const History = ({
           <Plus className="h-4 w-4 mr-2" /> 
           <p>{item ? `New ${item}` : 'New worksheet'}</p>
         </Button>
-        <div className="space-y-2 max-h-[calc(100vh-350px)] overflow-y-auto pr-1">
+        <div className="space-y-2 max-h-[calc(100vh-350px)] overflow-y-auto overflow-x-hidden pr-1">
           <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">
             History
           </p>

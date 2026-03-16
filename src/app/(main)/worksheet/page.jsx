@@ -178,7 +178,7 @@ export default function WorksheetPage() {
   const [currentWorksheetId, setCurrentWorksheetId] = useState(null);
 
   const { user } = useAuth();
-  const uid = user?.user?.uid;
+  const uid = user?.user?.uid || user?.uid;
   const pathname = usePathname();
   const navItem = useMemo(() => getNavItemByUrl(pathname), [pathname]);
   const queryClient = useQueryClient();
@@ -238,7 +238,9 @@ export default function WorksheetPage() {
   }, [userworksheet]);
 
   const [selectedworksheet, setSelectedworksheet] = useState(null);
-  const { data: bookData, isLoading: bookLoading } = useGetBook();
+  const { data: bookData, isLoading: bookLoading } = useGetBook(uid, {
+    enabled: !!uid,
+  });
 
   const {
     mutate: generateWSMutation,
@@ -252,7 +254,7 @@ export default function WorksheetPage() {
       setWorksheetData(data.worksheet);
       setCurrentWorksheetId(data.worksheet_id);
       setWorksheetStatus("success");
-      
+
       const newWorksheet = {
         id: data.worksheet_id,
         worksheet_id: data.worksheet_id,
@@ -265,17 +267,17 @@ export default function WorksheetPage() {
       // ✅ Instantly update the cache list for immediate UI feedback
       queryClient.setQueryData(["ws", uid], (oldData) => {
         if (!oldData) return { content: [newWorksheet] };
-        
+
         // Handle variations of list structure to avoid accidental data loss
         if (Array.isArray(oldData)) return [newWorksheet, ...oldData];
         if (Array.isArray(oldData.content)) return { ...oldData, content: [newWorksheet, ...oldData.content] };
         if (Array.isArray(oldData.data)) return { ...oldData, data: [newWorksheet, ...oldData.data] };
         if (Array.isArray(oldData.worksheets)) return { ...oldData, worksheets: [newWorksheet, ...oldData.worksheets] };
-        
+
         // Fallback
-        return { 
+        return {
           ...oldData,
-          content: [newWorksheet, ...(oldData.content || [])] 
+          content: [newWorksheet, ...(oldData.content || [])]
         };
       });
 
@@ -312,12 +314,12 @@ export default function WorksheetPage() {
       if (allAnswerKeys) {
         const rawKeys = allAnswerKeys.content || allAnswerKeys.data || (Array.isArray(allAnswerKeys) ? allAnswerKeys : []);
         const associatedKeys = rawKeys.filter(key => String(key.worksheet_id) === String(deletedId));
-        
+
         associatedKeys.forEach(associatedKey => {
           console.log("Cascading delete for associated answer key:", associatedKey.id);
-          deleteAKMutation({ 
-            uid, 
-            answer_key_id: associatedKey.id || associatedKey.answer_key_id 
+          deleteAKMutation({
+            uid,
+            answer_key_id: associatedKey.id || associatedKey.answer_key_id
           });
         });
       }
@@ -335,11 +337,11 @@ export default function WorksheetPage() {
     if (worksheetId && allAnswerKeys) {
       const allKeys = allAnswerKeys.content || allAnswerKeys.data || (Array.isArray(allAnswerKeys) ? allAnswerKeys : []);
       const associatedKeys = allKeys.filter(key => String(key.worksheet_id) === String(worksheetId));
-      
+
       associatedKeys.forEach(associatedKey => {
-        deleteAKMutation({ 
-          uid, 
-          answer_key_id: associatedKey.id || associatedKey.answer_key_id 
+        deleteAKMutation({
+          uid,
+          answer_key_id: associatedKey.id || associatedKey.answer_key_id
         });
       });
     }
@@ -347,11 +349,12 @@ export default function WorksheetPage() {
 
   const handleGenerate = useCallback((book, chapter) => {
     if (!book) return;
-    setSelectedBookId(book.id);
+    const bookId = book.id || book.book_id;
+    setSelectedBookId(bookId);
     setIsNewWorksheet(true);
     setSelectedworksheet(null);
     generateWSMutation({
-      book_id: book.id,
+      book_id: bookId,
       chapter: chapter,
       uid: uid,
       subject: book.subject || book.book_subject,
