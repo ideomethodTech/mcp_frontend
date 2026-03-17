@@ -292,10 +292,10 @@ export default function LessonPlanPage() {
   const { handleDelete: handleHistoryDelete, deletingId } = useHistoryDelete({
     useMutation: useDeleteLessonPlan,
     queryKeyToInvalidate: ['lp', uid],
-    idPropertyName: 'lessonPlanId',
+    idPropertyName: 'lesson_plan_id',
     onDeleteSuccess: (variables) => {
       setLessonPlanStatus("success");
-      const deletedId = String(variables.lessonPlanId || variables.lesson_plan_id || "");
+      const deletedId = String(variables.lesson_plan_id || "");
       
       // ✅ Instantly revert to "New" form if the currently viewed plan is deleted
       if (selectedPlan && (String(selectedPlan.lesson_plan_id) === deletedId || String(selectedPlan.id) === deletedId)) {

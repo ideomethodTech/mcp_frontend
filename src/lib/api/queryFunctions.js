@@ -33,7 +33,7 @@ export const generateWorksheet = async (data) => {
 
 export const generateAnswerKey = async (data) => {
   let promptText = `Generate a detailed answer key for chapter: ${data.chapter}.`;
-  
+
   if (data.questions && Array.isArray(data.questions) && data.questions.length > 0) {
     promptText = `CRITICAL TASK: Generate a comprehensive answer key ONLY for the ${data.questions.length} specific questions provided below.
     
@@ -250,15 +250,23 @@ export const deleteLessonPlan = async ({ uid, lesson_plan_id, lessonPlanId, id }
     }
   }
 
-  if (!actualUid || !actualLessonPlanId) throw new Error("uid and lesson_plan_id are required");
+  if (!actualUid || !actualLessonPlanId) {
+    console.error("❌ deleteLessonPlan: Missing required params", { actualUid, actualLessonPlanId });
+    throw new Error("uid and lesson_plan_id are required");
+  }
+
+  console.log("🗑️ Deleting lesson plan:", { actualUid, actualLessonPlanId });
 
   // Remove trailing slash to prevent CORS issues if endpoint has one (failsafe)
   const cleanBase = ENDPOINTS.DELETE_LESSON_PLAN.endsWith('/')
     ? ENDPOINTS.DELETE_LESSON_PLAN.slice(0, -1)
     : ENDPOINTS.DELETE_LESSON_PLAN;
 
+  const finalUrl = `${cleanBase}/${actualUid}/${actualLessonPlanId}`;
+  console.log("➡️ DELETE URL:", finalUrl);
+
   const response = await api({
-    url: `${cleanBase}/${actualUid}/${actualLessonPlanId}`,
+    url: finalUrl,
     method: "DELETE",
   });
   return response.data;
