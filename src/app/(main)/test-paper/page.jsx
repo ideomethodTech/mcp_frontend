@@ -50,8 +50,6 @@ export default function TestPaperPage() {
 
   const { data: userTestPapers, isLoading: testPapersLoading, isFetching: testPapersFetching } = useUserTestPapers(uid, {
     enabled: !!uid,
-    onSuccess: () => setTestPaperStatus("success"),
-    onError: () => setTestPaperStatus("error"),
   });
 
   // Normalize history items so history.jsx can render title/chapter/book correctly.
@@ -95,7 +93,8 @@ export default function TestPaperPage() {
     });
 
     return sorted.map((item) => {
-      const meta = item.paper || {};
+      // Backend may return metadata at top level OR inside 'paper' OR inside 'data'
+      const meta = item.paper || item.data || item;
       return {
         ...item,
         // 'title' is used as the primary label in history.jsx
@@ -106,7 +105,7 @@ export default function TestPaperPage() {
         book: item.book || meta.book || item.subject || meta.subject || "",
         // ensure id is always present for selection/delete
         // The list API may return paper_id at the top level (not id)
-        id: item.id || item.paper_id || meta.paper_id || meta.id,
+        id: item.id || item.paper_id || meta.paper_id || meta.id || item.test_paper_id,
       };
     });
   }, [userTestPapers]);
@@ -115,8 +114,10 @@ export default function TestPaperPage() {
     if (!uid) return;
     if (testPapersLoading) {
       setTestPaperStatus("loading");
+    } else if (userTestPapers) {
+      setTestPaperStatus("success");
     }
-  }, [testPapersLoading, uid, setTestPaperStatus]);
+  }, [testPapersLoading, userTestPapers, uid, setTestPaperStatus]);
 
   const { data: bookData, isLoading: bookLoading } = useGetBook();
 
