@@ -31,6 +31,17 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
 const ChatMessage = ({ isUser = false, content, isLoading = false }) => {
+  // Helper to safely extract string from content (handles cases where API might return an object)
+  const renderContent = (data) => {
+    if (typeof data === 'string') return data;
+    if (typeof data === 'object' && data !== null) {
+      return data.message || data.response || data.text || JSON.stringify(data);
+    }
+    return "";
+  };
+
+  const safeContent = renderContent(content);
+
   // Custom renderers for markdown (disable code blocks)
   const components = {
     code: () => null, // Do not render code blocks or inline code
@@ -72,11 +83,11 @@ const ChatMessage = ({ isUser = false, content, isLoading = false }) => {
           </div>
         ) : (
           isUser ? (
-            <p className="mb-2">{content ? content : null}</p>
+            <p className="mb-2">{safeContent ? safeContent : null}</p>
           ) : (
             <div className="prose prose-sm max-w-none text-foreground break-words whitespace-pre-line">
               <ReactMarkdown remarkPlugins={[remarkGfm]} components={components}>
-                {content || ''}
+                {safeContent || ''}
               </ReactMarkdown>
             </div>
           )
@@ -122,7 +133,7 @@ function ChatInterface({ chatSession, setChatSession }) {
             idx === prev.length - 1
               ? {
                 ...m,
-                response: data?.response || data || 'No response',
+                response: data?.response || data?.message || (typeof data === 'string' ? data : 'No response'),
                 id: data?.id, // ✅ THIS IS REQUIRED
               }
               : m
