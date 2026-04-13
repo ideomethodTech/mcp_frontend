@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useToast } from './use-toast';
+import useApiStore from '@/store/useApiStore';
 
 export function useHistoryDelete({ 
     useMutation, 
@@ -11,6 +12,7 @@ export function useHistoryDelete({
     const [deletingId, setDeletingId] = useState(null);
     const queryClient = useQueryClient();
     const { toast } = useToast();
+    const addDeletedId = useApiStore(state => state.addDeletedId);
 
     /**
      * Helper to safely remove an item from various cache structures.
@@ -106,10 +108,16 @@ export function useHistoryDelete({
 
             return { snapshots, id: currentId };
         },
-        onSuccess: (data, variables) => {
+        onSuccess: (data, variables, context) => {
             setDeletingId(null);
             onDeleteSuccess(variables);
             
+            // Extract id safely
+            const currentId = variables[idPropertyName] || variables.id || context?.id;
+            if (currentId) {
+                addDeletedId(currentId);
+            }
+
             toast({
                 title: 'Success',
                 description: 'Deleted successfully'

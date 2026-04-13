@@ -32,10 +32,29 @@ export const generateWorksheet = async (data) => {
 };
 
 export const generateAnswerKey = async (data) => {
-  let promptText = `Generate an answer key for chapter: ${data.chapter}.`;
-  if (data.questions && data.questions.length > 0) {
-    promptText = `Generate a detailed answer key strictly for the following worksheet questions based on chapter: ${data.chapter}. Only provide answers for these specific questions:\n\n${JSON.stringify(data.questions)}`;
+  let promptText = `Generate a detailed answer key for chapter: ${data.chapter}.`;
+
+  if (data.questions && Array.isArray(data.questions) && data.questions.length > 0) {
+    promptText = `CRITICAL TASK: Generate a comprehensive answer key ONLY for the ${data.questions.length} specific questions provided below.
+    
+CRITICAL CONSTRAINTS:
+1. Do NOT generate any extra questions or answers.
+2. If the input contains 5 questions, the output must contain exactly 5 answers.
+3. Use the relevant context from the book to provide accurate and detailed explanations.
+4. Maintain the exact same order and numbering as the provided questions.
+
+QUESTIONS TO PROVIDE ANSWERS FOR:
+${JSON.stringify(data.questions, null, 2)}`;
+  } else {
+    console.warn("⚠️ No questions array provided for answer key generation. Falling back to generic prompt.");
   }
+
+  console.log("🚀 ANSWER KEY GENERATION:", {
+    chapter: data.chapter,
+    worksheetId: data.worksheet_id,
+    questionCount: data.questions?.length || 0,
+    hasExplicitQuestions: !!(data.questions && data.questions.length > 0)
+  });
 
   const response = await api({
     url: ENDPOINTS.GENERATE_ANSWER_KEY,
@@ -231,15 +250,23 @@ export const deleteLessonPlan = async ({ uid, lesson_plan_id, lessonPlanId, id }
     }
   }
 
-  if (!actualUid || !actualLessonPlanId) throw new Error("uid and lesson_plan_id are required");
+  if (!actualUid || !actualLessonPlanId) {
+    console.error("❌ deleteLessonPlan: Missing required params", { actualUid, actualLessonPlanId });
+    throw new Error("uid and lesson_plan_id are required");
+  }
+
+  console.log("🗑️ Deleting lesson plan:", { actualUid, actualLessonPlanId });
 
   // Remove trailing slash to prevent CORS issues if endpoint has one (failsafe)
   const cleanBase = ENDPOINTS.DELETE_LESSON_PLAN.endsWith('/')
     ? ENDPOINTS.DELETE_LESSON_PLAN.slice(0, -1)
     : ENDPOINTS.DELETE_LESSON_PLAN;
 
+  const finalUrl = `${cleanBase}/${actualUid}/${actualLessonPlanId}`;
+  console.log("➡️ DELETE URL:", finalUrl);
+
   const response = await api({
-    url: `${cleanBase}/${actualUid}/${actualLessonPlanId}`,
+    url: finalUrl,
     method: "DELETE",
   });
   return response.data;

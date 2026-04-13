@@ -29,18 +29,41 @@ const TestPaperItem = ({ item, bookId, isNew, testPaperId }) => {
         ? itemWithId.paper
         : (dataMeta.paper && !Array.isArray(dataMeta.paper)) ? dataMeta.paper : {};
 
-    // Fetch answers externally if not embedded in item
-    const currentPaperId = itemWithId.test_paper_id || itemWithId.id || itemWithId.paper_id || dataMeta?.test_paper_id || dataMeta?.paper_id || dataMeta?.id || testPaperId;
+    // Resolve the current item ID (handle variations like paper_id, test_paper_id, id_paper)
+    const currentPaperId = itemWithId.test_paper_id || itemWithId.id || itemWithId.paper_id || itemWithId.id_paper || dataMeta?.test_paper_id || dataMeta?.paper_id || dataMeta?.id || testPaperId;
+    
+    // Fallback UID recovery from the item itself if context UID is missing
+    const activeUid = uid || itemWithId.uid || itemWithId.user_id || dataMeta?.uid || dataMeta?.user_id;
+
+    console.log("Answer Key - activeUid:", activeUid);
     console.log("Answer Key - currentPaperId:", currentPaperId);
 
-    const { data: fetchedAnswersData, isLoading: fetchingAnswers } = useGetTestPaperAnswers(currentPaperId, uid, {
-        enabled: !!showAnswers && !!uid && !!currentPaperId
+    const { data: fetchedAnswersData, isLoading: fetchingAnswers, error: fetchError } = useGetTestPaperAnswers(currentPaperId, activeUid, {
+        enabled: !!showAnswers && !!activeUid && !!currentPaperId
     });
 
-    const externalAnswers = fetchedAnswersData?.answer_key || fetchedAnswersData?.content?.answers || fetchedAnswersData?.answers || fetchedAnswersData?.content?.answer_key || [];
-    const embeddedAnswers = itemWithId.answer_key || dataMeta?.answer_key || [];
+    if (fetchError) console.error("Error fetching answer key:", fetchError);
+
+    // Dynamic normalization of answer data (handle direct arrays, .answer_key, .answers, .data)
+    const normalizeAnswers = (data) => {
+        if (!data) return [];
+        if (Array.isArray(data)) return data;
+        if (Array.isArray(data.answer_key)) return data.answer_key;
+        if (Array.isArray(data.answers)) return data.answers;
+        if (Array.isArray(data.data)) return data.data;
+        if (Array.isArray(data.content?.answers)) return data.content.answers;
+        if (Array.isArray(data.content?.answer_key)) return data.content.answer_key;
+        // If it's an object but not an array, check for any array property
+        const firstArrayKey = Object.keys(data).find(key => Array.isArray(data[key]));
+        if (firstArrayKey) return data[firstArrayKey];
+        return [];
+    };
+
+    const externalAnswers = normalizeAnswers(fetchedAnswersData);
+    const embeddedAnswers = normalizeAnswers(itemWithId.answer_key || itemWithId.answers || dataMeta?.answer_key || dataMeta?.answers);
+    
     const activeAnswers = externalAnswers.length > 0 ? externalAnswers : embeddedAnswers;
-    console.log("activeAnswers:", activeAnswers);
+    console.log("activeAnswers Resolved:", activeAnswers);
 
     const sections = itemWithId.sections || dataMeta.sections || [];
 
@@ -76,6 +99,60 @@ const TestPaperItem = ({ item, bookId, isNew, testPaperId }) => {
         console.log("Sample question object:", allQuestions[0]);
         console.log("Question object keys:", Object.keys(allQuestions[0] || {}));
     }
+
+    // Helper to render question specific UI (blanks, boxes, etc.)
+    const renderQuestionExtras = (question) => {
+        const type = String(question.question_type || question.type || "").toLowerCase();
+
+        if (type === 'mcq' || (question.options && question.options.length > 0)) {
+            return (
+                <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-3 pl-4">
+                    {question.options?.map((option, optIndex) => (
+                        <div key={optIndex} className="flex items-center gap-3 text-sm text-muted-foreground group">
+                            <span className="w-6 h-6 rounded-full border border-primary/20 bg-primary/5 flex items-center justify-center text-[10px] font-bold text-primary transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
+                                {String.fromCharCode(65 + optIndex)}
+                            </span>
+                            <span className="leading-relaxed">{option}</span>
+                        </div>
+                    ))}
+                </div>
+            );
+        }
+
+        if (type === 'fill_blank' || type === 'fill_in_the_blank') {
+            return (
+                <div className="mt-4 pl-4">
+                    <div className="w-full md:w-1/2 h-8 border-b-2 border-dashed border-muted-foreground/30 bg-muted/5 flex items-end px-2 pb-1 text-xs text-muted-foreground italic">
+                        Write your answer here...
+                    </div>
+                </div>
+            );
+        }
+
+        if (type === 'short' || type === 'short_answer') {
+            return (
+                <div className="mt-4 pl-4 space-y-2">
+                    <div className="w-full h-4 border-b border-muted-foreground/20"></div>
+                    <div className="w-full h-4 border-b border-muted-foreground/20"></div>
+                    <div className="w-full h-4 border-b border-muted-foreground/20"></div>
+                </div>
+            );
+        }
+
+        if (type === 'long' || type === 'long_answer') {
+            return (
+                <div className="mt-4 pl-4 space-y-4">
+                    <div className="w-full h-4 border-b border-muted-foreground/20"></div>
+                    <div className="w-full h-4 border-b border-muted-foreground/20"></div>
+                    <div className="w-full h-4 border-b border-muted-foreground/20"></div>
+                    <div className="w-full h-4 border-b border-muted-foreground/20"></div>
+                    <div className="w-full h-4 border-b border-muted-foreground/20"></div>
+                </div>
+            );
+        }
+
+        return null;
+    };
 
     return (
         <div className="lg:col-span-3">
@@ -182,46 +259,84 @@ const TestPaperItem = ({ item, bookId, isNew, testPaperId }) => {
                             </div>
                         </div>
 
-                        {/* Questions Section */}
-                        <div className="space-y-8">
-                            {allQuestions.length === 0 ? (
-                                <div className="text-center py-10 text-muted-foreground">
-                                    <p>No questions available. The test paper may still be generating.</p>
-                                </div>
-                            ) : (
-                                <div className="space-y-6">
+                        {/* Questions & Sections Section */}
+                        <div className="space-y-12">
+                            {sections.length > 0 ? (
+                                sections.map((section, sIndex) => (
+                                    <div key={sIndex} className="space-y-6">
+                                        {/* Section Header */}
+                                        <div className="flex items-baseline justify-between py-3 border-b-2 border-primary/10 mb-6 bg-primary/5 rounded-t-lg px-4">
+                                            <h4 className="text-lg font-bold text-primary flex items-center gap-2">
+                                                <span className="bg-primary text-primary-foreground w-6 h-6 rounded flex items-center justify-center text-sm">
+                                                    {String.fromCharCode(65 + sIndex)}
+                                                </span>
+                                                {section.section_title || section.title || `Section ${sIndex + 1}`}
+                                            </h4>
+                                            <span className="text-sm font-semibold text-muted-foreground bg-background px-3 py-1 rounded-full border border-border shadow-sm">
+                                                {section.section_marks || section.marks || ""}
+                                            </span>
+                                        </div>
+
+                                        {/* Section Questions */}
+                                        <div className="space-y-8 px-2">
+                                            {Array.isArray(section.questions) && section.questions.map((question, qIndex) => (
+                                                <div key={qIndex} className="space-y-3 pb-8 border-b border-border/30 last:border-0">
+                                                    <div className="flex gap-4">
+                                                        <span className="font-bold text-lg text-primary tabular-nums">
+                                                            {question.question_number || (qIndex + 1)}.
+                                                        </span>
+                                                        <div className="flex-1">
+                                                            <div className="prose prose-sm max-w-none text-foreground font-medium text-base mb-2">
+                                                                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                                                    {question.question_text || question.question || question.text || "Question text not available"}
+                                                                </ReactMarkdown>
+                                                            </div>
+
+                                                            {renderQuestionExtras(question)}
+
+                                                            <div className="mt-4 flex justify-end">
+                                                                <span className="inline-flex items-center gap-2 px-3 py-1 rounded-lg bg-primary/5 text-primary text-xs font-bold border border-primary/10">
+                                                                    {question.marks || "1"} Marks
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                ))
+                            ) : allQuestions.length > 0 ? (
+                                <div className="space-y-8">
                                     {allQuestions.map((question, index) => (
-                                        <div key={index} className="space-y-3 pb-6 border-b border-border/50 last:border-0">
-                                            <div className="flex gap-3">
-                                                <span className="font-semibold text-foreground">{index + 1}.</span>
+                                        <div key={index} className="space-y-3 pb-8 border-b border-border/30 last:border-0">
+                                            <div className="flex gap-4">
+                                                <span className="font-bold text-lg text-primary tabular-nums">
+                                                    {question.question_number || (index + 1)}.
+                                                </span>
                                                 <div className="flex-1">
-                                                    <div className="prose prose-sm max-w-none text-foreground font-medium">
+                                                    <div className="prose prose-sm max-w-none text-foreground font-medium text-base mb-2">
                                                         <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                                                            {question.question_text || question.question || question.text || "Question not available"}
+                                                            {question.question_text || question.question || question.text || "Question text not available"}
                                                         </ReactMarkdown>
                                                     </div>
 
-                                                    {question.options && Array.isArray(question.options) && question.options.length > 0 && (
-                                                        <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-2 pl-4">
-                                                            {question.options.map((option, optIndex) => (
-                                                                <p key={optIndex} className="flex items-center gap-2 text-sm text-muted-foreground">
-                                                                    <span className="w-5 h-5 rounded-full border border-border flex items-center justify-center text-[10px] font-medium">
-                                                                        {String.fromCharCode(65 + optIndex)}
-                                                                    </span>
-                                                                    {option}
-                                                                </p>
-                                                            ))}
-                                                        </div>
-                                                    )}
+                                                    {renderQuestionExtras(question)}
 
-                                                    <div className="mt-3 inline-flex items-center gap-2 px-3 py-1 rounded-lg bg-primary/10 text-primary text-xs font-medium">
-                                                        <span className="font-bold">Marks:</span>
-                                                        <span>{question.marks || "1"}</span>
+                                                    <div className="mt-4 flex justify-end">
+                                                        <span className="inline-flex items-center gap-2 px-3 py-1 rounded-lg bg-primary/5 text-primary text-xs font-bold border border-primary/10">
+                                                            {question.marks || "1"} Marks
+                                                        </span>
                                                     </div>
                                                 </div>
                                             </div>
                                         </div>
                                     ))}
+                                </div>
+                            ) : (
+                                <div className="text-center py-16 bg-muted/20 rounded-2xl border-2 border-dashed border-muted/50">
+                                    <FileText className="h-12 w-12 mx-auto text-muted-foreground/30 mb-4" />
+                                    <p className="text-muted-foreground font-medium italic">No questions available. Please refresh or regenerate.</p>
                                 </div>
                             )}
                         </div>

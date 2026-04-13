@@ -39,13 +39,11 @@ const formSchema = z.object({
   chapter: z.string().nonempty("Please select a chapter."),
 });
 
-// --- Lesson Plan Details Component ---
-
+// --- Lesson Plan Viewer Wrapper ---
 const LessonPlanDetails = ({ item, isNew }) => {
   if (!item) return null;
-
   return (
-    <div className="lg:col-span-3">
+    <div className="w-full">
       <LessonPlanItem item={item} isgenrated={isNew} />
     </div>
   );
@@ -235,8 +233,8 @@ export default function LessonPlanPage() {
     return sorted.map(item => ({
       ...item,
       id: item.id || item.lesson_plan_id,
-      title: item.title || item.chapter || "Lesson Plan",
-      book: item.book || item.book_name || ""
+      title: item.title || item?.content?.lesson_plan?.title || item?.chapter || "Lesson Plan",
+      book: item.book_name || item.book || ""
     }));
   }, [userLP]);
 
@@ -275,9 +273,10 @@ export default function LessonPlanPage() {
         };
       });
 
-      // Background sync to ensure everything is perfect
+      // Mark stale but do NOT immediately refetch to avoid showing stale backend data
       queryClient.invalidateQueries({
         queryKey: ['lp', uid],
+        refetchType: 'none'
       });
     },
     onError: (err) => {
@@ -291,12 +290,20 @@ export default function LessonPlanPage() {
   const { handleDelete: handleHistoryDelete, deletingId } = useHistoryDelete({
     useMutation: useDeleteLessonPlan,
     queryKeyToInvalidate: ['lp', uid],
-    idPropertyName: 'lessonPlanId',
+    idPropertyName: 'lesson_plan_id',
     onDeleteSuccess: (variables) => {
       setLessonPlanStatus("success");
-      const deletedId = variables.lessonPlanId || variables.lesson_plan_id;
-      if (selectedPlan && (selectedPlan.lesson_plan_id === deletedId || selectedPlan.id === deletedId)) {
+      const deletedId = String(variables.lesson_plan_id || "");
+
+      // ✅ Instantly revert to "New" form if the currently viewed plan is deleted
+      if (selectedPlan && (String(selectedPlan.lesson_plan_id) === deletedId || String(selectedPlan.id) === deletedId)) {
         setSelectedPlan(null);
+      }
+
+      // Also clear temporary generation data if it was showing
+      if (lessonPlanData && (String(lessonPlanData.lesson_plan_id) === deletedId || String(lessonPlanData.id) === deletedId)) {
+        setLessonPlanData(null);
+        setIsNewPlan(false);
       }
     }
   });
@@ -304,12 +311,22 @@ export default function LessonPlanPage() {
   const handleDeleteLP = useCallback((item) => {
     if (!uid) return;
 
+    // ✅ INSTANT UI REVERT: Reset view state immediately
+    const deletedId = String(item.lesson_plan_id || item.id || "");
+    if (selectedPlan && (String(selectedPlan.lesson_plan_id) === deletedId || String(selectedPlan.id) === deletedId)) {
+      setSelectedPlan(null);
+    }
+    if (lessonPlanData && (String(lessonPlanData.lesson_plan_id) === deletedId || String(lessonPlanData.id) === deletedId)) {
+      setLessonPlanData(null);
+      setIsNewPlan(false);
+    }
+
     // Perform actual deletion (hook handles optimistic cache removal thoroughly)
     handleHistoryDelete(item, { uid });
-  }, [uid, handleHistoryDelete]);
+  }, [uid, handleHistoryDelete, selectedPlan, lessonPlanData]);
 
   const handleGenerate = useCallback((book, chapter, weekCount = 2) => {
-    const bookId = book?.id || book?.book_id;
+    const bookId = book?.book_id || book?.id;
     console.log("handleGenerate called with:", {
       bookName: book?.book_name,
       bookId: bookId,

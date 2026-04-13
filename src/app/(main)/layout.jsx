@@ -31,9 +31,11 @@ export default function AppLayout({
           </SidebarContent>
         </Sidebar> */}
         <SidebarInset>
-          <div className="flex flex-col h-screen">
-            <Header />
-            <main className="flex-1 overflow-auto">{children}</main>
+          <div className="flex flex-col h-screen print:h-auto print:block">
+            <div className="print:hidden">
+              <Header />
+            </div>
+            <main className="flex-1 overflow-auto print:overflow-visible print:block print:w-full">{children}</main>
           </div>
         </SidebarInset>
       </SidebarProvider>

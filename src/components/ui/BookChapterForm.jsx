@@ -1,6 +1,7 @@
 "use client";
 
 import { useForm } from "react-hook-form";
+import { useEffect } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { Button } from "@/components/ui/button";
@@ -25,6 +26,7 @@ export function BookChapterForm({
   isLoading = false, // ✅ NEW: For showing loading state
   formSchema,
   defaultValues,
+  uid: externalUid,
 }) {
   const form = useForm({
     resolver: zodResolver(formSchema),
@@ -35,10 +37,21 @@ export function BookChapterForm({
   });
 
   const { user } = useAuth();
-  const uid = user?.user?.uid || user?.uid;
+  const uid = externalUid || user?.user?.uid || user?.uid;
   const { data: booksData, isLoading: bookLoading } = useGetBook(uid);
   const selectedBookId = form.watch("book");
-  const selectedBook = booksData?.content?.find((b) => (b.id || b.book_id) == selectedBookId); // Use loose equality for string/number comparison
+  const selectedBook = booksData?.content?.find((b) => (b.book_id || b.id) == selectedBookId); // Prioritize book_id for RAG backend compatibility
+
+  useEffect(() => {
+    if (selectedBook) {
+      console.log("🔍 [BookChapterForm] Selected Book Detail:", {
+        name: selectedBook.book_name,
+        book_id: selectedBook.book_id,
+        id: selectedBook.id,
+        uid_passed: uid
+      });
+    }
+  }, [selectedBook, uid]);
 
   const handleSubmit = (values) => {
     // ✅ Return full book object + form values
@@ -85,7 +98,7 @@ export function BookChapterForm({
                           </FormControl>
                           <SelectContent>
                             {booksData?.content?.map((book, index) => (
-                              <SelectItem key={book.id || book.book_id || index} value={book.id || book.book_id}>
+                              <SelectItem key={book.book_id || book.id || index} value={book.book_id || book.id}>
                                 {book.book_name}
                               </SelectItem>
                             ))}

@@ -4,7 +4,7 @@ const ENDPOINTS = {
   GENERATE_WORKSHEET: "/generate/worksheet/",
   GENERATE_LESSON_PLAN: "/generate/lesson_plan/",
   GENERATE_ANSWER_KEY: "/generate/answer_key/",
-  GENERATE_TEST_PAPER: "/api/test_paper/generate/",
+  GENERATE_TEST_PAPER: "/generate/test_paper/",
 
   // Book Management
   UPLOAD_BOOK: "/upload/book",
@@ -32,11 +32,11 @@ const ENDPOINTS = {
   DELETE_ANSWER_KEY: "/generate/answer_key/", // DELETE /generate/answer_key/{uid}/{answer_key_id}
 
   // Test Paper Management
-  GET_ALL_TEST_PAPERS: "/api/test_paper/list/",
-  GET_TEST_PAPER: "/api/test_paper/get/",
-  GET_TEST_PAPER_ANSWERS: "/api/test_paper/answers/",
-  DELETE_TEST_PAPER: "/api/test_paper/", // DELETE /api/test_paper/{uid}/{test_paper_id}
-  TEST_PAPER_TEST: "/api/test_paper/test/",
+  GET_ALL_TEST_PAPERS: "/test_paper/list/",
+  GET_TEST_PAPER: "/test_paper/get/",
+  GET_TEST_PAPER_ANSWERS: "/test_paper/answers/",
+  DELETE_TEST_PAPER: "/test_paper/", // DELETE /test_paper/{uid}/{test_paper_id}
+  TEST_PAPER_TEST: "/test_paper/test/",
 
   // Authentication
   LOGIN: "/auth/login",

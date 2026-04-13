@@ -323,8 +323,10 @@ export default function AnswerKeyPage() {
     queryKeyToInvalidate: ["all-answer-keys", uid],
     idPropertyName: "answer_key_id",
     onDeleteSuccess: (variables) => {
-      const deletedId = variables.answer_key_id || variables.id;
-      if (selectedItem && (selectedItem.id === deletedId || selectedItem.answer_key_id === deletedId)) {
+      const deletedId = String(variables.answer_key_id || variables.id || "");
+      
+      // ✅ Instantly revert to "New" form if the currently viewed key is deleted
+      if (selectedItem && (String(selectedItem.id) === deletedId || String(selectedItem.answer_key_id) === deletedId)) {
         setSelectedItem(null);
       }
     },
@@ -473,11 +475,20 @@ export default function AnswerKeyPage() {
       setSelectedItem(existingAnswerKey);
     } else {
       console.log("Generating new answer key for worksheet:", worksheetExists.id);
+      
+      // ✅ Extract questions correctly to pass to the generator
+      // This ensures the AI only generates answers for the questions actually in the worksheet
+      const wsContent = worksheetExists.content?.worksheet || worksheetExists.content || worksheetExists;
+      const questionsToAnswer = wsContent.questions || worksheetExists.questions || [];
+
       generateAnswerKey({
         worksheet_id: worksheetExists.id,
         book_id: values.book,
         uid: uid,
         chapter: values.chapter,
+        questions: questionsToAnswer,
+        subject: worksheetExists.subject || wsContent.subject,
+        class: worksheetExists.class || wsContent.class || wsContent.grade_level,
       });
     }
   };

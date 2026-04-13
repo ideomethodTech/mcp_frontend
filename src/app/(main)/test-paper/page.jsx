@@ -50,8 +50,6 @@ export default function TestPaperPage() {
 
   const { data: userTestPapers, isLoading: testPapersLoading, isFetching: testPapersFetching } = useUserTestPapers(uid, {
     enabled: !!uid,
-    onSuccess: () => setTestPaperStatus("success"),
-    onError: () => setTestPaperStatus("error"),
   });
 
   // Normalize history items so history.jsx can render title/chapter/book correctly.
@@ -95,7 +93,8 @@ export default function TestPaperPage() {
     });
 
     return sorted.map((item) => {
-      const meta = item.paper || {};
+      // Backend may return metadata at top level OR inside 'paper' OR inside 'data'
+      const meta = item.paper || item.data || item;
       return {
         ...item,
         // 'title' is used as the primary label in history.jsx
@@ -106,7 +105,7 @@ export default function TestPaperPage() {
         book: item.book || meta.book || item.subject || meta.subject || "",
         // ensure id is always present for selection/delete
         // The list API may return paper_id at the top level (not id)
-        id: item.id || item.paper_id || meta.paper_id || meta.id,
+        id: item.id || item.paper_id || meta.paper_id || meta.id || item.test_paper_id,
       };
     });
   }, [userTestPapers]);
@@ -115,8 +114,10 @@ export default function TestPaperPage() {
     if (!uid) return;
     if (testPapersLoading) {
       setTestPaperStatus("loading");
+    } else if (userTestPapers) {
+      setTestPaperStatus("success");
     }
-  }, [testPapersLoading, uid, setTestPaperStatus]);
+  }, [testPapersLoading, userTestPapers, uid, setTestPaperStatus]);
 
   const { data: bookData, isLoading: bookLoading } = useGetBook();
 
@@ -191,14 +192,14 @@ export default function TestPaperPage() {
     idPropertyName: "test_paper_id", // Backend expects test_paper_id
     onDeleteSuccess: (variables) => {
       setTestPaperStatus("success");
-      const deletedId = variables.test_paper_id;
+      const deletedId = String(variables.test_paper_id || "");
 
-      // Clear selected paper if it was the one deleted
-      if (selectedTestPaper && selectedTestPaper.id === deletedId) {
+      // ✅ Clear selected paper if it was the one deleted
+      if (selectedTestPaper && String(selectedTestPaper.id) === deletedId) {
         setSelectedTestPaper(null);
       }
-      // Clear new paper display if it was the one deleted
-      if (currentTestPaperId && currentTestPaperId === deletedId) {
+      // ✅ Clear new paper display if it was the one deleted
+      if (currentTestPaperId && String(currentTestPaperId) === deletedId) {
         setTestPaperData(null);
         setCurrentTestPaperId(null);
         setIsNewTestPaper(false);
@@ -214,7 +215,7 @@ export default function TestPaperPage() {
   const handleGenerate = useCallback((book, formData) => {
     if (!book || !formData) return;
 
-    const bookId = book.id || book.book_id || book.bookId;
+    const bookId = book.book_id || book.id || book.bookId;
     const currentUid = uid || book.uid || book.user_id;
 
     console.log("=== GENERATING TEST PAPER DEBUG ===");

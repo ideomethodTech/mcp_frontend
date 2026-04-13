@@ -62,25 +62,48 @@ const ActivityTag = ({ children }) => (
 const LessonPlanItem = ({ item, isgenrated = false }) => {
   console.log("LessonPlanItem rendered with:", { item, isgenrated });
 
-  // Robust data access: try direct access, then nested content, then specific property
-  const lesson_plan = isgenrated
-    ? (item?.lesson_plan || item?.content?.lesson_plan || item)
-    : (item?.content?.lesson_plan || item?.lesson_plan || item);
+  // 1. Extract the core lesson plan data with multiple fallbacks (Worksheet style)
+  const lpData = isgenrated
+    ? (item?.lesson_plan || item?.content?.lesson_plan || item?.content || item)
+    : (item?.content?.lesson_plan || item?.content || item?.lesson_plan || item);
 
-  console.log("Extracted lesson_plan:", lesson_plan);
+  // 2. Handle stringified JSON if necessary (Backend history often stores it this way)
+  let lesson_plan = lpData;
+  if (typeof lpData === 'string' && lpData.trim().startsWith('{')) {
+    try {
+      const parsed = JSON.parse(lpData);
+      lesson_plan = parsed.lesson_plan || parsed;
+    } catch (e) {
+      console.error("Failed to parse lesson plan content string", e);
+    }
+  }
+
+  // 3. Fallback normalization: if it's still wrapped (extra nesting)
+  if (lesson_plan && lesson_plan.lesson_plan && !lesson_plan.title) {
+    lesson_plan = lesson_plan.lesson_plan;
+  }
+
+  console.log("Extracted lesson_plan details:", lesson_plan);
 
   const handleExport = () => {
     window.print();
   };
 
-  if (!lesson_plan) {
+  // If we still don't have an object but have a message string, show it
+  if (!lesson_plan || typeof lesson_plan === 'string') {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-muted-foreground italic border border-dashed rounded-3xl">
         <FileText className="h-12 w-12 mb-4 opacity-20" />
-        <p>No lesson plan data available.</p>
+        <p>{typeof lesson_plan === 'string' ? lesson_plan : "No lesson plan data available."}</p>
       </div>
     );
   }
+
+  // 4. Safe property extraction with fallbacks
+  const title = lesson_plan.title || item.title || item.chapter || "Lesson Plan";
+  const subject = lesson_plan.subject || item.subject || "Subject";
+  const gradeLevel = lesson_plan.grade_level || item.grade_level || "Level";
+  const duration = lesson_plan.duration || item.duration || "Duration";
 
   return (
     <div className="max-w-5xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -91,24 +114,24 @@ const LessonPlanItem = ({ item, isgenrated = false }) => {
           <Sparkles className="h-32 w-32 text-primary" />
         </div>
 
-        <div className="relative flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div className="relative flex flex-col md:flex-row md:items-center justify-between gap-6 text-left">
           <div className="space-y-4">
             <h2 className="text-4xl font-extrabold tracking-tight text-foreground">
-              {lesson_plan?.title}
+              {title}
             </h2>
 
             <div className="flex flex-wrap gap-3">
               <Tag>
                 <BookOpen className="w-4 h-4" />
-                {lesson_plan?.subject || "Subject"}
+                {subject}
               </Tag>
               <Tag className="bg-accent/10 text-accent">
                 <GraduationCap className="w-4 h-4" />
-                {lesson_plan?.grade_level || "Level"}
+                {gradeLevel}
               </Tag>
               <Tag className="bg-muted text-muted-foreground border border-border">
                 <Clock className="w-4 h-4" />
-                {lesson_plan?.duration || "Duration"}
+                {duration}
               </Tag>
             </div>
           </div>
@@ -134,12 +157,12 @@ const LessonPlanItem = ({ item, isgenrated = false }) => {
           </CardHeader>
           <CardContent className="pt-6">
             <ul className="space-y-4">
-              {Array.isArray(lesson_plan?.learning_objectives) && lesson_plan.learning_objectives.map((objective, idx) => (
+              {Array.isArray(lesson_plan.learning_objectives) && lesson_plan.learning_objectives.map((objective, idx) => (
                 <li key={idx} className="flex gap-4 group">
                   <div className="flex-shrink-0 w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-bold transition-colors group-hover:bg-primary group-hover:text-white">
                     {idx + 1}
                   </div>
-                  <p className="text-muted-foreground leading-relaxed">{objective}</p>
+                  <p className="text-muted-foreground leading-relaxed text-left">{objective}</p>
                 </li>
               ))}
             </ul>
@@ -153,7 +176,7 @@ const LessonPlanItem = ({ item, isgenrated = false }) => {
           </CardHeader>
           <CardContent className="pt-6">
             <div className="flex flex-wrap gap-2.5">
-              {Array.isArray(lesson_plan?.key_vocabulary) && lesson_plan.key_vocabulary.map((word, idx) => (
+              {Array.isArray(lesson_plan.key_vocabulary) && lesson_plan.key_vocabulary.map((word, idx) => (
                 <Tag key={idx} className="bg-accent/5 text-accent border border-accent/20 px-4 py-2 text-base">
                   {word}
                 </Tag>
@@ -170,7 +193,7 @@ const LessonPlanItem = ({ item, isgenrated = false }) => {
         </CardHeader>
         <CardContent className="p-0">
           <Accordion type="single" collapsible className="w-full">
-            {Array.isArray(lesson_plan?.activities) && lesson_plan.activities.map((activity, idx) => (
+            {Array.isArray(lesson_plan.activities) && lesson_plan.activities.map((activity, idx) => (
               <AccordionItem
                 key={idx}
                 value={`activity-${idx}`}
@@ -192,7 +215,7 @@ const LessonPlanItem = ({ item, isgenrated = false }) => {
                 </AccordionTrigger>
 
                 <AccordionContent className="pb-8 pt-2 space-y-8 animate-in fade-in slide-in-from-top-2 duration-300">
-                  <div className="grid gap-8 md:grid-cols-2">
+                  <div className="grid gap-8 md:grid-cols-2 text-left">
                     {/* Left Column */}
                     <div className="space-y-6">
                       <div className="p-5 rounded-2xl bg-muted/30 border border-border/50">
@@ -226,7 +249,7 @@ const LessonPlanItem = ({ item, isgenrated = false }) => {
 
                   {/* Materials Tag Strip */}
                   {Array.isArray(activity.materials_used) && activity.materials_used.length > 0 && (
-                    <div className="pt-4 border-t border-border/50">
+                    <div className="pt-4 border-t border-border/50 text-left">
                       <div className="flex items-center gap-2 mb-4">
                         <Package className="h-4 w-4 text-muted-foreground" />
                         <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Required Assets</span>
@@ -248,7 +271,7 @@ const LessonPlanItem = ({ item, isgenrated = false }) => {
       </Card>
 
       {/* Assessments & Strategies Grid */}
-      <div className="grid gap-6 md:grid-cols-2 pb-10">
+      <div className="grid gap-6 md:grid-cols-2 pb-10 text-left">
         {/* Assessment Section */}
         <Card className="border-none shadow-[var(--shadow-md)] bg-card overflow-hidden">
           <CardHeader className="bg-muted/30 pb-4">
@@ -260,7 +283,7 @@ const LessonPlanItem = ({ item, isgenrated = false }) => {
                 <div className="w-1.5 h-6 bg-primary rounded-full" /> Formative
               </h4>
               <div className="grid grid-cols-1 gap-2 pl-3">
-                {Array.isArray(lesson_plan?.assessment_methods?.formative) && lesson_plan.assessment_methods.formative.map((m, i) => (
+                {Array.isArray(lesson_plan.assessment_methods?.formative) && lesson_plan.assessment_methods.formative.map((m, i) => (
                   <div key={i} className="flex items-center gap-3 text-sm text-muted-foreground">
                     <div className="w-1.5 h-1.5 rounded-full bg-primary/40" />
                     {m}
@@ -276,7 +299,7 @@ const LessonPlanItem = ({ item, isgenrated = false }) => {
                 <div className="w-1.5 h-6 bg-accent rounded-full" /> Summative
               </h4>
               <div className="grid grid-cols-1 gap-2 pl-3">
-                {Array.isArray(lesson_plan?.assessment_methods?.summative) && lesson_plan.assessment_methods.summative.map((m, i) => (
+                {Array.isArray(lesson_plan.assessment_methods?.summative) && lesson_plan.assessment_methods.summative.map((m, i) => (
                   <div key={i} className="flex items-center gap-3 text-sm text-muted-foreground">
                     <div className="w-1.5 h-1.5 rounded-full bg-accent/40" />
                     {m}
@@ -300,7 +323,7 @@ const LessonPlanItem = ({ item, isgenrated = false }) => {
                   <h4 className="font-bold text-sm text-primary uppercase tracking-tight">Advanced Track</h4>
                 </div>
                 <ul className="space-y-2 pl-6 list-disc text-sm text-muted-foreground">
-                  {Array.isArray(lesson_plan?.differentiation_strategies?.for_advanced_students) && lesson_plan.differentiation_strategies.for_advanced_students.map((s, i) => (
+                  {Array.isArray(lesson_plan.differentiation_strategies?.for_advanced_students) && lesson_plan.differentiation_strategies.for_advanced_students.map((s, i) => (
                     <li key={i}>{s}</li>
                   ))}
                 </ul>
@@ -312,7 +335,7 @@ const LessonPlanItem = ({ item, isgenrated = false }) => {
                   <h4 className="font-bold text-sm text-accent uppercase tracking-tight">Supports</h4>
                 </div>
                 <ul className="space-y-2 pl-6 list-disc text-sm text-muted-foreground">
-                  {Array.isArray(lesson_plan?.differentiation_strategies?.for_struggling_students) && lesson_plan.differentiation_strategies.for_struggling_students.map((s, i) => (
+                  {Array.isArray(lesson_plan.differentiation_strategies?.for_struggling_students) && lesson_plan.differentiation_strategies.for_struggling_students.map((s, i) => (
                     <li key={i}>{s}</li>
                   ))}
                 </ul>
@@ -331,7 +354,7 @@ const LessonPlanItem = ({ item, isgenrated = false }) => {
             </CardHeader>
             <CardContent className="pt-4 pb-6">
               <p className="text-white/90 text-sm leading-relaxed font-medium italic">
-                "{lesson_plan?.homework_assignment}"
+                "{lesson_plan.homework_assignment}"
               </p>
             </CardContent>
           </Card>
